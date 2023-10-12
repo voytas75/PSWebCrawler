@@ -21,7 +21,7 @@ ModuleVersion = '0.0.1'
 GUID = 'bf2af5e0-fc62-44df-bda3-3aeae1b02445'
 
 # Author of this module
-Author = 'Wojciech Napierała'
+Author = 'Wojciech Napierala'
 
 # Company or vendor of this module
 CompanyName = 'Script Savvy Ninja'

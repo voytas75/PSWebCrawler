@@ -1,15 +1,12 @@
-[CmdletBinding()]
-param(
-    [Parameter(Mandatory, HelpMessage = "Enter url of site")]
-    [ValidateNotNullOrEmpty()]
-    [string]$url,
-    [switch]$ShowWebData,
-    [int]$depth = 1
-)
-
-# Import the necessary .NET libraries
-#Add-Type -Path "D:\dane\voytas\Dokumenty\visual_studio_code\github\htmlagilitypack.1.11.52\lib\netstandard2.0\HtmlAgilityPack.dll"
-Add-Type -Path "D:\dane\voytas\Dokumenty\visual_studio_code\github\htmlagilitypack.1.11.54\lib\netstandard2.0\HtmlAgilityPack.dll"
+function Get-PSWCBanner {
+    param (
+        
+    )
+   
+    $banner = get-content -Path "${PSScriptRoot}\images\PSWCbanner.txt"
+    Write-Output $banner
+    return
+}
 
 # Function to crawl a URL
 function Start-Crawl {
@@ -469,6 +466,311 @@ function Get-SchemeAndDomain {
     return $schemeAndDomain
 }
 
+function New-PSWCTempFeedFolder {
+    param (
+        [string]$FolderName
+    )
+    try {
+        $tempfolder = [System.IO.Path]::GetTempPath()
+        $tempfolderFullName = Join-Path $tempfolder $FolderName
+        if (-not (Test-Path -Path $tempfolderFullName)) {
+            [void](New-Item -Path $tempfolderFullName -ItemType Directory)
+            Write-Verbose "Feed temp '$tempfolderFullName' folder was created successfully."
+        }
+        return $tempfolderFullName
+    }
+    catch {
+        Write-Error "An error creating '$tempfolderFullName': $_"
+    }
+}
+
+function Open-PSWCExplorer {
+    param (
+        [string]$PathToOpen
+    )
+    if (test-path $PathToOpen) {
+        try {
+            Start-Process explorer.exe -ArgumentList $PathToOpen
+        }
+        catch {
+            Write-Error "An error starting process: $_"
+        }
+    }
+    else {
+        Write-Information -InformationAction Continue -MessageData "Cache folder does not exist."
+    }
+}
+
+function Start-PSWebCrawler {
+    <#
+.SYNOPSIS
+    Performs various operations related to web crawler.
+
+.DESCRIPTION
+    The 'WebCrawler' function allows you to process and web crawl.
+
+
+.PARAMETER SavePath
+    Specifies the path to save the feed data. This parameter is mandatory when 'AddFeed' is used.
+
+.PARAMETER Timeout
+    Specifies the timeout value for URL accessibility testing. This parameter is optional and only applicable when 'AddFeed' is used.
+#>
+    [CmdletBinding(DefaultParameterSetName = 'Default')]
+    param (
+        [Parameter(ParameterSetName = 'ValidateFeedListFromFilename', Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ValidateFeedListFilename,
+
+        [Parameter(ParameterSetName = 'ValidateFeedListFromFilename')]
+        [switch]$SaveToTempFeedFolder,
+
+        [Parameter(ParameterSetName = 'TestFeedFromUrl', Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [ValidatePattern('^https?://.*')]
+        [string]$TestFeedUrl,
+
+        [Parameter(ParameterSetName = 'TestFeedFromUrl', Mandatory = $false)]
+        [int]$LastDaysElements = 0,
+
+        [Parameter(ParameterSetName = 'RemoveDuplicateCSVRows', Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]$InputPath,
+        [Parameter(ParameterSetName = 'RemoveDuplicateCSVRows', Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]$OutputPath,
+
+        [Parameter(ParameterSetName = 'TestUrlFormat', Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [ValidatePattern('^https?://.*')]
+        [string]$TestUrlFormat,
+
+        [Parameter(ParameterSetName = 'ShowNews', Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [ValidatePattern('^https?://.*')]
+        [string]$ShowNewsUrlFeed,
+        [Parameter(ParameterSetName = 'ShowNews', Mandatory = $false)]
+        [Parameter(ParameterSetName = 'ShowNewsfromFeed', Mandatory = $false)]
+        [int]$LastNewsCount = 10,
+
+        [Parameter(ParameterSetName = 'ShowNewsfromFeed', Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ShowNewsfromFeed,
+
+        [Parameter(ParameterSetName = 'ShowNewsfromFeedfileRandom', Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [switch]$ShowNewsfromFeedfileRandom,
+
+        [Parameter(ParameterSetName = 'AddFeed', Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [ValidatePattern('^https?://.*')]
+        [string]$FeedUrl,
+        [Parameter(ParameterSetName = 'AddFeed', Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]$SavePath,
+        [Parameter(ParameterSetName = 'AddFeed', Mandatory = $false)]
+        [int]$Timeout = 5,
+
+        [Parameter(ParameterSetName = 'SaveFeed', Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [ValidatePattern('^https?://.*')]
+        [string]$SaveFeedUrl,
+        [Parameter(ParameterSetName = 'SaveFeed', Mandatory = $false)]
+        [int]$SaveFeedTimeout = 5,
+
+        [Parameter(ParameterSetName = 'GetSavedFeed', Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]$GetSavedFeedFileFullName,
+
+        [Parameter(ParameterSetName = 'ShowCacheFolder')]
+        [switch]$ShowCacheFolder,
+
+        [Parameter(ParameterSetName = 'GetSavedFeeds', Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [switch]$GetSavedFeeds
+        
+    )
+    Get-PSWCBanner
+    switch ($PSCmdlet.ParameterSetName) {
+        'ValidateFeedListFromFilename' {
+            # Process data from a file
+            Write-Verbose "Processing data from file: ${ValidateFeedListFilename}"
+            $newsDirectory = $PSScriptRoot
+
+            #$repositoryListPath = "${newsDirectory}\${ValidateFeedListFilename}"
+            $repositoryListPath = ${ValidateFeedListFilename}
+
+            $cryptoRssRepos = Find-PSFHCryptoRssRepositories -ListPath $repositoryListPath
+
+            foreach ($repo in $cryptoRssRepos) {
+
+                $feedData = @{}
+
+                # Prompt the user for an RSS URL
+                $rssUrl = $repo
+
+                # Validate the URL format
+                if (Test-PSFHUrlFormat $rssUrl) {
+                    # Fetch the RSS feed
+                    [Microsoft.PowerShell.Commands.HtmlWebResponseObject]$responseFeed = Get-PSFHFeed $rssUrl
+                    #$rssFeed.rss
+                    if ($responseFeed) {
+                        # Determine the type of feed and its version
+                        #Get-FeedTypeAndVersion $responseFeed
+
+                        $feedData = Get-PSFHFeedInfo $rssUrl
+
+                        # Check the URL accessibility
+                        #$feedData | Add-Member -TypeName noteproperty - Test-PSFHUrlAccessibility $rssUrl -timeout 2
+                        $feedData | Add-Member -MemberType NoteProperty -Name "UrlAccessibility" -Value (Test-PSFHUrlAccessibility $rssUrl -timeout 2)
+                        #$feedData += Test-PSFHRssFeedValidity $rssUrl
+                        $feedData | Add-Member -MemberType NoteProperty -Name "RssFeedValidity" -Value (Test-PSFHRssFeedValidity $rssUrl)
+                        # Analyze the feed
+                        #$feedData += Invoke-PSFHFeedAnalysis $responseFeed
+                        $feedData | Add-Member -MemberType NoteProperty -Name "FeedAnalysis" -Value (Invoke-PSFHFeedAnalysis $responseFee)
+                        if ($SaveToTempFeedFolder.IsPresent) {
+                            try {
+                                #Start-FeedNewsTool -SaveFeedUrl $rssUrl -SaveFeedTimeout 10
+                                Save-PSFHFeed -Url $rssUrl -Timeout 10
+                            }
+                            catch {
+                                $feedData
+                                continue
+                            }
+                        }
+                        $feedData
+                    } 
+                }
+                else {
+                    Write-Host "Test '$rssUrl' failed" -ForegroundColor DarkRed
+                }
+            }
+            break
+        }
+        'TestFeedFromUrl' {
+            # Process data from a URL
+            Write-Verbose "Processing data from URL: ${TestFeedUrl}"
+            if ((Test-PSFHUrlFormat -Url $TestFeedUrl) -and (Test-PSFHUrlAccessibility -Url $TestFeedUrl -Timeout 5)) {
+                Write-Verbose "Test URL: OK"
+                $objectfeed = Get-PSFHFeedInfo $TestFeedUrl
+                [void](Save-PSFHFeed -Url $TestFeedUrl)
+                #$objectfeed | Format-List *
+                $objectfeed
+            }
+            else {
+                Write-Verbose "Test URL: Failed"
+                break
+            }
+
+            break
+        }
+        'TestUrlFormat' {
+            Test-PSFHUrlFormat -Url $TestUrlFormat
+            break
+        }
+        'RemoveDuplicateCSVRows' {
+            # Process data in file - remove duplicates
+            Write-Verbose "Processing data from file: ${InputPath} to file: ${OutputPath}"
+            Remove-PSFHDuplicateCSVRows -InputPath $InputPath -OutputPath $OutputPath
+            break
+        }
+        'ShowNews' {
+            Get-PSFHFeedNews -RSSUrl $ShowNewsUrlFeed -LastItems $LastNewsCount
+
+            break
+        }
+        'ShowNewsfromFeed' {
+            $feedfromfile = Get-PSFHFeedDataFromFile -FeedFileFullName $ShowNewsfromFeed
+            Get-PSFHFeedNews -Feed $feedfromfile -LastItems $LastNewsCount
+            break
+        }
+        'ShowNewsfromFeedfileRandom' {
+            #$tempfolder = [System.IO.Path]::GetTempPath()
+            $feednewstoolfolder = $FolderName
+            #$feednewstoolfolderFullName = Join-Path $tempfolder $feednewstoolfolder
+            $tempFeedFolder = New-PSFHTempFeedFolder -FolderName $feednewstoolfolder
+            write-host "News feed folder: ""$tempFeedFolder""" -ForegroundColor DarkYellow
+            $RandomFeedFileFullName = Get-PSFHRandomFile -FolderPath $tempFeedFolder -Count 1
+            if ($RandomFeedFileFullName.count -gt 0) {
+                $feedfromfile = Get-PSFHFeedDataFromFile -FeedFileFullName $RandomFeedFileFullName
+                Get-PSFHFeedNews -Feed $feedfromfile -LastItems $LastNewsCount
+            }
+            break
+        }
+        'AddFeed' {
+            Write-Verbose "Adding feed: ${FeedUrl}"
+            if ((Test-PSFHUrlFormat -Url $FeedUrl) -and (Test-PSFHUrlAccessibility -Url $FeedUrl -Timeout $Timeout)) {
+                $feedData = Get-PSFHFeedInfo -Url $FeedUrl
+
+                if ($feedData) {
+                    Write-Verbose "Exporting feed data to CSV"
+                    Export-PSFHFeedCSV -FeedData $feedData -OutPath $SavePath
+                }
+            }
+            break
+        }
+        'SaveFeed' {
+            Write-Verbose "Saving feed: ${SaveFeedUrl}"
+            $savefeedout = Save-PSFHFeed -Url $SaveFeedUrl -Timeout $SaveFeedTimeout
+            Write-Verbose "Save feed output: ${savefeedout}"
+            break
+        }
+        'GetSavedFeed' {
+            Get-PSFHFeedDataFromFile -FeedFileFullName $GetSavedFeedFileFullName
+            break
+        }
+        'GetSavedFeeds' {
+            # lists all files form cache folder
+            if ((Test-Path -Path $feednewstoolfolderFullName)) {
+                foreach ($currentItemName in (Get-ChildItem -Path $feednewstoolfolderFullName)) {
+                    Write-Host $currentItemName.FullName
+                }
+            } else {
+                Write-Host "No save feeds."
+            }
+            break
+        }
+        'ShowCacheFolder' {
+            Open-PSFHExplorer -PathToOpen $feednewstoolfolderFullName
+        }
+        default {
+            $helpinfo = @'
+How to use, examples:
+[1] PSFeedHandler -TestFeedUrl "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf"
+[2] PSFeedHandler -InputPath .\News\feed_info2.csv -OutputPath .\News\feed_info3.csv
+[3] PSFeedHandler -TestUrlFormat "http://gigaom.com/feed/"
+[4] PSFeedHandler -ShowNewsUrlFeed "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -LastNewsCount 5
+[5] PSFeedHandler -ShowNewsfromFeed 'C:\Users\voytas\AppData\Local\Temp\FeedNewsTool\allafrica_com_tools_headlines_rdf_latest_headlines_rdf.feed.tmp'
+[6] PSFeedHandler -ShowNewsfromFeedfileRandom
+[7] PSFeedHandler -FeedUrl "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -SavePath .\News\test.txt -Timeout 10
+[8] PSFeedHandler -SaveFeedUrl "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -SaveFeedTimeout 10
+[9] PSFeedHandler -GetSavedFeedFileFullName 'C:\Users\voytas\AppData\Local\Temp\FeedNewsTool\allafrica_com_tools_headlines_rdf_latest_headlines_rdf.feed.tmp'
+[10] PSFeedHandler -GetSavedFeeds
+[11] PSFeedHandler -ValidateFeedListFilename "repository_list.txt" -SaveToTempFeedFolder
+[11] PSFeedHandler -ShowCacheFolder  
+
+
+
+'@
+            Write-Output $helpinfo
+            break
+        }
+    }
+}
+
+
+
+
+
+
+
+
+Clear-Host
+
+$FolderName = "WebCrawlerTool"
+$tempfolder = [System.IO.Path]::GetTempPath()
+$WCtoolfolderFullName = Join-Path $tempfolder $FolderName
+
 
 
 
@@ -554,3 +856,43 @@ Write-Host "sprawdzone domeny:"
 $script:historyDomains | Select-Object -Unique  | Sort-Object
 
 $ArrayData | Where-Object { $_.Domain } | select depth, url, domain | Sort-Object url, domain
+
+
+
+
+
+
+
+
+
+# Import the necessary .NET libraries
+#Add-Type -Path "D:\dane\voytas\Dokumenty\visual_studio_code\github\htmlagilitypack.1.11.52\lib\netstandard2.0\HtmlAgilityPack.dll"
+Add-Type -Path "D:\dane\voytas\Dokumenty\visual_studio_code\github\htmlagilitypack.1.11.54\lib\netstandard2.0\HtmlAgilityPack.dll"
+
+# Switch to using TLS 1.2
+[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+# Get the name of the current module
+$ModuleName = "PSWebCrawler"
+
+# Get the installed version of the module
+$ModuleVersion = [version]"0.0.1"
+
+# Find the latest version of the module in the PSGallery repository
+$LatestModule = Find-Module -Name $ModuleName -Repository PSGallery
+
+try {
+    if ($ModuleVersion -lt $LatestModule.Version) {
+        Write-Host "An update is available for $($ModuleName). Installed version: $($ModuleVersion). Latest version: $($LatestModule.Version)." -ForegroundColor Red
+    } 
+}
+catch {
+    Write-Error "An error occurred while checking for updates: $_"
+}
+
+Set-Alias -Name "PSWC" -Value Start-PSWebCrawler
+Set-Alias -Name "PSWebCrawler" -Value Start-PSWebCrawler
+
+Write-Host "Welcome to PSWebCrawler!" -ForegroundColor DarkYellow
+Write-Host "Thank you for using PSWC ($($moduleVersion))." -ForegroundColor Yellow
+#Write-Host "Some important changes and informations that may be of interest to you:" -ForegroundColor Yellow
+#Write-Host "- You can filter the built-in snippets (category: 'Example') by setting 'ShowExampleSnippets' to '`$false' in config. Use: 'Save-PAFConfiguration -settingName ""ShowExampleSnippets"" -settingValue `$false'" -ForegroundColor Yellow
