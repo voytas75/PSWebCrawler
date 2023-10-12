@@ -1,8 +1,5 @@
 function Get-PSWCBanner {
-    param (
-        
-    )
-   
+    param ()
     $banner = get-content -Path "${PSScriptRoot}\images\PSWCbanner.txt"
     Write-Output $banner
     return
@@ -29,7 +26,7 @@ function Start-PSWCCrawl {
     if (-not (Test-Path -Path $outputFolder)) {
         [void](New-Item -Path $outputFolder -ItemType Directory)
     }
-    $outputFile = join-path $outputFolder -ChildPath (Clean-WebsiteURL -url $url)
+    $outputFile = join-path $outputFolder -ChildPath (Set-PSWCCleanWebsiteURL -url $url)
     
     if (-not $script:visitedUrls) {
         $script:visitedUrls = @{}
@@ -43,14 +40,14 @@ function Start-PSWCCrawl {
     #$script:historyDomains
 
     if ($onlyDomains.IsPresent) {
-        $url = Get-SchemeAndDomain -url $url
-        #write-verbose "create `$url as Get-SchemeAndDomain -url '$url'"
+        $url = Get-PSWCSchemeAndDomain -url $url
+        #write-verbose "create `$url as Get-PSWCSchemeAndDomain -url '$url'"
     }
 
     # If the URL has not already been visited, add it to the list of visited URLs and crawl it
     # sprawdzamy takze ddwiedzone domeny, zadziala nawet jak bedziemy uzywac url z query path
-    #write-verbose "(-not `$visitedUrls.ContainsKey($url) -and -not ((Get-SchemeAndDomain -url $url) -in `$script:historydomains)): ($(-not $visitedUrls.ContainsKey($url) -and -not ((Get-SchemeAndDomain -url $url) -in $script:historydomains)))"
-    #if (-not $visitedUrls.ContainsKey($url) -and -not ((Get-SchemeAndDomain -url $url) -in $script:historydomains)) {
+    #write-verbose "(-not `$visitedUrls.ContainsKey($url) -and -not ((Get-PSWCSchemeAndDomain -url $url) -in `$script:historydomains)): ($(-not $visitedUrls.ContainsKey($url) -and -not ((Get-PSWCSchemeAndDomain -url $url) -in $script:historydomains)))"
+    #if (-not $visitedUrls.ContainsKey($url) -and -not ((Get-PSWCSchemeAndDomain -url $url) -in $script:historydomains)) {
     #    write-verbose "(-not `$visitedUrls.ContainsKey($url))): ($(-not $visitedUrls.ContainsKey($url))"
     #    if (-not $visitedUrls.ContainsKey($url)) {
     #write-verbose "(-not (`$url -in `$script:historydomains)): $(-not ($url -in $script:historydomains))"
@@ -58,12 +55,12 @@ function Start-PSWCCrawl {
     #write-verbose "`$script:ArrayData.url.Contains($url): $($script:ArrayData.url.Contains($url))"
 
     if ($script:ArrayData.url.Contains($url)) {
-        #if (-not $visitedUrls.ContainsKey($url) -and -not ((Get-SchemeAndDomain -url $url) -in $script:historydomains)) {
+        #if (-not $visitedUrls.ContainsKey($url) -and -not ((Get-PSWCSchemeAndDomain -url $url) -in $script:historydomains)) {
         #$visitedUrls[$url] = $true
 
         try {
             # Send an HTTP GET request to the URL
-            $response = Get-HttpResponse -url $url -userAgent $userAgent -timeout $timeoutSec
+            $response = Get-PSWCHttpResponse -url $url -userAgent $userAgent -timeout $timeoutSec
             #$response | ConvertTo-Json
 
             # Check if the request was successful
@@ -75,8 +72,8 @@ function Start-PSWCCrawl {
 
                 # Save the headers to a file if specified
                 if ($outputFile -ne "") {
-                    $headersFile = (Join-Path -Path $outputFolder -ChildPath $(Clean-WebsiteURL($url))) + ".headers.json"
-                    Set-Content -Path $headersFile -Value $responseHeaders
+                    #$headersFile = (Join-Path -Path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -Url $url)) + ".headers.json"
+                    Set-Content -Path $outputFile+".headers.json" -Value $responseHeaders
                     #write-verbose "Save the headers to a file for '$url' to '$headersFile'"
                 }
 
@@ -84,7 +81,7 @@ function Start-PSWCCrawl {
                 $script:historyDomains += $url
 
                 # Extract all anchor elements from the HTML document
-                $anchorElements = Get-DocumentElements -htmlContent $htmlContent -Node "//a"
+                $anchorElements = Get-PSWCDocumentElements -htmlContent $htmlContent -Node "//a"
                 <# $anchorElements:
 Attributes           : {href, class}
 ChildNodes           : {#text}
@@ -139,11 +136,10 @@ Depth                : 0
                                 # immediately returns the program flow to the top of a program loop
                                 continue
                             }
-    
                             # Add the link to the output file, if specified
                             if ($outputFile -ne "") {
-                                $hrefFile = (Join-Path -Path $outputFolder -ChildPath (Clean-WebsiteURL($url))) + ".hrefs.txt"
-                                Add-Content -Path $hrefFile -Value $href
+                                #$hrefFile = (Join-Path -Path $outputFolder -ChildPath (Set-PSWCCleanWebsiteURL -Url $url)) + ".hrefs.txt"
+                                Add-Content -Path $hrefFile+".hrefs.txt" -Value $href
                             }
                             
                             # Get the domain of the linked URL
@@ -169,8 +165,8 @@ Depth                : 0
                         else {
                             # Add the link to the output file, if specified
                             if ($outputFile -ne "") {
-                                $hrefFile = (Join-Path -Path $outputFolder -ChildPath $(Clean-WebsiteURL($url))) + ".hrefs.anchorElement.txt"
-                                Add-Content -Path $hrefFile -Value $href
+                                #$hrefFile = (Join-Path -Path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -Url $url)) + ".hrefs.anchorElement.txt"
+                                Add-Content -Path $outputFile+".hrefs.anchorElement.txt" -Value $href
                             }
                         }
                     }
@@ -189,7 +185,7 @@ Depth                : 0
                         # Filter out non-HTTP links
                         if ($href -match "^https?://") {
                             #Write-Verbose "  processing '$href'..."
-                            $hrefDomain = Get-SchemeAndDomain -url $href
+                            $hrefDomain = Get-PSWCSchemeAndDomain -url $href
 
 
                             if ($depth -eq 0) {
@@ -200,8 +196,8 @@ Depth                : 0
     
                             # Add the link to the output file, if specified
                             if ($outputFile -ne "") {
-                                $hrefFile = (Join-Path -Path $outputFolder -ChildPath $(Clean-WebsiteURL($url))) + ".hrefs.txt"
-                                Add-Content -Path $hrefFile -Value $href
+                                #$hrefFile = (Join-Path -Path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -Url $url)) + ".hrefs.txt"
+                                Add-Content -Path $outputFile+".hrefs.txt" -Value $href
                                 #Write-Verbose "  processing '$href'...saving to '$hrefFile'"
                             }
                             
@@ -211,7 +207,8 @@ Depth                : 0
                             #if ($script:ArrayData.domain.contains($hrefdomain)){
                             #    continue
                             #}
-                            Write-Verbose "  [$depth] ['$url' - '$hrefdomain']"
+                            
+                            #Write-Verbose "  [$depth] ['$url' - '$hrefdomain']"
 
                             #Write-Verbose "  ('$linkedDomain' -ne '$currentDomain' -and -not `$noCrawlExternalLinks): $($linkedDomain -ne $currentDomain -and -not $noCrawlExternalLinks)"
                             # Check if the linked domain is different from the current domain
@@ -219,6 +216,7 @@ Depth                : 0
                                 #Write-Verbose "  processing '$hrefdomain'..."
                                 #$script:ArrayData.url.contains($hrefdomain)
                                 if (-not ($script:ArrayData.url.contains($hrefdomain))) {
+                                    Write-Host "  [$depth] ['$url' - '$hrefdomain']"
                                     $thisobject = [PSCustomObject] @{
                                         Depth  = $depth
                                         Url    = $hrefDomain
@@ -246,7 +244,7 @@ Depth                : 0
                                     }
                                     $script:ArrayData += $thisobject
                                 }
-                                Start-Crawl -url $hrefDomain -depth $newDepth -timeoutSec $timeoutSec -outputFile $outputFile -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains -verbose:$verbose -debug:$debug
+                                Start-PSWCCrawl -url $hrefDomain -depth $newDepth -timeoutSec $timeoutSec -outputFile $outputFile -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains -verbose:$verbose -debug:$debug
     
                             }
                             else {
@@ -276,7 +274,7 @@ Depth                : 0
                         else {
                             # Add the link to the output file, if specified
                             if ($outputFile -ne "") {
-                                $hrefFile = (Join-Path -Path $outputFolder -ChildPath (Clean-WebsiteURL($url))) + ".hrefs.anchorElement.txt"
+                                $hrefFile = (Join-Path -Path $outputFolder -ChildPath (Set-PSWCCleanWebsiteURL -Url $url)) + ".hrefs.anchorElement.txt"
                                 Add-Content -Path $hrefFile -Value $href
                                 #Write-Verbose "  processing '$href'...saving to '$hrefFile'"
                             }
@@ -391,14 +389,14 @@ function Set-PSWCCleanWebsiteURL {
     Cleans an array of website URLs by removing "http://" or "https://://" and replacing non-letter and non-digit characters with underscores.
 
 .DESCRIPTION
-    The Clean-WebsiteURL function takes an array of website URLs as input, removes "http://" or "https://://" from each URL, and replaces all characters that are not digits or letters with underscores. It then returns an array of cleaned URLs.
+    The Set-PSWCCleanWebsiteURL function takes an array of website URLs as input, removes "http://" or "https://://" from each URL, and replaces all characters that are not digits or letters with underscores. It then returns an array of cleaned URLs.
 
 .PARAMETER Urls
     Specifies an array of website URLs to be cleaned.
 
 .EXAMPLE
     $websiteUrls = @("https://www.example.com?param=value", "http://another-example.com")
-    $cleanedUrls = Clean-WebsiteURL -Urls $websiteUrls
+    $cleanedUrls = fuction clean -Urls $websiteUrls
     $cleanedUrls | ForEach-Object {
         Write-Host "Cleaned URL: $_"
     }
@@ -406,7 +404,6 @@ function Set-PSWCCleanWebsiteURL {
     This example cleans the provided array of website URLs and displays the cleaned URLs.
 
 .NOTES
-    File Name      : Clean-WebsiteURL.ps1
     Author         : Wojciech Napierała (@scriptsavvyninja)
     Prerequisite   : PowerShell v3
     
@@ -449,7 +446,7 @@ function Set-PSWCCleanWebsiteURL {
 function Get-PSWCSchemeAndDomain {
     # Example usage:
     #$url = "https://www.example.com/path/to/page"
-    #$schemeAndDomain = Get-SchemeAndDomain -url $url
+    #$schemeAndDomain = Get-PSWCSchemeAndDomain -url $url
     #Write-Host "Scheme and Domain: $schemeAndDomain"
     [CmdletBinding()]
     param (
@@ -483,7 +480,7 @@ function New-PSWCTempFeedFolder {
     }
 }
 
-function Open-PSWCExplorer {
+function Open-PSWCExplorerCache {
     param (
         [string]$PathToOpen
     )
@@ -496,11 +493,30 @@ function Open-PSWCExplorer {
         }
     }
     else {
-        Write-Information -InformationAction Continue -MessageData "Cache folder does not exist."
+        New-PSWCCacheFolder -Path $PathToOpen
+        Open-PSWCExplorerCache -PathToOpen $PathToOpen
+        #Write-Information -InformationAction Continue -MessageData "Cache folder does not exist."
     }
 }
 
-function Start-PSWC {
+function New-PSWCCacheFolder {
+    param (
+        [scring]$path
+    )
+    if (-not (Test-Path -Path $Path)) {
+        try {
+            [void](New-Item -Path $Path -ItemType Directory)
+            return true
+        }
+        catch {
+            Write-Error "Error creating cache folder. [$($_.error.message)]"
+            return false
+        }
+    }
+    return false
+}
+
+function Start-PSWebCrawler {
     <#
 .SYNOPSIS
     Performs various operations related to web crawler.
@@ -516,11 +532,16 @@ function Start-PSWC {
 #>
     [CmdletBinding(DefaultParameterSetName = 'Default')]
     param (
-        [Parameter(Mandatory, ParameterSetName = 'Default', Position = 0)]
-
-        [Parameter(ParameterSetName = 'ValidateFeedListFromFilename', Mandatory)]
+        [Parameter(ParameterSetName = 'WebCrawl', Mandatory)]
         [ValidateNotNullOrEmpty()]
-        [string]$ValidateFeedListFilename,
+        [ValidatePattern('^https?://.*')]
+        [string]$Url,
+
+        [Parameter(ParameterSetName = 'WebCrawl')]
+        [int]$Depth = 2,
+
+        [Parameter(ParameterSetName = 'WebCrawl')]
+        [switch]$onlyDomains,
 
         [Parameter(ParameterSetName = 'ValidateFeedListFromFilename')]
         [switch]$SaveToTempFeedFolder,
@@ -592,28 +613,25 @@ function Start-PSWC {
     )
     Get-PSWCBanner
     switch ($PSCmdlet.ParameterSetName) {
-        'Default' {
+        'WebCrawl' {
             $script:ArrayData = @()
-            $ArrayData += [PSCustomObject] @{
+            $script:ArrayData += [PSCustomObject] @{
                 Depth  = $depth
                 Url    = $url
                 Domain = ""
                 Href   = ""
             }
             
-            $FolderName = "WebCrawler"
-            $tempfolder = [System.IO.Path]::GetTempPath()
-            $WCtoolfolderFullName = Join-Path $tempfolder $FolderName
-            
-            
-            $outputFolder = (Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath (Clean-WebsiteURL -url $url))
-            $outputFile = join-path $outputFolder -ChildPath "webcrawler"
+            $outputFolder = $script:WCtoolfolderFullName
+            $outputFile = join-path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -url $url)
             # Start crawling the start URL
-            Write-Host "START Crawl-Url '$Url'"
-            #$script:historydomains += (Get-SchemeAndDomain -url $url)
-            Start-Crawl -url $Url -depth $depth -onlyDomains -verbose -debug -statusCodeVerbose -outputFile $outputFile
+            Write-Host "Url: [$Url]"
+            Write-Host "Depth: $depth"
+            write-host "onlyDomains: $onlydomains"
+            write-host "outputfile: [$outputFile]"
+            #$script:historydomains += (Get-PSWCSchemeAndDomain -url $url)
+            Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFile $outputFile
             
-            Write-Host "END ----"
             Write-Host "liczba sprawdzonych domen: " -NoNewline
             ($script:historyDomains | Select-Object -Unique | Measure-Object).count
             
@@ -623,6 +641,11 @@ function Start-PSWC {
             $ArrayData | Where-Object { $_.Domain } | select depth, url, domain | Sort-Object url, domain
             break
         }
+        'ShowCacheFolder' {
+            Create-PSWCCacheFolder -Path $script:WCtoolfolderFullName
+            Open-PSWCExplorerCache -PathToOpen $script:WCtoolfolderFullName
+        }
+
         'TestFeedFromUrl' {
             # Process data from a URL
             Write-Verbose "Processing data from URL: ${TestFeedUrl}"
@@ -707,13 +730,10 @@ function Start-PSWC {
             }
             break
         }
-        'ShowCacheFolder' {
-            Open-PSFHExplorer -PathToOpen $feednewstoolfolderFullName
-        }
         default {
             $helpinfo = @'
 How to use, examples:
-[1] PSWC -SingleURL "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf"
+[1] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 1
 [2] PSFeedHandler -InputPath .\News\feed_info2.csv -OutputPath .\News\feed_info3.csv
 [3] PSFeedHandler -TestUrlFormat "http://gigaom.com/feed/"
 [4] PSFeedHandler -ShowNewsUrlFeed "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -LastNewsCount 5
@@ -724,7 +744,7 @@ How to use, examples:
 [9] PSFeedHandler -GetSavedFeedFileFullName 'C:\Users\voytas\AppData\Local\Temp\FeedNewsTool\allafrica_com_tools_headlines_rdf_latest_headlines_rdf.feed.tmp'
 [10] PSFeedHandler -GetSavedFeeds
 [11] PSFeedHandler -ValidateFeedListFilename "repository_list.txt" -SaveToTempFeedFolder
-[11] PSFeedHandler -ShowCacheFolder  
+[11] PSWC -ShowCacheFolder  
 
 
 
@@ -737,7 +757,40 @@ How to use, examples:
 
 Clear-Host
 
+# Import the necessary .NET libraries
+#Add-Type -Path "D:\dane\voytas\Dokumenty\visual_studio_code\github\htmlagilitypack.1.11.52\lib\netstandard2.0\HtmlAgilityPack.dll"
+Add-Type -Path "D:\dane\voytas\Dokumenty\visual_studio_code\github\htmlagilitypack.1.11.54\lib\netstandard2.0\HtmlAgilityPack.dll"
 
+# Switch to using TLS 1.2
+[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+# Get the name of the current module
+$ModuleName = "PSWebCrawler"
+
+# Get the installed version of the module
+$ModuleVersion = [version]"0.0.1"
+
+# Find the latest version of the module in the PSGallery repository
+$LatestModule = Find-Module -Name $ModuleName -Repository PSGallery
+
+try {
+    if ($ModuleVersion -lt $LatestModule.Version) {
+        Write-Host "An update is available for $($ModuleName). Installed version: $($ModuleVersion). Latest version: $($LatestModule.Version)." -ForegroundColor Red
+    } 
+}
+catch {
+    Write-Error "An error occurred while checking for updates: $_"
+}
+
+Set-Alias -Name "PSWC" -Value Start-PSWebCrawler
+Set-Alias -Name "PSWebCrawler" -Value Start-PSWebCrawler
+
+Write-Host "Welcome to PSWebCrawler!" -ForegroundColor DarkYellow
+Write-Host "Thank you for using PSWC ($($moduleVersion))." -ForegroundColor Yellow
+#Write-Host "Some important changes and informations that may be of interest to you:" -ForegroundColor Yellow
+#Write-Host "- You can filter the built-in snippets (category: 'Example') by setting 'ShowExampleSnippets' to '`$false' in config. Use: 'Save-PAFConfiguration -settingName ""ShowExampleSnippets"" -settingValue `$false'" -ForegroundColor Yellow
+
+$tempfolder = [System.IO.Path]::GetTempPath()
+$script:WCtoolfolderFullName = Join-Path $tempfolder $ModuleName
 
 
 <# 
@@ -800,34 +853,3 @@ catch {
  #>
 
 
-# Import the necessary .NET libraries
-#Add-Type -Path "D:\dane\voytas\Dokumenty\visual_studio_code\github\htmlagilitypack.1.11.52\lib\netstandard2.0\HtmlAgilityPack.dll"
-Add-Type -Path "D:\dane\voytas\Dokumenty\visual_studio_code\github\htmlagilitypack.1.11.54\lib\netstandard2.0\HtmlAgilityPack.dll"
-
-# Switch to using TLS 1.2
-[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-# Get the name of the current module
-$ModuleName = "PSWebCrawler"
-
-# Get the installed version of the module
-$ModuleVersion = [version]"0.0.1"
-
-# Find the latest version of the module in the PSGallery repository
-$LatestModule = Find-Module -Name $ModuleName -Repository PSGallery
-
-try {
-    if ($ModuleVersion -lt $LatestModule.Version) {
-        Write-Host "An update is available for $($ModuleName). Installed version: $($ModuleVersion). Latest version: $($LatestModule.Version)." -ForegroundColor Red
-    } 
-}
-catch {
-    Write-Error "An error occurred while checking for updates: $_"
-}
-
-Set-Alias -Name "PSWC" -Value Start-PSWebCrawler
-Set-Alias -Name "PSWebCrawler" -Value Start-PSWebCrawler
-
-Write-Host "Welcome to PSWebCrawler!" -ForegroundColor DarkYellow
-Write-Host "Thank you for using PSWC ($($moduleVersion))." -ForegroundColor Yellow
-#Write-Host "Some important changes and informations that may be of interest to you:" -ForegroundColor Yellow
-#Write-Host "- You can filter the built-in snippets (category: 'Example') by setting 'ShowExampleSnippets' to '`$false' in config. Use: 'Save-PAFConfiguration -settingName ""ShowExampleSnippets"" -settingValue `$false'" -ForegroundColor Yellow
