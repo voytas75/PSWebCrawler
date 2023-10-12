@@ -9,7 +9,7 @@ function Get-PSWCBanner {
 }
 
 # Function to crawl a URL
-function Start-Crawl {
+function Start-PSWCCrawl {
     [CmdletBinding()]
     param (
         [string]$url,
@@ -55,7 +55,7 @@ function Start-Crawl {
     #    if (-not $visitedUrls.ContainsKey($url)) {
     #write-verbose "(-not (`$url -in `$script:historydomains)): $(-not ($url -in $script:historydomains))"
     #if (-not ($url -in $script:historydomains)) {
-   #write-verbose "`$script:ArrayData.url.Contains($url): $($script:ArrayData.url.Contains($url))"
+    #write-verbose "`$script:ArrayData.url.Contains($url): $($script:ArrayData.url.Contains($url))"
 
     if ($script:ArrayData.url.Contains($url)) {
         #if (-not $visitedUrls.ContainsKey($url) -and -not ((Get-SchemeAndDomain -url $url) -in $script:historydomains)) {
@@ -351,7 +351,7 @@ Handle Errors Gracefully: Implement error handling logic to handle the Bad Reque
 
 }
 
-function Get-HttpResponse {
+function Get-PSWCHttpResponse {
     param (
         [string]$url,
         [string]$userAgent,
@@ -369,7 +369,7 @@ function Get-HttpResponse {
     return $httpClient.GetAsync($url).Result
 }
 
-function Get-DocumentElements {
+function Get-PSWCDocumentElements {
     param(
         [string]$htmlContent,
         [string]$Node
@@ -385,7 +385,7 @@ function Get-DocumentElements {
     return $rootXmlNode.SelectNodes($Node)
 }
 
-function Clean-WebsiteURL {
+function Set-PSWCCleanWebsiteURL {
     <#
 .SYNOPSIS
     Cleans an array of website URLs by removing "http://" or "https://://" and replacing non-letter and non-digit characters with underscores.
@@ -446,8 +446,7 @@ function Clean-WebsiteURL {
     return $cleanedUrl
 }
 
-
-function Get-SchemeAndDomain {
+function Get-PSWCSchemeAndDomain {
     # Example usage:
     #$url = "https://www.example.com/path/to/page"
     #$schemeAndDomain = Get-SchemeAndDomain -url $url
@@ -501,14 +500,13 @@ function Open-PSWCExplorer {
     }
 }
 
-function Start-PSWebCrawler {
+function Start-PSWC {
     <#
 .SYNOPSIS
     Performs various operations related to web crawler.
 
 .DESCRIPTION
     The 'WebCrawler' function allows you to process and web crawl.
-
 
 .PARAMETER SavePath
     Specifies the path to save the feed data. This parameter is mandatory when 'AddFeed' is used.
@@ -518,6 +516,8 @@ function Start-PSWebCrawler {
 #>
     [CmdletBinding(DefaultParameterSetName = 'Default')]
     param (
+        [Parameter(Mandatory, ParameterSetName = 'Default', Position = 0)]
+
         [Parameter(ParameterSetName = 'ValidateFeedListFromFilename', Mandatory)]
         [ValidateNotNullOrEmpty()]
         [string]$ValidateFeedListFilename,
@@ -592,59 +592,35 @@ function Start-PSWebCrawler {
     )
     Get-PSWCBanner
     switch ($PSCmdlet.ParameterSetName) {
-        'ValidateFeedListFromFilename' {
-            # Process data from a file
-            Write-Verbose "Processing data from file: ${ValidateFeedListFilename}"
-            $newsDirectory = $PSScriptRoot
-
-            #$repositoryListPath = "${newsDirectory}\${ValidateFeedListFilename}"
-            $repositoryListPath = ${ValidateFeedListFilename}
-
-            $cryptoRssRepos = Find-PSFHCryptoRssRepositories -ListPath $repositoryListPath
-
-            foreach ($repo in $cryptoRssRepos) {
-
-                $feedData = @{}
-
-                # Prompt the user for an RSS URL
-                $rssUrl = $repo
-
-                # Validate the URL format
-                if (Test-PSFHUrlFormat $rssUrl) {
-                    # Fetch the RSS feed
-                    [Microsoft.PowerShell.Commands.HtmlWebResponseObject]$responseFeed = Get-PSFHFeed $rssUrl
-                    #$rssFeed.rss
-                    if ($responseFeed) {
-                        # Determine the type of feed and its version
-                        #Get-FeedTypeAndVersion $responseFeed
-
-                        $feedData = Get-PSFHFeedInfo $rssUrl
-
-                        # Check the URL accessibility
-                        #$feedData | Add-Member -TypeName noteproperty - Test-PSFHUrlAccessibility $rssUrl -timeout 2
-                        $feedData | Add-Member -MemberType NoteProperty -Name "UrlAccessibility" -Value (Test-PSFHUrlAccessibility $rssUrl -timeout 2)
-                        #$feedData += Test-PSFHRssFeedValidity $rssUrl
-                        $feedData | Add-Member -MemberType NoteProperty -Name "RssFeedValidity" -Value (Test-PSFHRssFeedValidity $rssUrl)
-                        # Analyze the feed
-                        #$feedData += Invoke-PSFHFeedAnalysis $responseFeed
-                        $feedData | Add-Member -MemberType NoteProperty -Name "FeedAnalysis" -Value (Invoke-PSFHFeedAnalysis $responseFee)
-                        if ($SaveToTempFeedFolder.IsPresent) {
-                            try {
-                                #Start-FeedNewsTool -SaveFeedUrl $rssUrl -SaveFeedTimeout 10
-                                Save-PSFHFeed -Url $rssUrl -Timeout 10
-                            }
-                            catch {
-                                $feedData
-                                continue
-                            }
-                        }
-                        $feedData
-                    } 
-                }
-                else {
-                    Write-Host "Test '$rssUrl' failed" -ForegroundColor DarkRed
-                }
+        'Default' {
+            $script:ArrayData = @()
+            $ArrayData += [PSCustomObject] @{
+                Depth  = $depth
+                Url    = $url
+                Domain = ""
+                Href   = ""
             }
+            
+            $FolderName = "WebCrawler"
+            $tempfolder = [System.IO.Path]::GetTempPath()
+            $WCtoolfolderFullName = Join-Path $tempfolder $FolderName
+            
+            
+            $outputFolder = (Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath (Clean-WebsiteURL -url $url))
+            $outputFile = join-path $outputFolder -ChildPath "webcrawler"
+            # Start crawling the start URL
+            Write-Host "START Crawl-Url '$Url'"
+            #$script:historydomains += (Get-SchemeAndDomain -url $url)
+            Start-Crawl -url $Url -depth $depth -onlyDomains -verbose -debug -statusCodeVerbose -outputFile $outputFile
+            
+            Write-Host "END ----"
+            Write-Host "liczba sprawdzonych domen: " -NoNewline
+            ($script:historyDomains | Select-Object -Unique | Measure-Object).count
+            
+            Write-Host "sprawdzone domeny:"
+            $script:historyDomains | Select-Object -Unique  | Sort-Object
+            
+            $ArrayData | Where-Object { $_.Domain } | select depth, url, domain | Sort-Object url, domain
             break
         }
         'TestFeedFromUrl' {
@@ -725,7 +701,8 @@ function Start-PSWebCrawler {
                 foreach ($currentItemName in (Get-ChildItem -Path $feednewstoolfolderFullName)) {
                     Write-Host $currentItemName.FullName
                 }
-            } else {
+            }
+            else {
                 Write-Host "No save feeds."
             }
             break
@@ -736,7 +713,7 @@ function Start-PSWebCrawler {
         default {
             $helpinfo = @'
 How to use, examples:
-[1] PSFeedHandler -TestFeedUrl "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf"
+[1] PSWC -SingleURL "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf"
 [2] PSFeedHandler -InputPath .\News\feed_info2.csv -OutputPath .\News\feed_info3.csv
 [3] PSFeedHandler -TestUrlFormat "http://gigaom.com/feed/"
 [4] PSFeedHandler -ShowNewsUrlFeed "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -LastNewsCount 5
@@ -758,18 +735,7 @@ How to use, examples:
     }
 }
 
-
-
-
-
-
-
-
 Clear-Host
-
-$FolderName = "WebCrawlerTool"
-$tempfolder = [System.IO.Path]::GetTempPath()
-$WCtoolfolderFullName = Join-Path $tempfolder $FolderName
 
 
 
@@ -832,37 +798,6 @@ catch {
 }
 
  #>
-
-$script:ArrayData = @()
-$ArrayData += [PSCustomObject] @{
-    Depth  = $depth
-    Url    = $url
-    Domain = ""
-    Href   = ""
-}
-
-$outputFolder = (Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath (Clean-WebsiteURL -url $url))
-$outputFile = join-path $outputFolder -ChildPath "webcrawler"
-# Start crawling the start URL
-Write-Host "START Crawl-Url '$Url'"
-#$script:historydomains += (Get-SchemeAndDomain -url $url)
-Start-Crawl -url $Url -depth $depth -onlyDomains -verbose -debug -statusCodeVerbose -outputFile $outputFile
-
-Write-Host "END ----"
-Write-Host "liczba sprawdzonych domen: " -NoNewline
-($script:historyDomains | Select-Object -Unique | Measure-Object).count
-
-Write-Host "sprawdzone domeny:"
-$script:historyDomains | Select-Object -Unique  | Sort-Object
-
-$ArrayData | Where-Object { $_.Domain } | select depth, url, domain | Sort-Object url, domain
-
-
-
-
-
-
-
 
 
 # Import the necessary .NET libraries
