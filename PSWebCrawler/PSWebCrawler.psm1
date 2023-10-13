@@ -12,7 +12,7 @@ function Start-PSWCCrawl {
         [string]$url,
         [int]$depth,
         [int]$timeoutSec = 10,
-        [string]$outputFile,
+        [string]$outputFolder,
         [switch]$statusCodeVerbose,
         [switch]$noCrawlExternalLinks,
         [switch]$onlyDomains,
@@ -20,13 +20,20 @@ function Start-PSWCCrawl {
     )
 
     #$ArrayData | ft
+    if ($depth -eq 0) {
+        # immediately returns the program flow to the top of a program loop
+        continue
+    }
 
     # Initialize the visitedUrls variable if it doesn't exist
-    $outputFolder = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "webcrawler"
-    if (-not (Test-Path -Path $outputFolder)) {
-        [void](New-Item -Path $outputFolder -ItemType Directory)
+    #$outputFolder = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "webcrawler"
+    #if (-not (Test-Path -Path $outputFolder)) {
+    #    [void](New-Item -Path $outputFolder -ItemType Directory)
+    #}
+
+    if ($outputFolder) { 
+        $outputFile = join-path $outputFolder -ChildPath (Set-PSWCCleanWebsiteURL -url $url) 
     }
-    $outputFile = join-path $outputFolder -ChildPath (Set-PSWCCleanWebsiteURL -url $url)
     
     if (-not $script:visitedUrls) {
         $script:visitedUrls = @{}
@@ -71,7 +78,7 @@ function Start-PSWCCrawl {
                 $responseHeaders = $response.Headers | ConvertTo-Json  # Capture response headers
 
                 # Save the headers to a file if specified
-                if ($outputFile -ne "") {
+                if ($outputFolder -ne "") {
                     #$headersFile = (Join-Path -Path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -Url $url)) + ".headers.json"
                     Set-Content -Path $outputFile+".headers.json" -Value $responseHeaders
                     #write-verbose "Save the headers to a file for '$url' to '$headersFile'"
@@ -132,14 +139,14 @@ Depth                : 0
     
                         # Filter out non-HTTP links
                         if ($href -match "^https?://") {
-                            if ($depth -eq 0) {
+                            <#                             if ($depth -eq 0) {
                                 # immediately returns the program flow to the top of a program loop
                                 continue
                             }
-                            # Add the link to the output file, if specified
-                            if ($outputFile -ne "") {
+ #>                            # Add the link to the output file, if specified
+                            if ($outputFolder -ne "") {
                                 #$hrefFile = (Join-Path -Path $outputFolder -ChildPath (Set-PSWCCleanWebsiteURL -Url $url)) + ".hrefs.txt"
-                                Add-Content -Path $hrefFile+".hrefs.txt" -Value $href
+                                Add-Content -Path $outputFile+".hrefs.txt" -Value $href
                             }
                             
                             # Get the domain of the linked URL
@@ -164,7 +171,7 @@ Depth                : 0
                         }
                         else {
                             # Add the link to the output file, if specified
-                            if ($outputFile -ne "") {
+                            if ($outputFolder -ne "") {
                                 #$hrefFile = (Join-Path -Path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -Url $url)) + ".hrefs.anchorElement.txt"
                                 Add-Content -Path $outputFile+".hrefs.anchorElement.txt" -Value $href
                             }
@@ -195,7 +202,7 @@ Depth                : 0
                             }
     
                             # Add the link to the output file, if specified
-                            if ($outputFile -ne "") {
+                            if ($outputFolder -ne "") {
                                 #$hrefFile = (Join-Path -Path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -Url $url)) + ".hrefs.txt"
                                 Add-Content -Path $outputFile+".hrefs.txt" -Value $href
                                 #Write-Verbose "  processing '$href'...saving to '$hrefFile'"
@@ -244,7 +251,7 @@ Depth                : 0
                                     }
                                     $script:ArrayData += $thisobject
                                 }
-                                Start-PSWCCrawl -url $hrefDomain -depth $newDepth -timeoutSec $timeoutSec -outputFile $outputFile -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains -verbose:$verbose -debug:$debug
+                                Start-PSWCCrawl -url $hrefDomain -depth $newDepth -timeoutSec $timeoutSec -outputFolder $outputFolder -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains -verbose:$verbose -debug:$debug
     
                             }
                             else {
@@ -273,7 +280,7 @@ Depth                : 0
                         }
                         else {
                             # Add the link to the output file, if specified
-                            if ($outputFile -ne "") {
+                            if ($outputFolder -ne "") {
                                 $hrefFile = (Join-Path -Path $outputFolder -ChildPath (Set-PSWCCleanWebsiteURL -Url $url)) + ".hrefs.anchorElement.txt"
                                 Add-Content -Path $hrefFile -Value $href
                                 #Write-Verbose "  processing '$href'...saving to '$hrefFile'"
@@ -462,58 +469,57 @@ function Get-PSWCSchemeAndDomain {
     return $schemeAndDomain
 }
 
-function New-PSWCTempFeedFolder {
+function New-PSWCCacheFolder {
     param (
         [string]$FolderName
     )
-    try {
-        $tempfolder = [System.IO.Path]::GetTempPath()
-        $tempfolderFullName = Join-Path $tempfolder $FolderName
-        if (-not (Test-Path -Path $tempfolderFullName)) {
+    $tempfolder = [System.IO.Path]::GetTempPath()
+    $tempfolderFullName = Join-Path $tempfolder $FolderName
+
+    if (-not (Test-Path -Path $tempfolderFullName)) {
+        try {
             [void](New-Item -Path $tempfolderFullName -ItemType Directory)
             Write-Verbose "Feed temp '$tempfolderFullName' folder was created successfully."
+            return $true
         }
-        return $tempfolderFullName
+        catch {
+            Write-Error "Error creating cache folder. [$($_.error.message)]"
+            return $false
+        }
     }
-    catch {
-        Write-Error "An error creating '$tempfolderFullName': $_"
-    }
+    return $true
+}
+
+function Get-PSWCCacheFolder {
+    param ()
+
+    $tempfolder = [System.IO.Path]::GetTempPath()
+    $tempfolderFullName = Join-Path $tempfolder $script:ModuleName
+
+    return $tempfolderFullName
+
 }
 
 function Open-PSWCExplorerCache {
     param (
-        [string]$PathToOpen
+        [string]$FolderName
     )
-    if (test-path $PathToOpen) {
+    $tempfolder = [System.IO.Path]::GetTempPath()
+    $tempfolderFullName = Join-Path $tempfolder $FolderName
+    $tempfolderFullName
+    if (test-path $tempfolderFullName) {
         try {
-            Start-Process explorer.exe -ArgumentList $PathToOpen
+            Start-Process explorer.exe -ArgumentList $tempfolderFullName
         }
         catch {
             Write-Error "An error starting process: $_"
         }
     }
     else {
-        New-PSWCCacheFolder -Path $PathToOpen
-        Open-PSWCExplorerCache -PathToOpen $PathToOpen
+        New-PSWCCacheFolder -FolderName $FolderName
+        Open-PSWCExplorerCache -FolderName $FolderName
         #Write-Information -InformationAction Continue -MessageData "Cache folder does not exist."
     }
-}
-
-function New-PSWCCacheFolder {
-    param (
-        [scring]$path
-    )
-    if (-not (Test-Path -Path $Path)) {
-        try {
-            [void](New-Item -Path $Path -ItemType Directory)
-            return true
-        }
-        catch {
-            Write-Error "Error creating cache folder. [$($_.error.message)]"
-            return false
-        }
-    }
-    return false
 }
 
 function Start-PSWebCrawler {
@@ -543,6 +549,9 @@ function Start-PSWebCrawler {
         [Parameter(ParameterSetName = 'WebCrawl')]
         [switch]$onlyDomains,
 
+        [Parameter(ParameterSetName = 'WebCrawl')]
+        [string]$outputFolder = (Get-PSWCCacheFolder),
+        
         [Parameter(ParameterSetName = 'ValidateFeedListFromFilename')]
         [switch]$SaveToTempFeedFolder,
 
@@ -603,7 +612,7 @@ function Start-PSWebCrawler {
         [ValidateNotNullOrEmpty()]
         [string]$GetSavedFeedFileFullName,
 
-        [Parameter(ParameterSetName = 'ShowCacheFolder')]
+        [Parameter(ParameterSetName = 'ShowCacheFolder', Mandatory = $true)]
         [switch]$ShowCacheFolder,
 
         [Parameter(ParameterSetName = 'GetSavedFeeds', Mandatory)]
@@ -622,15 +631,20 @@ function Start-PSWebCrawler {
                 Href   = ""
             }
             
-            $outputFolder = $script:WCtoolfolderFullName
-            $outputFile = join-path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -url $url)
+            if (-not $outputFolder) {
+                #    $outputFile = join-path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -url $url)
+                $outputfoldertext = "not set"
+            }
+            else {
+                $outputfoldertext = $outputFolder
+            }
             # Start crawling the start URL
             Write-Host "Url: [$Url]"
             Write-Host "Depth: $depth"
             write-host "onlyDomains: $onlydomains"
-            write-host "outputfile: [$outputFile]"
+            write-host "outputFolder: [$outputfoldertext]"
             #$script:historydomains += (Get-PSWCSchemeAndDomain -url $url)
-            Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFile $outputFile
+            Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder
             
             Write-Host "liczba sprawdzonych domen: " -NoNewline
             ($script:historyDomains | Select-Object -Unique | Measure-Object).count
@@ -642,8 +656,8 @@ function Start-PSWebCrawler {
             break
         }
         'ShowCacheFolder' {
-            Create-PSWCCacheFolder -Path $script:WCtoolfolderFullName
-            Open-PSWCExplorerCache -PathToOpen $script:WCtoolfolderFullName
+            #New-PSWCCacheFolder -FolderName $script:WCtoolfolderFullName
+            Open-PSWCExplorerCache -FolderName $script:ModuleName
         }
 
         'TestFeedFromUrl' {
@@ -764,7 +778,7 @@ Add-Type -Path "D:\dane\voytas\Dokumenty\visual_studio_code\github\htmlagilitypa
 # Switch to using TLS 1.2
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 # Get the name of the current module
-$ModuleName = "PSWebCrawler"
+$script:ModuleName = "PSWebCrawler"
 
 # Get the installed version of the module
 $ModuleVersion = [version]"0.0.1"
@@ -789,9 +803,7 @@ Write-Host "Thank you for using PSWC ($($moduleVersion))." -ForegroundColor Yell
 #Write-Host "Some important changes and informations that may be of interest to you:" -ForegroundColor Yellow
 #Write-Host "- You can filter the built-in snippets (category: 'Example') by setting 'ShowExampleSnippets' to '`$false' in config. Use: 'Save-PAFConfiguration -settingName ""ShowExampleSnippets"" -settingValue `$false'" -ForegroundColor Yellow
 
-$tempfolder = [System.IO.Path]::GetTempPath()
-$script:WCtoolfolderFullName = Join-Path $tempfolder $ModuleName
-
+New-PSWCCacheFolder -FolderName $script:ModuleName
 
 <# 
 # Set the URL to start crawling from
