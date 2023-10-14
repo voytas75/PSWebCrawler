@@ -194,13 +194,12 @@ Depth                : 0
                             #Write-Verbose "  processing '$href'..."
                             $hrefDomain = Get-PSWCSchemeAndDomain -url $href
 
-
-                            if ($depth -eq 0) {
+                            <#                             if ($depth -eq 0) {
                                 # immediately returns the program flow to the top of a program loop
                                 #Write-Verbose "  Killing ... reached depth 0"
                                 continue
                             }
-    
+ #>    
                             # Add the link to the output file, if specified
                             if ($outputFolder -ne "") {
                                 #$hrefFile = (Join-Path -Path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -Url $url)) + ".hrefs.txt"
@@ -229,6 +228,7 @@ Depth                : 0
                                         Url    = $hrefDomain
                                         Domain = ""
                                         Href   = ""
+                                        Server = ""
                                     }
                                     $script:ArrayData += $thisobject
                                 }
@@ -248,6 +248,7 @@ Depth                : 0
                                         Url    = $url
                                         Domain = $hrefDomain
                                         Href   = $href
+                                        Server = $response.Headers.Server
                                     }
                                     $script:ArrayData += $thisobject
                                 }
@@ -629,6 +630,7 @@ function Start-PSWebCrawler {
                 Url    = $url
                 Domain = ""
                 Href   = ""
+                Server = ""
             }
             
             if (-not $outputFolder) {
@@ -652,7 +654,8 @@ function Start-PSWebCrawler {
             Write-Host "sprawdzone domeny:"
             $script:historyDomains | Select-Object -Unique  | Sort-Object
             
-            $ArrayData | Where-Object { $_.Domain } | select depth, url, domain | Sort-Object url, domain
+            #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
+            $ArrayData | Where-Object { $_.Domain } | Sort-Object url, domain | select url,server -Unique | ft url, server
             break
         }
         'ShowCacheFolder' {
