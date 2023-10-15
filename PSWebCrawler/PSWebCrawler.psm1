@@ -248,7 +248,7 @@ Depth                : 0
                                         Url    = $url
                                         Domain = $hrefDomain
                                         Href   = $href
-                                        Server = $response.Headers.Server
+                                        Server = $response.Headers.Server -join "; "
                                     }
                                     $script:ArrayData += $thisobject
                                 }
@@ -552,73 +552,9 @@ function Start-PSWebCrawler {
 
         [Parameter(ParameterSetName = 'WebCrawl')]
         [string]$outputFolder = (Get-PSWCCacheFolder),
-        
-        [Parameter(ParameterSetName = 'ValidateFeedListFromFilename')]
-        [switch]$SaveToTempFeedFolder,
-
-        [Parameter(ParameterSetName = 'TestFeedFromUrl', Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [ValidatePattern('^https?://.*')]
-        [string]$TestFeedUrl,
-
-        [Parameter(ParameterSetName = 'TestFeedFromUrl', Mandatory = $false)]
-        [int]$LastDaysElements = 0,
-
-        [Parameter(ParameterSetName = 'RemoveDuplicateCSVRows', Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [string]$InputPath,
-        [Parameter(ParameterSetName = 'RemoveDuplicateCSVRows', Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [string]$OutputPath,
-
-        [Parameter(ParameterSetName = 'TestUrlFormat', Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [ValidatePattern('^https?://.*')]
-        [string]$TestUrlFormat,
-
-        [Parameter(ParameterSetName = 'ShowNews', Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [ValidatePattern('^https?://.*')]
-        [string]$ShowNewsUrlFeed,
-        [Parameter(ParameterSetName = 'ShowNews', Mandatory = $false)]
-        [Parameter(ParameterSetName = 'ShowNewsfromFeed', Mandatory = $false)]
-        [int]$LastNewsCount = 10,
-
-        [Parameter(ParameterSetName = 'ShowNewsfromFeed', Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [string]$ShowNewsfromFeed,
-
-        [Parameter(ParameterSetName = 'ShowNewsfromFeedfileRandom', Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [switch]$ShowNewsfromFeedfileRandom,
-
-        [Parameter(ParameterSetName = 'AddFeed', Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [ValidatePattern('^https?://.*')]
-        [string]$FeedUrl,
-        [Parameter(ParameterSetName = 'AddFeed', Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [string]$SavePath,
-        [Parameter(ParameterSetName = 'AddFeed', Mandatory = $false)]
-        [int]$Timeout = 5,
-
-        [Parameter(ParameterSetName = 'SaveFeed', Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [ValidatePattern('^https?://.*')]
-        [string]$SaveFeedUrl,
-        [Parameter(ParameterSetName = 'SaveFeed', Mandatory = $false)]
-        [int]$SaveFeedTimeout = 5,
-
-        [Parameter(ParameterSetName = 'GetSavedFeed', Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [string]$GetSavedFeedFileFullName,
 
         [Parameter(ParameterSetName = 'ShowCacheFolder', Mandatory = $true)]
-        [switch]$ShowCacheFolder,
-
-        [Parameter(ParameterSetName = 'GetSavedFeeds', Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [switch]$GetSavedFeeds
+        [switch]$ShowCacheFolder
         
     )
     Get-PSWCBanner
@@ -655,112 +591,27 @@ function Start-PSWebCrawler {
             $script:historyDomains | Select-Object -Unique  | Sort-Object
             
             #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
-            $ArrayData | Where-Object { $_.Domain } | Sort-Object url, domain | select url,server -Unique | ft url, server
+            $ArrayData | Where-Object { $_.Domain } | Sort-Object url, domain | Select-Object url,server -Unique | Format-Table url, server
             break
         }
         'ShowCacheFolder' {
             #New-PSWCCacheFolder -FolderName $script:WCtoolfolderFullName
             Open-PSWCExplorerCache -FolderName $script:ModuleName
         }
-
-        'TestFeedFromUrl' {
-            # Process data from a URL
-            Write-Verbose "Processing data from URL: ${TestFeedUrl}"
-            if ((Test-PSFHUrlFormat -Url $TestFeedUrl) -and (Test-PSFHUrlAccessibility -Url $TestFeedUrl -Timeout 5)) {
-                Write-Verbose "Test URL: OK"
-                $objectfeed = Get-PSFHFeedInfo $TestFeedUrl
-                [void](Save-PSFHFeed -Url $TestFeedUrl)
-                #$objectfeed | Format-List *
-                $objectfeed
-            }
-            else {
-                Write-Verbose "Test URL: Failed"
-                break
-            }
-
-            break
-        }
-        'TestUrlFormat' {
-            Test-PSFHUrlFormat -Url $TestUrlFormat
-            break
-        }
-        'RemoveDuplicateCSVRows' {
-            # Process data in file - remove duplicates
-            Write-Verbose "Processing data from file: ${InputPath} to file: ${OutputPath}"
-            Remove-PSFHDuplicateCSVRows -InputPath $InputPath -OutputPath $OutputPath
-            break
-        }
-        'ShowNews' {
-            Get-PSFHFeedNews -RSSUrl $ShowNewsUrlFeed -LastItems $LastNewsCount
-
-            break
-        }
-        'ShowNewsfromFeed' {
-            $feedfromfile = Get-PSFHFeedDataFromFile -FeedFileFullName $ShowNewsfromFeed
-            Get-PSFHFeedNews -Feed $feedfromfile -LastItems $LastNewsCount
-            break
-        }
-        'ShowNewsfromFeedfileRandom' {
-            #$tempfolder = [System.IO.Path]::GetTempPath()
-            $feednewstoolfolder = $FolderName
-            #$feednewstoolfolderFullName = Join-Path $tempfolder $feednewstoolfolder
-            $tempFeedFolder = New-PSFHTempFeedFolder -FolderName $feednewstoolfolder
-            write-host "News feed folder: ""$tempFeedFolder""" -ForegroundColor DarkYellow
-            $RandomFeedFileFullName = Get-PSFHRandomFile -FolderPath $tempFeedFolder -Count 1
-            if ($RandomFeedFileFullName.count -gt 0) {
-                $feedfromfile = Get-PSFHFeedDataFromFile -FeedFileFullName $RandomFeedFileFullName
-                Get-PSFHFeedNews -Feed $feedfromfile -LastItems $LastNewsCount
-            }
-            break
-        }
-        'AddFeed' {
-            Write-Verbose "Adding feed: ${FeedUrl}"
-            if ((Test-PSFHUrlFormat -Url $FeedUrl) -and (Test-PSFHUrlAccessibility -Url $FeedUrl -Timeout $Timeout)) {
-                $feedData = Get-PSFHFeedInfo -Url $FeedUrl
-
-                if ($feedData) {
-                    Write-Verbose "Exporting feed data to CSV"
-                    Export-PSFHFeedCSV -FeedData $feedData -OutPath $SavePath
-                }
-            }
-            break
-        }
-        'SaveFeed' {
-            Write-Verbose "Saving feed: ${SaveFeedUrl}"
-            $savefeedout = Save-PSFHFeed -Url $SaveFeedUrl -Timeout $SaveFeedTimeout
-            Write-Verbose "Save feed output: ${savefeedout}"
-            break
-        }
-        'GetSavedFeed' {
-            Get-PSFHFeedDataFromFile -FeedFileFullName $GetSavedFeedFileFullName
-            break
-        }
-        'GetSavedFeeds' {
-            # lists all files form cache folder
-            if ((Test-Path -Path $feednewstoolfolderFullName)) {
-                foreach ($currentItemName in (Get-ChildItem -Path $feednewstoolfolderFullName)) {
-                    Write-Host $currentItemName.FullName
-                }
-            }
-            else {
-                Write-Host "No save feeds."
-            }
-            break
-        }
         default {
             $helpinfo = @'
 How to use, examples:
 [1] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 1
-[2] PSFeedHandler -InputPath .\News\feed_info2.csv -OutputPath .\News\feed_info3.csv
-[3] PSFeedHandler -TestUrlFormat "http://gigaom.com/feed/"
-[4] PSFeedHandler -ShowNewsUrlFeed "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -LastNewsCount 5
-[5] PSFeedHandler -ShowNewsfromFeed 'C:\Users\voytas\AppData\Local\Temp\FeedNewsTool\allafrica_com_tools_headlines_rdf_latest_headlines_rdf.feed.tmp'
-[6] PSFeedHandler -ShowNewsfromFeedfileRandom
-[7] PSFeedHandler -FeedUrl "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -SavePath .\News\test.txt -Timeout 10
-[8] PSFeedHandler -SaveFeedUrl "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -SaveFeedTimeout 10
-[9] PSFeedHandler -GetSavedFeedFileFullName 'C:\Users\voytas\AppData\Local\Temp\FeedNewsTool\allafrica_com_tools_headlines_rdf_latest_headlines_rdf.feed.tmp'
-[10] PSFeedHandler -GetSavedFeeds
-[11] PSFeedHandler -ValidateFeedListFilename "repository_list.txt" -SaveToTempFeedFolder
+[2] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 2 -onlyDomains
+[3] 
+[4] 
+[5] 
+[6] 
+[7] 
+[8] 
+[9] 
+[10] 
+[11] 
 [11] PSWC -ShowCacheFolder  
 
 
