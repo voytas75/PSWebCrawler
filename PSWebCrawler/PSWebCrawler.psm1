@@ -22,6 +22,7 @@ function Start-PSWCCrawl {
     #$ArrayData | ft
     if ($depth -eq 0) {
         # immediately returns the program flow to the top of a program loop
+        Write-Log "Depth is 0; skipping [$url]"
         continue
     }
 
@@ -37,11 +38,13 @@ function Start-PSWCCrawl {
     
     if (-not $script:visitedUrls) {
         $script:visitedUrls = @{}
+        Write-Log "Hashtable [visitedUrls] was initialized"
         #write-verbose 'create $script:visitedUrls'
     }
 
     if (-not $script:historyDomains) {
         $script:historyDomains = @()
+        Write-Log "Array [historyDomains] was initialized"
         #write-verbose 'create $script:historyDomains'
     }
     #$script:historyDomains
@@ -64,15 +67,16 @@ function Start-PSWCCrawl {
     if ($script:ArrayData.url.Contains($url)) {
         #if (-not $visitedUrls.ContainsKey($url) -and -not ((Get-PSWCSchemeAndDomain -url $url) -in $script:historydomains)) {
         #$visitedUrls[$url] = $true
-
+        Write-Log "[Arraydata] url contains [$url] "
         try {
             # Send an HTTP GET request to the URL
             $response = Get-PSWCHttpResponse -url $url -userAgent $userAgent -timeout $timeoutSec
+            Write-Log "Got response from [$url] "
             #$response | ConvertTo-Json
 
             # Check if the request was successful
             if ($response.IsSuccessStatusCode) {
-                
+                Write-Log "Response succeded from [$url] "
                 #write-verbose "`$response.IsSuccessStatusCode for '$url': $($response.IsSuccessStatusCode)"
                 $htmlContent = $response.Content.ReadAsStringAsync().Result
                 $responseHeaders = $response.Headers | ConvertTo-Json  # Capture response headers
@@ -81,14 +85,18 @@ function Start-PSWCCrawl {
                 if ($outputFolder -ne "") {
                     #$headersFile = (Join-Path -Path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -Url $url)) + ".headers.json"
                     Set-Content -Path $outputFile+".headers.json" -Value $responseHeaders
+                    Write-Log "Header for [$url] saved in ["+$outputFile+".headers.json]"
                     #write-verbose "Save the headers to a file for '$url' to '$headersFile'"
                 }
 
                 #write-verbose "Add '$url' to `$script:historyDomains"
                 $script:historyDomains += $url
+                Write-Log "Added [$url] to [historyDomains]"
 
                 # Extract all anchor elements from the HTML document
                 $anchorElements = Get-PSWCDocumentElements -htmlContent $htmlContent -Node "//a"
+                Write-Log "Got all [a] anhors from [$url]"
+
                 <# $anchorElements:
 Attributes           : {href, class}
 ChildNodes           : {#text}
@@ -123,13 +131,16 @@ Depth                : 0
                 #>
                 # Get the domain of the current URL
                 $currentDomain = [System.Uri]::new($url).Host
+                Write-Log "Current domain is [$currentDomain]"
                 #Write-Verbose "`$currentDomain: '$currentDomain', Domains: $domains"
 
                 # wykryte domeny w linkach
                 $domains = @()
+                Write-Log "Created empty array [domains]"
 
                 if (-not $onlyDomains.IsPresent) {
                     Write-Verbose "processing hreflinks..."
+                    
                     # Iterate over the anchor elements and extract the href attributes
                     foreach ($anchorElement in $anchorElements) {
                         $href = $anchorElement.GetAttributeValue("href", "")
@@ -185,7 +196,7 @@ Depth                : 0
                     foreach ($anchorElement in $anchorElements) {
                         $href = $anchorElement.GetAttributeValue("href", "")
                         #Write-Verbose " processing '$href'..."
-                        
+                        #Write-Log "analyze element [$href]"
                         # Remove mailto: links
                         $href = $href -replace "mailto:", ""
     
@@ -193,6 +204,7 @@ Depth                : 0
                         if ($href -match "^https?://") {
                             #Write-Verbose "  processing '$href'..."
                             $hrefDomain = Get-PSWCSchemeAndDomain -url $href
+                            Write-Log "Processing element [$hrefdomain]"
 
                             <#                             if ($depth -eq 0) {
                                 # immediately returns the program flow to the top of a program loop
@@ -204,11 +216,13 @@ Depth                : 0
                             if ($outputFolder -ne "") {
                                 #$hrefFile = (Join-Path -Path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -Url $url)) + ".hrefs.txt"
                                 Add-Content -Path $outputFile+".hrefs.txt" -Value $href
+                                Write-Log "add content [$href] to file ["$outputFile+".hrefs.txt]"
                                 #Write-Verbose "  processing '$href'...saving to '$hrefFile'"
                             }
                             
                             # Get the domain of the linked URL
                             $linkedDomain = [System.Uri]::new($href).Host
+                            Write-Log "[LinkedDomain] is for [$linkedDomain]"
                             #Write-Verbose "  domain '$linkedDomain'"
                             #if ($script:ArrayData.domain.contains($hrefdomain)){
                             #    continue
@@ -219,6 +233,7 @@ Depth                : 0
                             #Write-Verbose "  ('$linkedDomain' -ne '$currentDomain' -and -not `$noCrawlExternalLinks): $($linkedDomain -ne $currentDomain -and -not $noCrawlExternalLinks)"
                             # Check if the linked domain is different from the current domain
                             if ($linkedDomain -ne $currentDomain -and -not $noCrawlExternalLinks) {
+                                Write-Log "[$currentDomain] is different then [$linkedDomain] and not [noCrawlExternalLinks]"
                                 #Write-Verbose "  processing '$hrefdomain'..."
                                 #$script:ArrayData.url.contains($hrefdomain)
                                 if (-not ($script:ArrayData.url.contains($hrefdomain))) {
@@ -231,32 +246,40 @@ Depth                : 0
                                         Server = ""
                                     }
                                     $script:ArrayData += $thisobject
+                                    Write-Log "Depth:[$depth] and url:[$hrefdomain] added to ArrayData"
                                 }
     
                                 # Decrease the depth when moving to a different site
                                 $newDepth = $depth - 1
+                                Write-Log "Newdepth is [$newDepth]"
                                 #Write-Verbose "  set new depth to $newDepth"
                                 
                                 # Add the link to the list of links to crawl
                                 $domains += $hrefDomain
+                                Write-Log "[$hrefDomain] added to [domains] list"
                                 #Write-Verbose "  add '$hrefDomain' to `$domains"
                                 #Write-Verbose " [recursive] Processing domain: $hrefDomain (Depth: $depth => $newDepth)"
 
                                 if (-not ($script:ArrayData.domain.contains($hrefdomain))) {
+                                    $server = $response.Headers.Server -join "; "
                                     $thisobject = [PSCustomObject] @{
                                         Depth  = $depth
                                         Url    = $url
                                         Domain = $hrefDomain
                                         Href   = $href
-                                        Server = $response.Headers.Server -join "; "
+                                        Server = $server
                                     }
                                     $script:ArrayData += $thisobject
+                                    Write-Log "Depth:[$depth], url:[$url], domain:[$hrefDomain], href:[$href], server:[$server] added to ArrayData"
                                 }
+                                Write-Log "start new iteration for [$hrefDomain]"
                                 Start-PSWCCrawl -url $hrefDomain -depth $newDepth -timeoutSec $timeoutSec -outputFolder $outputFolder -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains -verbose:$verbose -debug:$debug
-    
+                                
                             }
                             else {
                                 $newDepth = $depth
+                                Write-Log "Newdepth is [$newDepth]"
+
                                 #Write-Verbose "  no change to depth - $newDepth"
                             }
 
@@ -284,6 +307,8 @@ Depth                : 0
                             if ($outputFolder -ne "") {
                                 $hrefFile = (Join-Path -Path $outputFolder -ChildPath (Set-PSWCCleanWebsiteURL -Url $url)) + ".hrefs.anchorElement.txt"
                                 Add-Content -Path $hrefFile -Value $href
+                                Write-Log "Added [$href] to file [$hreffile]"
+
                                 #Write-Verbose "  processing '$href'...saving to '$hrefFile'"
                             }
                         }
@@ -293,6 +318,7 @@ Depth                : 0
             }
             else {
                 # Handle non-successful HTTP responses here, e.g., log the error or take appropriate action
+                Write-Log "Response from [$url] wan not successful"
                 Write-Host "HTTP request failed for URL: $url. Status code: $($response.StatusCode)"
                 if ($statusCodeVerbose.IsPresent) {
                     switch ($response.StatusCode) {
@@ -328,6 +354,7 @@ Handle Errors Gracefully: Implement error handling logic to handle the Bad Reque
             }
         }
         catch {
+            
             $errorMessage = $_.Exception.Message
             $scriptData = @{
                 Url        = $url
@@ -339,7 +366,7 @@ Handle Errors Gracefully: Implement error handling logic to handle the Bad Reque
             
             # Get the script line where the error occurred
             $errorLine = $MyInvocation.ScriptLineNumber
-
+            Write-Log "Error message: [$_.Exception.Message] for [$(-join $($scriptData.Values))] in line [$errorline]"
             Write-Host "Error occurred at line $errorLine while crawling URL: $url"
             Write-Host "Error crawling URL: $url"
             Write-Host "Error Details: $errorMessage"
@@ -352,6 +379,7 @@ Handle Errors Gracefully: Implement error handling logic to handle the Bad Reque
     }
     else {
         Write-Verbose "Already processed domain: '$url'"
+        Write-Log "url [$url] was skipped"
         continue
     }
 
@@ -480,7 +508,8 @@ function New-PSWCCacheFolder {
     if (-not (Test-Path -Path $tempfolderFullName)) {
         try {
             [void](New-Item -Path $tempfolderFullName -ItemType Directory)
-            Write-Verbose "Feed temp '$tempfolderFullName' folder was created successfully."
+            Write-Verbose "Temp '$tempfolderFullName' folder was created successfully."
+            Write-Log "Temp '$tempfolderFullName' folder was created successfully."
             return $true
         }
         catch {
@@ -511,9 +540,12 @@ function Open-PSWCExplorerCache {
     if (test-path $tempfolderFullName) {
         try {
             Start-Process explorer.exe -ArgumentList $tempfolderFullName
+            Write-Log "Process Temp [explorer.exe] was started with arguments [$tempfolderFullName]"
+
         }
         catch {
             Write-Error "An error starting process: $_"
+            Write-Log "Process Temp [explorer.exe] was not started with arguments [$tempfolderFullName]"
         }
     }
     else {
@@ -522,6 +554,20 @@ function Open-PSWCExplorerCache {
         #Write-Information -InformationAction Continue -MessageData "Cache folder does not exist."
     }
 }
+
+function Write-Log {
+    param(
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true, Position = 0)]
+        [ValidateNotNullOrEmpty()]
+        [string]$logstring,
+        [string]$logFile = (Join-Path $env:TEMP "$($script:ModuleName).log")
+
+    )
+    #Write-Debug -Message "Append [$logstring] to log file: [$logfile]"
+    $strToLog = "[$(get-date)]: $logstring"
+    $strToLog | Out-File $Logfile -Append -Encoding utf8
+}
+
 
 function Start-PSWebCrawler {
     <#
@@ -561,6 +607,7 @@ function Start-PSWebCrawler {
     switch ($PSCmdlet.ParameterSetName) {
         'WebCrawl' {
             $script:ArrayData = @()
+            Write-Log "Initializing array [ArrayData]"
             $script:ArrayData += [PSCustomObject] @{
                 Depth  = $depth
                 Url    = $url
@@ -568,13 +615,15 @@ function Start-PSWebCrawler {
                 Href   = ""
                 Server = ""
             }
-            
+            Write-Log "insert to [ArrayData] depth: [$depth], url: [$url]"
             if (-not $outputFolder) {
                 #    $outputFile = join-path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -url $url)
                 $outputfoldertext = "not set"
+                
             }
             else {
                 $outputfoldertext = $outputFolder
+                Write-Log "[outputfoldertext] is set to [$outputfolder]"
             }
             # Start crawling the start URL
             Write-Host "Url: [$Url]"
@@ -582,16 +631,22 @@ function Start-PSWebCrawler {
             write-host "onlyDomains: $onlydomains"
             write-host "outputFolder: [$outputfoldertext]"
             #$script:historydomains += (Get-PSWCSchemeAndDomain -url $url)
+            Write-Log "Start iteration for [$url] with depth: [$depth]"
             Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder
             
             Write-Host "liczba sprawdzonych domen: " -NoNewline
             ($script:historyDomains | Select-Object -Unique | Measure-Object).count
             
-            Write-Host "sprawdzone domeny:"
+            Write-Host "sprawdzone domeny (po url):"
             $script:historyDomains | Select-Object -Unique  | Sort-Object
-            
             #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
-            $ArrayData | Where-Object { $_.Domain } | Sort-Object url, domain | Select-Object url,server -Unique | Format-Table url, server
+            $ArrayData | Where-Object { $_.Domain } | Sort-Object url, domain | Select-Object url, server -Unique | Format-Table url, server
+
+            Write-Host "sprawdzone domeny (po domain):"
+            $script:historyDomains | Select-Object -Unique  | Sort-Object
+            #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
+            $ArrayData | Where-Object { $_.Domain } | Sort-Object domain, domain | Select-Object domain, server -Unique | Format-Table domain, server
+
             break
         }
         'ShowCacheFolder' {
