@@ -4,10 +4,32 @@
 
 [![status](https://img.shields.io/badge/DEV-v0.0.2-red)](https://github.com/voytas75/PSWebCrawler/blob/master/PSWebCrawler/docs/ReleaseNotes.md)
 
-## Overview
-
+PSWebCrawler is a PowerShell script that provides web crawling and URL processing functionality. It allows you to crawl web pages, extract information, and store data for analysis or further processing.
 
 ## Features
+
+- Web crawling with customizable depth.
+- Handling of external and internal links.
+- Option to crawl only specific domains.
+- Timeout settings for URL accessibility testing.
+- Cache folder management for storing crawled data.
+
+## Usage
+
+- `Start-PSWebCrawler` cmdlet allows you to initiate web crawling with various parameters.
+
+## Usage Examples
+
+- Crawl a web page with a specified depth: `PSWC -Url "https://example.com" -Depth 2`
+- Crawl and filter by domains: `PSWC -Url "https://example.com" -Depth 2 -onlyDomains`
+- Display the cache folder: `PSWC -ShowCacheFolder`
+
+## Installation
+
+1. Clone or download the script.
+2. Import required .NET libraries and configure TLS settings.
+3. Set aliases for easier usage.
+4. Enjoy web crawling with PSWebCrawler!
 
 
 ## Installation and Usage
