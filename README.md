@@ -4,8 +4,6 @@
 
 [![status](https://img.shields.io/badge/DEV-v0.0.2-red)](https://github.com/voytas75/PSWebCrawler/blob/master/PSWebCrawler/docs/ReleaseNotes.md)
 
-# PSWebCrawler
-
 PSWebCrawler is a PowerShell script that provides web crawling and URL processing functionality. It allows you to crawl web pages, extract information, and store data for analysis or further processing.
 
 ## Features
