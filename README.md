@@ -19,12 +19,6 @@ PSWebCrawler is a PowerShell script that provides web crawling and URL processin
 ## Usage
 
 - `Start-PSWebCrawler` cmdlet allows you to initiate web crawling with various parameters.
-- `Get-PSWCHttpResponse` retrieves HTTP responses for a given URL.
-- `Get-PSWCDocumentElements` extracts HTML elements from web page content.
-- `Set-PSWCCleanWebsiteURL` cleans and formats website URLs.
-- `Get-PSWCSchemeAndDomain` extracts the scheme and domain from a URL.
-- `New-PSWCCacheFolder` creates a cache folder for storing crawled data.
-- `Open-PSWCExplorerCache` opens the cache folder in Windows Explorer.
 
 ## Usage Examples
 
