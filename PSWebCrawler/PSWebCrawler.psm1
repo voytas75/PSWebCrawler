@@ -34,7 +34,7 @@ function Get-PSWCAllElements {
         # Send an HTTP GET request to the URL
         $response = Get-PSWCHttpResponse -url $url -userAgent $userAgent -timeout $timeoutSec
         Write-Log "Got response from [$url]"
-        Write-Log ($response | out-string)
+        #Write-Log ($response | out-string)
         if ($response.IsSuccessStatusCode) {
             Write-Log "Response [$($response.StatusCode)] succeded from [$url] "
             #write-verbose "`$response.IsSuccessStatusCode for '$url': $($response.IsSuccessStatusCode)"
@@ -42,22 +42,30 @@ function Get-PSWCAllElements {
             #$responseHeaders = $response.Headers | ConvertTo-Json  # Capture response headers
             # Extract all anchor elements from the HTML document
             $anchorElements = Get-PSWCDocumentElements -htmlContent $htmlContent -Node $Node
-            # wykryte domeny w linkach
-            foreach ($anchorElement in $anchorElements) {
-                $href = $anchorElement.GetAttributeValue("href", "")
-                # Remove mailto: links
-                $href = $href -replace "mailto:", ""
-                # Filter out non-HTTP links
-                if ($href -match "^https?://") {
-                    $hrefDomain = Get-PSWCSchemeAndDomain -url $href
-                    $linkedDomain = [System.Uri]::new($href).Host
-                    if ($linkedDomain -ne $currentDomain) {
-                        $domains += $hrefDomain
+            if ($anchorElements.count -gt 0) {
+            
+                # wykryte domeny w linkach
+                foreach ($anchorElement in $anchorElements) {
+                    $href = $anchorElement.GetAttributeValue("href", "")
+                    # Remove mailto: links
+                    $href = $href -replace "mailto:", ""
+                    # Filter out non-HTTP links
+                    if ($href -match "^https?://") {
+                        $hrefDomain = Get-PSWCSchemeAndDomain -url $href
+                        $linkedDomain = [System.Uri]::new($href).Host
+                        if ($linkedDomain -ne $currentDomain) {
+                            $domains += $hrefDomain
+                        }
+                    }
+                    else {
+                        $hrefelements += $href
                     }
                 }
-                else {
-                    $hrefelements += $href
-                }
+    
+            } 
+            else {
+                Write-Host "No elemets in [$url]"    
+                Write-Log "No elemets in [$url]"    
             }
         }
         else {
@@ -65,8 +73,11 @@ function Get-PSWCAllElements {
         }
     }
     end {
-        $domains | Select-Object -Unique | Sort-Object
-        $hrefelements | Select-Object -Unique | Sort-Object
+        $domainsunique = $domains | Select-Object -Unique | Sort-Object
+        $hrefsUnique = $hrefelements | Select-Object -Unique | Sort-Object
+
+        Write-Log "Domain count: [$($domains.count)], unique: $(($domainsUnique).count)"
+        Write-Log "Hrefs (w/o domains) count: [$($hrefelements.count)], unique: $(($hrefsUnique).count)"
     }
 }
 
