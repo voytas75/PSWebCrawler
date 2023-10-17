@@ -5,6 +5,71 @@ function Get-PSWCBanner {
     return
 }
 
+function Get-PSWCAllElements {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$url,
+        [string]$Node = "//a",
+        [int]$timeoutSec = 10,
+        [switch]$onlyDomains,
+        [string]$userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.43"
+    )
+    begin {
+        Write-verbose "Parameters and Default Values:" -Verbose
+        foreach ($param in $MyInvocation.MyCommand.Parameters.keys) {
+            $value = Get-Variable -Name $param -ValueOnly -ErrorAction SilentlyContinue
+            if (-not $null -eq [string]$value) {
+                Write-Verbose "${param}: [${value}]" -Verbose
+            }
+        }
+        $domains = @()
+        $hrefelements = @()        
+    }
+    process {
+        #write-verbose "Get-PSWCAllElements" -Verbose
+        if ($onlyDomains.IsPresent) {
+            $url = Get-PSWCSchemeAndDomain -Url $url
+        }
+        # Send an HTTP GET request to the URL
+        $response = Get-PSWCHttpResponse -url $url -userAgent $userAgent -timeout $timeoutSec
+        Write-Log "Got response from [$url]"
+        Write-Log ($response | out-string)
+        if ($response.IsSuccessStatusCode) {
+            Write-Log "Response [$($response.StatusCode)] succeded from [$url] "
+            #write-verbose "`$response.IsSuccessStatusCode for '$url': $($response.IsSuccessStatusCode)"
+            $htmlContent = $response.Content.ReadAsStringAsync().Result
+            #$responseHeaders = $response.Headers | ConvertTo-Json  # Capture response headers
+            # Extract all anchor elements from the HTML document
+            $anchorElements = Get-PSWCDocumentElements -htmlContent $htmlContent -Node $Node
+            # wykryte domeny w linkach
+            foreach ($anchorElement in $anchorElements) {
+                $href = $anchorElement.GetAttributeValue("href", "")
+                # Remove mailto: links
+                $href = $href -replace "mailto:", ""
+                # Filter out non-HTTP links
+                if ($href -match "^https?://") {
+                    $hrefDomain = Get-PSWCSchemeAndDomain -url $href
+                    $linkedDomain = [System.Uri]::new($href).Host
+                    if ($linkedDomain -ne $currentDomain) {
+                        $domains += $hrefDomain
+                    }
+                }
+                else {
+                    $hrefelements += $href
+                }
+            }
+        }
+        else {
+            Write-Host "HTTP request failed for URL: $url. Status code: $($response.StatusCode)"
+        }
+    }
+    end {
+        $domains | Select-Object -Unique | Sort-Object
+        $hrefelements | Select-Object -Unique | Sort-Object
+    }
+}
+
 # Function to crawl a URL
 function Start-PSWCCrawl {
     [CmdletBinding()]
@@ -169,7 +234,6 @@ Depth                : 0
                                 $newDepth = $depth - 1
                             }
                             else {
-    
                                 $newDepth = $depth
                             }
     
@@ -178,7 +242,6 @@ Depth                : 0
                             
                             # Recursively crawl with the adjusted depth
                             Crawl-Url -url $href -depth $newDepth -timeoutSec $timeoutSec -outputFile $outputFile -verbose:$verbose -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains
-        
                         }
                         else {
                             # Add the link to the output file, if specified
@@ -585,14 +648,19 @@ function Start-PSWebCrawler {
 #>
     [CmdletBinding(DefaultParameterSetName = 'Default')]
     param (
-        [Parameter(ParameterSetName = 'WebCrawl', Mandatory)]
+        [Parameter(ParameterSetName = 'WebCrawl', Mandatory = $true)]
+        [Parameter(ParameterSetName = 'ShowAllElements', Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [ValidatePattern('^https?://.*')]
         [string]$Url,
 
+        [Parameter(ParameterSetName = 'ShowAllElements')]
+        [switch]$ShowAllElements,
+
         [Parameter(ParameterSetName = 'WebCrawl')]
         [int]$Depth = 2,
 
+        [Parameter(ParameterSetName = 'ShowAllElements')]
         [Parameter(ParameterSetName = 'WebCrawl')]
         [switch]$onlyDomains,
 
@@ -601,9 +669,11 @@ function Start-PSWebCrawler {
 
         [Parameter(ParameterSetName = 'ShowCacheFolder', Mandatory = $true)]
         [switch]$ShowCacheFolder
+       
         
     )
     Get-PSWCBanner
+    Write-Verbose "ParameterSetName: [$($PSCmdlet.ParameterSetName)]" -Verbose
     switch ($PSCmdlet.ParameterSetName) {
         'WebCrawl' {
             $script:ArrayData = @()
@@ -652,13 +722,19 @@ function Start-PSWebCrawler {
         'ShowCacheFolder' {
             #New-PSWCCacheFolder -FolderName $script:WCtoolfolderFullName
             Open-PSWCExplorerCache -FolderName $script:ModuleName
+            break
+        }
+        'ShowAllElements' {
+            #Write-Verbose "ShowAllElements" -Verbose
+            Get-PSWCAllElements -url $url -onlyDomains:$onlyDomains
+            break
         }
         default {
             $helpinfo = @'
 How to use, examples:
 [1] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 1
 [2] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 2 -onlyDomains
-[3] 
+[3] PSWC -ShowAllElements -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf"
 [4] 
 [5] 
 [6] 
