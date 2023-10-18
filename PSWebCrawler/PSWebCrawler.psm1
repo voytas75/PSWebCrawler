@@ -96,18 +96,21 @@ function Start-PSWCCrawl {
     )
 
     #$ArrayData | ft
-    if ($depth -eq 0) {
-        # immediately returns the program flow to the top of a program loop
-        Write-Log "Depth is 0; skipping [$url]"
-        continue
-    }
 
+    <#     Write-Verbose "Parameters and Default Values:"
+    foreach ($param in $MyInvocation.MyCommand.Parameters.keys) {
+        $value = Get-Variable -Name $param -ValueOnly -ErrorAction SilentlyContinue
+        if (-not $null -eq [string]$value) {
+            Write-Verbose "${param}: [${value}]"
+        }
+    }
+ #>
     # Initialize the visitedUrls variable if it doesn't exist
     #$outputFolder = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "webcrawler"
     #if (-not (Test-Path -Path $outputFolder)) {
     #    [void](New-Item -Path $outputFolder -ItemType Directory)
     #}
-
+    $outputFile = ""
     if ($outputFolder) { 
         $outputFile = join-path $outputFolder -ChildPath (Set-PSWCCleanWebsiteURL -url $url) 
     }
@@ -160,8 +163,8 @@ function Start-PSWCCrawl {
                 # Save the headers to a file if specified
                 if ($outputFolder -ne "") {
                     #$headersFile = (Join-Path -Path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -Url $url)) + ".headers.json"
-                    Set-Content -Path $outputFile+".headers.json" -Value $responseHeaders
-                    Write-Log "Header for [$url] saved in ["+$outputFile+".headers.json]"
+                    Set-Content -Path ([string]::Concat($outputFile, ".headers.json")) -Value $responseHeaders
+                    Write-Log "Header for [$url] saved in [${outputFile}.headers.json]"
                     #write-verbose "Save the headers to a file for '$url' to '$headersFile'"
                 }
 
@@ -233,7 +236,7 @@ Depth                : 0
  #>                            # Add the link to the output file, if specified
                             if ($outputFolder -ne "") {
                                 #$hrefFile = (Join-Path -Path $outputFolder -ChildPath (Set-PSWCCleanWebsiteURL -Url $url)) + ".hrefs.txt"
-                                Add-Content -Path $outputFile+".hrefs.txt" -Value $href
+                                Add-Content -Path ([string]::Concat($outputFile, ".hrefs.txt")) -Value $href
                             }
                             
                             # Get the domain of the linked URL
@@ -258,7 +261,7 @@ Depth                : 0
                             # Add the link to the output file, if specified
                             if ($outputFolder -ne "") {
                                 #$hrefFile = (Join-Path -Path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -Url $url)) + ".hrefs.anchorElement.txt"
-                                Add-Content -Path $outputFile+".hrefs.anchorElement.txt" -Value $href
+                                Add-Content -Path (j[string]::Concat($outputFile, ".hrefs.anchorElement.txt")) -Value $href
                             }
                         }
                     }
@@ -289,8 +292,8 @@ Depth                : 0
                             # Add the link to the output file, if specified
                             if ($outputFolder -ne "") {
                                 #$hrefFile = (Join-Path -Path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -Url $url)) + ".hrefs.txt"
-                                Add-Content -Path $outputFile+".hrefs.txt" -Value $href
-                                Write-Log "add content [$href] to file ["$outputFile+".hrefs.txt]"
+                                Add-Content -Path ([string]::Concat($outputFile, ".hrefs.txt")) -Value $href
+                                Write-Log "add content [$href] to file [${outputFile}.hrefs.txt]"
                                 #Write-Verbose "  processing '$href'...saving to '$hrefFile'"
                             }
                             
@@ -313,11 +316,12 @@ Depth                : 0
                                 if (-not ($script:ArrayData.url.contains($hrefdomain))) {
                                     Write-Host "  [$depth] ['$url' - '$hrefdomain']"
                                     $thisobject = [PSCustomObject] @{
-                                        Depth  = $depth
-                                        Url    = $hrefDomain
-                                        Domain = ""
-                                        Href   = ""
-                                        Server = ""
+                                        Depth     = $depth
+                                        Url       = $hrefDomain
+                                        Domain    = ""
+                                        Href      = ""
+                                        UrlServer = ""
+                                        Date      = (get-date)
                                     }
                                     $script:ArrayData += $thisobject
                                     Write-Log "Depth:[$depth] and url:[$hrefdomain] added to ArrayData"
@@ -337,18 +341,26 @@ Depth                : 0
                                 if (-not ($script:ArrayData.domain.contains($hrefdomain))) {
                                     $server = $response.Headers.Server -join "; "
                                     $thisobject = [PSCustomObject] @{
-                                        Depth  = $depth
-                                        Url    = $url
-                                        Domain = $hrefDomain
-                                        Href   = $href
-                                        Server = $server
+                                        Depth     = $depth
+                                        Url       = $url
+                                        Domain    = $hrefDomain
+                                        Href      = $href
+                                        UrlServer = $server
+                                        Date      = (get-date)
                                     }
                                     $script:ArrayData += $thisobject
                                     Write-Log "Depth:[$depth], url:[$url], domain:[$hrefDomain], href:[$href], server:[$server] added to ArrayData"
                                 }
+                            
                                 Write-Log "start new iteration for [$hrefDomain]"
+                                if ($depth -eq 0) {
+                                    # immediately returns the program flow to the top of a program loop
+                                    Write-Log "Depth is 0; skipping [$hrefDomain]"
+                                    continue
+                                }
+
                                 Start-PSWCCrawl -url $hrefDomain -depth $newDepth -timeoutSec $timeoutSec -outputFolder $outputFolder -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains -verbose:$verbose -debug:$debug
-                                
+
                             }
                             else {
                                 $newDepth = $depth
@@ -690,11 +702,12 @@ function Start-PSWebCrawler {
             $script:ArrayData = @()
             Write-Log "Initializing array [ArrayData]"
             $script:ArrayData += [PSCustomObject] @{
-                Depth  = $depth
-                Url    = $url
-                Domain = ""
-                Href   = ""
-                Server = ""
+                Depth     = $depth
+                Url       = $url
+                Domain    = ""
+                Href      = ""
+                UrlServer = ""
+                Date      = (get-date)
             }
             Write-Log "insert to [ArrayData] depth: [$depth], url: [$url]"
             if (-not $outputFolder) {
@@ -728,6 +741,8 @@ function Start-PSWebCrawler {
             #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
             $ArrayData | Where-Object { $_.Domain } | Sort-Object domain, domain | Select-Object domain, server -Unique | Format-Table domain, server
 
+            $ArrayData | Out-GridView
+
             break
         }
         'ShowCacheFolder' {
@@ -745,7 +760,7 @@ function Start-PSWebCrawler {
 How to use, examples:
 [1] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 1
 [2] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 2 -onlyDomains
-[3] PSWC -ShowAllElements -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf"
+[3] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -ShowAllElements 
 [4] 
 [5] 
 [6] 
