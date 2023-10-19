@@ -8,12 +8,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Added
 
-- Log function `write-Log`
+- log function `Write-Log`
 - new function `Get-PSWCAllElements`
 
 ### Changed
 
-- `Start-PSWCCrawl`
+- function `Start-PSWCCrawl`
 
 ## [0.0.1] - 2023.10.12
 
