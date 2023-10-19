@@ -797,7 +797,7 @@ Add-Type -Path "D:\dane\voytas\Dokumenty\visual_studio_code\github\htmlagilitypa
 $script:ModuleName = "PSWebCrawler"
 
 # Get the installed version of the module
-$ModuleVersion = [version]"0.0.1"
+$ModuleVersion = [version]"0.0.2"
 
 # Find the latest version of the module in the PSGallery repository
 $LatestModule = Find-Module -Name $ModuleName -Repository PSGallery
