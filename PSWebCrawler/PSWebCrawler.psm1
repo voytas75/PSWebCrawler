@@ -340,6 +340,11 @@ Depth                : 0
 
                                 if (-not ($script:ArrayData.domain.contains($hrefdomain))) {
                                     $server = $response.Headers.Server -join "; "
+                                    if($server -eq ""){
+                                        $server = "no data"
+                                    }
+                                    #$server_ = $server.count
+                                    #write-host "[${server}]"
                                     $thisobject = [PSCustomObject] @{
                                         Depth     = $depth
                                         Url       = $url
