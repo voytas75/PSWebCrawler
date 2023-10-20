@@ -13,6 +13,8 @@ function Get-PSWCAllElements {
         [string]$Node = "//a",
         [int]$timeoutSec = 10,
         [switch]$onlyDomains,
+        [ValidateSet("Href", "noHref", "onlyDomains", "All")]
+        [string]$Type = "All",
         [string]$userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.43"
     )
     begin {
@@ -24,7 +26,8 @@ function Get-PSWCAllElements {
             }
         }
         $domains = @()
-        $hrefelements = @()        
+        $hrefElements = @()
+        $nonhrefElements = @()
     }
     process {
         #write-verbose "Get-PSWCAllElements" -Verbose
@@ -51,6 +54,7 @@ function Get-PSWCAllElements {
                     $href = $href -replace "mailto:", ""
                     # Filter out non-HTTP links
                     if ($href -match "^https?://") {
+                        $hrefElements += $href
                         $hrefDomain = Get-PSWCSchemeAndDomain -url $href
                         $linkedDomain = [System.Uri]::new($href).Host
                         if ($linkedDomain -ne $currentDomain) {
@@ -58,7 +62,7 @@ function Get-PSWCAllElements {
                         }
                     }
                     else {
-                        $hrefelements += $href
+                        $nonhrefelements += $href
                     }
                 }
     
@@ -75,9 +79,35 @@ function Get-PSWCAllElements {
     end {
         $domainsunique = $domains | Select-Object -Unique | Sort-Object
         $hrefsUnique = $hrefelements | Select-Object -Unique | Sort-Object
-
-        Write-Log "Domain count: [$($domains.count)], unique: $(($domainsUnique).count)"
+        $nonhrefsUnique = $nonhrefelements | Select-Object -Unique | Sort-Object
+        switch ($Type) {
+            "href" {
+                Write-Host "Href elements, unique:"  
+                $hrefelements | Select-Object -Unique | sort-object
+            }
+            "nohref" {
+                Write-Host "no Href elements, unique:"  
+                $nonhrefelements | Where-Object { $_ -notin ("", "/", "#") } | Select-Object -Unique | sort-object
+            }
+            "onlyDomains" {
+                Write-Host "only Domains elements, unique:"  
+                $domains | Select-Object -Unique | sort-object
+            }
+            "All" {
+                Write-Host "All elements"
+                Write-Host "only Domains elements, unique:"  
+                $domains | Select-Object -Unique | sort-object
+                Write-Host "Href elements, unique:"  
+                $hrefelements | Select-Object -Unique | sort-object
+                Write-Host "no Href elements, unique:"  
+                $nonhrefelements | Where-Object { $_ -notin ("", "/", "#") } | Select-Object -Unique | sort-object
+            }
+            Default {}
+        }
         Write-Log "Hrefs (w/o domains) count: [$($hrefelements.count)], unique: $(($hrefsUnique).count)"
+        Write-Log "no-Hrefs (w/o domains) count: [$($nonhrefelements.count)], unique: $(($nonhrefsUnique).count)"
+        Write-Log "Domain count: [$($domains.count)], unique: $(($domainsUnique).count)"
+        
     }
 }
 
@@ -340,7 +370,7 @@ Depth                : 0
 
                                 if (-not ($script:ArrayData.domain.contains($hrefdomain))) {
                                     $server = $response.Headers.Server -join "; "
-                                    if($server -eq ""){
+                                    if ($server -eq "") {
                                         $server = "no data"
                                     }
                                     #$server_ = $server.count
@@ -685,6 +715,10 @@ function Start-PSWebCrawler {
         [Parameter(ParameterSetName = 'ShowAllElements')]
         [switch]$ShowAllElements,
 
+        [Parameter(ParameterSetName = 'ShowAllElements')]
+        [ValidateSet("Href", "noHref", "onlyDomains", "All")]
+        [string]$Type = "All",
+        
         [Parameter(ParameterSetName = 'WebCrawl')]
         [int]$Depth = 2,
 
@@ -757,7 +791,7 @@ function Start-PSWebCrawler {
         }
         'ShowAllElements' {
             #Write-Verbose "ShowAllElements" -Verbose
-            Get-PSWCAllElements -url $url -onlyDomains:$onlyDomains
+            Get-PSWCAllElements -url $url -onlyDomains:$onlyDomains -Type $type
             break
         }
         default {
@@ -765,7 +799,7 @@ function Start-PSWebCrawler {
 How to use, examples:
 [1] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 1
 [2] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 2 -onlyDomains
-[3] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -ShowAllElements 
+[3] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -ShowAllElements -Type
 [4] 
 [5] 
 [6] 
