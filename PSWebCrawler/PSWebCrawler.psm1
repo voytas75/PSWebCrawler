@@ -10,7 +10,7 @@ function Get-PSWCAllElements {
     param (
         [Parameter(Mandatory = $true)]
         [string]$url,
-        [string]$Node = "//a",
+        [string]$Node = "//a[@href]",
         [int]$timeoutSec = 10,
         [switch]$onlyDomains,
         [ValidateSet("Href", "noHref", "onlyDomains", "All")]
@@ -28,9 +28,11 @@ function Get-PSWCAllElements {
         $domains = @()
         $hrefElements = @()
         $nonhrefElements = @()
+        $internalLinks = @()
     }
     process {
         #write-verbose "Get-PSWCAllElements" -Verbose
+        
         if ($onlyDomains.IsPresent) {
             $url = Get-PSWCSchemeAndDomain -Url $url
         }
@@ -38,17 +40,18 @@ function Get-PSWCAllElements {
         $response = Get-PSWCHttpResponse -url $url -userAgent $userAgent -timeout $timeoutSec
         Write-Log "Got response from [$url]"
         #Write-Log ($response | out-string)
-        if ($response.IsSuccessStatusCode) {
-            Write-Log "Response [$($response.StatusCode)] succeded from [$url] "
+        if ($response[1].IsSuccessStatusCode) {
+            Write-Log "Response [$($response[1].StatusCode)] succeded from [$url] "
             #write-verbose "`$response.IsSuccessStatusCode for '$url': $($response.IsSuccessStatusCode)"
             $htmlContent = $response.Content.ReadAsStringAsync().Result
             #$responseHeaders = $response.Headers | ConvertTo-Json  # Capture response headers
             # Extract all anchor elements from the HTML document
             $anchorElements = Get-PSWCDocumentElements -htmlContent $htmlContent -Node $Node
-            if ($anchorElements.count -gt 0) {
+
+            if ($anchorElements[1].count -gt 0) {
             
                 # wykryte domeny w linkach
-                foreach ($anchorElement in $anchorElements) {
+                foreach ($anchorElement in $anchorElements[1]) {
                     $href = $anchorElement.GetAttributeValue("href", "")
                     # Remove mailto: links
                     $href = $href -replace "mailto:", ""
@@ -62,6 +65,10 @@ function Get-PSWCAllElements {
                         }
                     }
                     else {
+                        if ($href -match "^/|^\.\./") {
+                            $internalLink = [System.Uri]::new([System.Uri]::new($url), $href)
+                            $internalLinks += $internalLink.AbsoluteUri
+                        }
                         $nonhrefelements += $href
                     }
                 }
@@ -82,24 +89,28 @@ function Get-PSWCAllElements {
         $nonhrefsUnique = $nonhrefelements | Select-Object -Unique | Sort-Object
         switch ($Type) {
             "href" {
-                Write-Host "Href elements, unique:"  
+                Write-Host "`nHref elements, unique:"  
                 $hrefelements | Select-Object -Unique | sort-object
             }
             "nohref" {
-                Write-Host "no Href elements, unique:"  
+                Write-Host "`nno Href elements, unique:"  
                 $nonhrefelements | Where-Object { $_ -notin ("", "/", "#") } | Select-Object -Unique | sort-object
+
+                Write-Host "`nno Href elements as absolute links, unique:"  
+                $internalLinks | Select-Object -Unique | sort-object
+
             }
             "onlyDomains" {
-                Write-Host "only Domains elements, unique:"  
+                Write-Host "`nonly Domains elements, unique:"  
                 $domains | Select-Object -Unique | sort-object
             }
             "All" {
-                Write-Host "All elements"
+                Write-Host "`nAll elements"
                 Write-Host "only Domains elements, unique:"  
                 $domains | Select-Object -Unique | sort-object
-                Write-Host "Href elements, unique:"  
+                Write-Host "`nHref elements, unique:"  
                 $hrefelements | Select-Object -Unique | sort-object
-                Write-Host "no Href elements, unique:"  
+                Write-Host "`nno Href elements, unique:"  
                 $nonhrefelements | Where-Object { $_ -notin ("", "/", "#") } | Select-Object -Unique | sort-object
             }
             Default {}
@@ -107,7 +118,6 @@ function Get-PSWCAllElements {
         Write-Log "Hrefs (w/o domains) count: [$($hrefelements.count)], unique: $(($hrefsUnique).count)"
         Write-Log "no-Hrefs (w/o domains) count: [$($nonhrefelements.count)], unique: $(($nonhrefsUnique).count)"
         Write-Log "Domain count: [$($domains.count)], unique: $(($domainsUnique).count)"
-        
     }
 }
 
@@ -184,11 +194,11 @@ function Start-PSWCCrawl {
             #$response | ConvertTo-Json
 
             # Check if the request was successful
-            if ($response.IsSuccessStatusCode) {
+            if ($response[1].IsSuccessStatusCode) {
                 Write-Log "Response succeded from [$url] "
                 #write-verbose "`$response.IsSuccessStatusCode for '$url': $($response.IsSuccessStatusCode)"
-                $htmlContent = $response.Content.ReadAsStringAsync().Result
-                $responseHeaders = $response.Headers | ConvertTo-Json  # Capture response headers
+                $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+                $responseHeaders = $response[1].Headers | ConvertTo-Json  # Capture response headers
 
                 # Save the headers to a file if specified
                 if ($outputFolder -ne "") {
@@ -251,7 +261,7 @@ Depth                : 0
                     Write-Verbose "processing hreflinks..."
                     
                     # Iterate over the anchor elements and extract the href attributes
-                    foreach ($anchorElement in $anchorElements) {
+                    foreach ($anchorElement in $anchorElements[1]) {
                         $href = $anchorElement.GetAttributeValue("href", "")
                         
                         # Remove mailto: links
@@ -300,7 +310,7 @@ Depth                : 0
 
                     #Write-Verbose "processing onlydomains..."
                     # Iterate over the anchor elements and extract the href attributes - only domains
-                    foreach ($anchorElement in $anchorElements) {
+                    foreach ($anchorElement in $anchorElements[1]) {
                         $href = $anchorElement.GetAttributeValue("href", "")
                         #Write-Verbose " processing '$href'..."
                         #Write-Log "analyze element [$href]"
@@ -369,7 +379,7 @@ Depth                : 0
                                 #Write-Verbose " [recursive] Processing domain: $hrefDomain (Depth: $depth => $newDepth)"
 
                                 if (-not ($script:ArrayData.domain.contains($hrefdomain))) {
-                                    $server = $response.Headers.Server -join "; "
+                                    $server = $response[1].Headers.Server -join "; "
                                     if ($server -eq "") {
                                         $server = "no data"
                                     }
@@ -521,7 +531,7 @@ function Get-PSWCHttpResponse {
     $httpClient.Timeout = [System.TimeSpan]::FromSeconds($timeoutSec)
 
     # Send an HTTP GET request to the URL
-    return $httpClient.GetAsync($url).Result
+    return $httpClient,$httpClient.GetAsync($url).Result
 }
 
 function Get-PSWCDocumentElements {
@@ -537,7 +547,7 @@ function Get-PSWCDocumentElements {
     $rootXmlNode = $htmlDocument.DocumentNode
 
     # Extract all anchor elements from the HTML document
-    return $rootXmlNode.SelectNodes($Node)
+    return $htmlDocument,$rootXmlNode.SelectNodes($Node)
 }
 
 function Set-PSWCCleanWebsiteURL {
