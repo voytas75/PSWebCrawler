@@ -87,6 +87,7 @@ function Get-PSWCAllElements {
         $domainsunique = $domains | Select-Object -Unique | Sort-Object
         $hrefsUnique = $hrefelements | Select-Object -Unique | Sort-Object
         $nonhrefsUnique = $nonhrefelements | Select-Object -Unique | Sort-Object
+        $internalLinksUnique = $nonhrefelements | Select-Object -Unique | sort-object
         switch ($Type) {
             "href" {
                 Write-Host "`nHref elements, unique:"  
@@ -97,7 +98,7 @@ function Get-PSWCAllElements {
                 $nonhrefelements | Where-Object { $_ -notin ("", "/", "#") } | Select-Object -Unique | sort-object
 
                 Write-Host "`nno Href elements as absolute links, unique:"  
-                $internalLinks | Select-Object -Unique | sort-object
+                $internalLinksUnique
 
             }
             "onlyDomains" {
@@ -112,12 +113,17 @@ function Get-PSWCAllElements {
                 $hrefelements | Select-Object -Unique | sort-object
                 Write-Host "`nno Href elements, unique:"  
                 $nonhrefelements | Where-Object { $_ -notin ("", "/", "#") } | Select-Object -Unique | sort-object
+                Write-Host "`nno Href elements as absolute links, unique:"  
+                $internalLinks | Select-Object -Unique | sort-object
+
             }
             Default {}
         }
         Write-Log "Hrefs (w/o domains) count: [$($hrefelements.count)], unique: $(($hrefsUnique).count)"
         Write-Log "no-Hrefs (w/o domains) count: [$($nonhrefelements.count)], unique: $(($nonhrefsUnique).count)"
         Write-Log "Domain count: [$($domains.count)], unique: $(($domainsUnique).count)"
+        Write-Log "no-Hrefs as absolute links count: [$($internalLinks.count)], unique: $(($internalLinksUnique).count)"
+        
     }
 }
 
