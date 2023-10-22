@@ -297,6 +297,35 @@ Function Get-PSWCContactInformation {
     $contactInfo
 }
 
+Function Get-PSWCHeadersAndValues {
+    param (
+        [string]$htmlContent
+    )
+
+    # Create a new HtmlDocument
+    $htmlDocument = New-Object HtmlAgilityPack.HtmlDocument
+
+    # Load the HTML content
+    $htmlDocument.LoadHtml($htmlContent)
+
+    # Initialize a hashtable to store headers and their values
+    $headersAndValues = @{}
+
+    # Extract headers and values
+    $headerNodes = $htmlDocument.DocumentNode.SelectNodes('//head/meta[@name]')
+    if ($headerNodes) {
+        foreach ($node in $headerNodes) {
+            $name = $node.GetAttributeValue("name", "")
+            $content = $node.GetAttributeValue("content", "")
+            $headersAndValues[$name] = $content
+        }
+    }
+
+    # Return the headers and values
+    $headersAndValues
+}
+
+
 # Function to crawl a URL
 function Start-PSWCCrawl {
     [CmdletBinding()]
@@ -897,6 +926,7 @@ function Start-PSWebCrawler {
         [Parameter(ParameterSetName = 'GetImageUrls', Mandatory = $true)]
         [Parameter(ParameterSetName = 'GetHTMLMetadata', Mandatory = $true)]
         [Parameter(ParameterSetName = 'GetContactInformation', Mandatory = $true)]
+        [Parameter(ParameterSetName = 'GetHeadersAndValues', Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [ValidatePattern('^https?://.*')]
         [string]$Url,
@@ -934,7 +964,12 @@ function Start-PSWebCrawler {
         # Parameter help description
         [Parameter(ParameterSetName = 'GetContactInformation', Mandatory = $true)]
         [Switch]
-        $GetContactInformation
+        $GetContactInformation,
+
+        # Parameter help description
+        [Parameter(ParameterSetName = 'GetHeadersAndValues', Mandatory = $true)]
+        [switch]
+        $GetHeadersAndValues
 
        
         
@@ -1017,6 +1052,11 @@ function Start-PSWebCrawler {
             $htmlContent = $response[1].Content.ReadAsStringAsync().Result
             Get-PSWCContactInformation -htmlContent $htmlContent | Format-List
         }
+        'GetHeadersAndValues'{
+            $response = Get-PSWCHttpResponse -url $url
+            $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+            Get-PSWCHeadersAndValues -htmlContent $htmlContent
+        }
         default {
             $helpinfo = @'
 How to use, examples:
@@ -1025,7 +1065,7 @@ How to use, examples:
 [3] PSWC -GetImageUrls -url "http://allafrica.com/tools/"
 [4] PSWC -GetHTMLMetadata -url "http://allafrica.com/tools/headlines/rdf"
 [5] PSWC -GetContactInformation -Url "http://allafrica.com/"
-[6] 
+[6] PSWC -GetHeaders -url "http://allafrica.com
 [7] 
 [8] 
 [9] 

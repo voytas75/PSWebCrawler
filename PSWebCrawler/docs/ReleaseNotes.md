@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - new function `Get-PSWCAllElements`
 - `Get-PSWCHTMLMetadata`
 - `Get-PSWCImageUrls`
+- `Get-PSWCContactInformation`
 
 ### Changed
 
