@@ -261,6 +261,42 @@ Function Get-PSWCHTMLMetadata {
     $metadata
 }
 
+Function Get-PSWCContactInformation {
+    param (
+        [string]$htmlContent
+    )
+    
+    # Create a new HtmlDocument
+    $htmlDocument = New-Object HtmlAgilityPack.HtmlDocument
+
+    # Load the HTML content
+    $htmlDocument.LoadHtml($htmlContent)
+
+    # Initialize contact information hashtable
+    $contactInfo = @{}
+
+    # Extract emails
+    $emailNodes = $htmlDocument.DocumentNode.SelectNodes('//a[starts-with(@href, "mailto:")]')
+    if ($emailNodes) {
+        $contactInfo['Emails'] = $emailNodes | ForEach-Object { $_.GetAttributeValue("href", "").Replace("mailto:", "") }
+    }
+
+    # Extract addresses
+    $addressNodes = $htmlDocument.DocumentNode.SelectNodes('//address')
+    if ($addressNodes) {
+        $contactInfo['Addresses'] = $addressNodes | ForEach-Object { $_.InnerText }
+    }
+
+    # Extract phone numbers
+    $phoneNodes = $htmlDocument.DocumentNode.SelectNodes('//a[starts-with(@href, "tel:")]')
+    if ($phoneNodes) {
+        $contactInfo['PhoneNumbers'] = $phoneNodes | ForEach-Object { $_.GetAttributeValue("href", "").Replace("tel:", "") }
+    }
+
+    # Return the contact information
+    $contactInfo
+}
+
 # Function to crawl a URL
 function Start-PSWCCrawl {
     [CmdletBinding()]
@@ -860,6 +896,7 @@ function Start-PSWebCrawler {
         [Parameter(ParameterSetName = 'ShowAllElements', Mandatory = $true)]
         [Parameter(ParameterSetName = 'GetImageUrls', Mandatory = $true)]
         [Parameter(ParameterSetName = 'GetHTMLMetadata', Mandatory = $true)]
+        [Parameter(ParameterSetName = 'GetContactInformation', Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [ValidatePattern('^https?://.*')]
         [string]$Url,
@@ -892,7 +929,12 @@ function Start-PSWebCrawler {
         # Parameter help description
         [Parameter(ParameterSetName = 'GetHTMLMetadata', Mandatory = $true)]
         [switch]
-        $GetHTMLMetadata
+        $GetHTMLMetadata,
+
+        # Parameter help description
+        [Parameter(ParameterSetName = 'GetContactInformation', Mandatory = $true)]
+        [Switch]
+        $GetContactInformation
 
        
         
@@ -970,6 +1012,11 @@ function Start-PSWebCrawler {
             $htmlContent = $response[1].Content.ReadAsStringAsync().Result
             Get-PSWCHTMLMetadata -htmlContent $htmlContent | Format-List
         }
+        'GetContactInformation'{
+            $response = Get-PSWCHttpResponse -url $url
+            $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+            Get-PSWCContactInformation -htmlContent $htmlContent | Format-List
+        }
         default {
             $helpinfo = @'
 How to use, examples:
@@ -977,7 +1024,7 @@ How to use, examples:
 [2] PSWC -ShowAllElements -Type All -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf"
 [3] PSWC -GetImageUrls -url "http://allafrica.com/tools/"
 [4] PSWC -GetHTMLMetadata -url "http://allafrica.com/tools/headlines/rdf"
-[5] 
+[5] PSWC -GetContactInformation -Url "http://allafrica.com/"
 [6] 
 [7] 
 [8] 
