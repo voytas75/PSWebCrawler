@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - `Get-PSWCHTMLMetadata`
 - `Get-PSWCImageUrls`
 - `Get-PSWCContactInformation`
+- `Get-PSWCHeadersAndValues`
 
 ### Changed
 
