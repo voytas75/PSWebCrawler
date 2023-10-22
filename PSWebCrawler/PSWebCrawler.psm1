@@ -154,9 +154,10 @@ function Get-PSWCImageUrls {
                         $imageUrls += $src                            <# Action to perform if the condition is true #>
                     }
                     elseif ($src -match "^/|^\.\./") {
-                            $internalUrl = [System.Uri]::new([System.Uri]::new($url), $src)
-                            $imageUrls += $internalUrl.AbsoluteUri
-                    } else {
+                        $internalUrl = [System.Uri]::new([System.Uri]::new($url), $src)
+                        $imageUrls += $internalUrl.AbsoluteUri
+                    }
+                    else {
                         $imageUrls += $src
                     }
                 }
@@ -168,6 +169,96 @@ function Get-PSWCImageUrls {
     catch {
         Write-Error "An error occurred: $_"
     }
+}
+
+Function Get-PSWCHTMLMetadata {
+    param (
+        [string]$htmlContent
+    )
+    
+    # Create a new HtmlDocument
+    $htmlDocument = New-Object HtmlAgilityPack.HtmlDocument
+
+    # Load the HTML content
+    $htmlDocument.LoadHtml($htmlContent)
+
+    # Initialize metadata hashtable
+    $metadata = @{}
+
+    # Extract title
+    $titleNode = $htmlDocument.DocumentNode.SelectSingleNode("//title")
+    if ($titleNode) {
+        $metadata['Title'] = $titleNode.InnerText
+    }
+    else {
+        $metadata['Title'] = ""
+    }
+
+    # Extract description
+    $descriptionNode = $htmlDocument.DocumentNode.SelectSingleNode("//meta[@name='description']")
+    if ($descriptionNode) {
+        $metadata['Description'] = $descriptionNode.GetAttributeValue("content", "")
+    }
+    else {
+        $metadata['Description'] = ""
+    }
+
+    # Extract keywords
+    $keywordsNode = $htmlDocument.DocumentNode.SelectSingleNode("//meta[@name='keywords']")
+    if ($keywordsNode) {
+        $metadata['Keywords'] = $keywordsNode.GetAttributeValue("content", "")
+    }
+    else {
+        $metadata['Keywords'] = ""
+    }
+
+    # Extract author
+    $keywordsNode = $htmlDocument.DocumentNode.SelectSingleNode("//meta[@name='author']")
+    if ($keywordsNode) {
+        $metadata['Author'] = $keywordsNode.GetAttributeValue("content", "")
+    }
+    else {
+        $metadata['Author'] = ""
+    }
+    
+    # Extract copyright
+    $keywordsNode = $htmlDocument.DocumentNode.SelectSingleNode("//meta[@name='copyright']")
+    if ($keywordsNode) {
+        $metadata['Copyright'] = $keywordsNode.GetAttributeValue("content", "")
+    }
+    else {
+        $metadata['Copyright'] = ""
+    }
+    
+    # Extract robots
+    $keywordsNode = $htmlDocument.DocumentNode.SelectSingleNode("//meta[@name='robots']")
+    if ($keywordsNode) {
+        $metadata['Robots'] = $keywordsNode.GetAttributeValue("content", "")
+    }
+    else {
+        $metadata['Robots'] = ""
+    }
+
+    # Extract viewport
+    $keywordsNode = $htmlDocument.DocumentNode.SelectSingleNode("//meta[@name='viewport']")
+    if ($keywordsNode) {
+        $metadata['Viewport'] = $keywordsNode.GetAttributeValue("content", "")
+    }
+    else {
+        $metadata['Viewport'] = ""
+    }
+
+    # Extract generator
+    $keywordsNode = $htmlDocument.DocumentNode.SelectSingleNode("//meta[@name='generator']")
+    if ($keywordsNode) {
+        $metadata['Generator'] = $keywordsNode.GetAttributeValue("content", "")
+    }
+    else {
+        $metadata['Generator'] = ""
+    }
+
+    # Return the metadata
+    $metadata
 }
 
 # Function to crawl a URL
@@ -767,7 +858,8 @@ function Start-PSWebCrawler {
     param (
         [Parameter(ParameterSetName = 'WebCrawl', Mandatory = $true)]
         [Parameter(ParameterSetName = 'ShowAllElements', Mandatory = $true)]
-        [Parameter(ParameterSetName = 'GetImageUrls')]
+        [Parameter(ParameterSetName = 'GetImageUrls', Mandatory = $true)]
+        [Parameter(ParameterSetName = 'GetHTMLMetadata', Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [ValidatePattern('^https?://.*')]
         [string]$Url,
@@ -793,9 +885,15 @@ function Start-PSWebCrawler {
         [switch]$ShowCacheFolder,
 
         # Parameter help description
-        [Parameter(ParameterSetName = 'GetImageUrls')]
+        [Parameter(ParameterSetName = 'GetImageUrls', Mandatory = $true)]
         [switch]
-        $GetImageUrls
+        $GetImageUrls,
+
+        # Parameter help description
+        [Parameter(ParameterSetName = 'GetHTMLMetadata', Mandatory = $true)]
+        [switch]
+        $GetHTMLMetadata
+
        
         
     )
@@ -867,13 +965,18 @@ function Start-PSWebCrawler {
             $ImageUrlsArray | ft
 
         }
+        'GetHTMLMetadata' {
+            $response = Get-PSWCHttpResponse -url $url
+            $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+            Get-PSWCHTMLMetadata -htmlContent $htmlContent | Format-List
+        }
         default {
             $helpinfo = @'
 How to use, examples:
 [1] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 2 -onlyDomains
 [2] PSWC -ShowAllElements -Type All -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf"
 [3] PSWC -GetImageUrls -url "http://allafrica.com/tools/"
-[4]
+[4] PSWC -GetHTMLMetadata -url "http://allafrica.com/tools/headlines/rdf"
 [5] 
 [6] 
 [7] 
