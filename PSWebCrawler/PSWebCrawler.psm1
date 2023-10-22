@@ -43,7 +43,7 @@ function Get-PSWCAllElements {
         if ($response[1].IsSuccessStatusCode) {
             Write-Log "Response [$($response[1].StatusCode)] succeded from [$url] "
             #write-verbose "`$response.IsSuccessStatusCode for '$url': $($response.IsSuccessStatusCode)"
-            $htmlContent = $response.Content.ReadAsStringAsync().Result
+            $htmlContent = $response[1].Content.ReadAsStringAsync().Result
             #$responseHeaders = $response.Headers | ConvertTo-Json  # Capture response headers
             # Extract all anchor elements from the HTML document
             $anchorElements = Get-PSWCDocumentElements -htmlContent $htmlContent -Node $Node
@@ -124,6 +124,49 @@ function Get-PSWCAllElements {
         Write-Log "Domain count: [$($domains.count)], unique: $(($domainsUnique).count)"
         Write-Log "no-Hrefs as absolute links count: [$($internalLinks.count)], unique: $(($internalLinksUnique).count)"
         
+    }
+}
+
+function Get-PSWCImageUrls {
+    param (
+        [Parameter(Mandatory = $true, ValueFromPipeline)]
+        [string]$HtmlContent,
+
+        [string]
+        $url,
+
+        [Parameter(Mandatory = $false)]
+        [string]$SelectQuery = "//img"
+    )
+
+    try {
+        $doc = New-Object HtmlAgilityPack.HtmlDocument
+        $doc.LoadHtml($HtmlContent)
+
+        $imageUrls = @()
+
+        $selectedNodes = $doc.DocumentNode.SelectNodes($SelectQuery)
+        if ($selectedNodes) {
+            foreach ($node in $selectedNodes) {
+                $src = $node.GetAttributeValue("src", "")
+                if (![string]::IsNullOrWhiteSpace($src)) {
+                    if ($src -match "^https?://") {
+                        $imageUrls += $src                            <# Action to perform if the condition is true #>
+                    }
+                    elseif ($src -match "^/|^\.\./") {
+                            $internalUrl = [System.Uri]::new([System.Uri]::new($url), $src)
+                            $imageUrls += $internalUrl.AbsoluteUri
+                    } else {
+                        $imageUrls += $src
+                    }
+                }
+            }
+        }
+
+        $imageUrls
+    }
+    catch {
+        Write-Error "An error occurred: $_"
     }
 }
 
@@ -525,8 +568,8 @@ Handle Errors Gracefully: Implement error handling logic to handle the Bad Reque
 function Get-PSWCHttpResponse {
     param (
         [string]$url,
-        [string]$userAgent,
-        [int]$timeout
+        [string]$userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36 Edg/118.0.2088.57",
+        [int]$timeout = "10"
     )
 
     # Create an HttpClient with a custom User-Agent header
@@ -534,10 +577,10 @@ function Get-PSWCHttpResponse {
     $httpClient.DefaultRequestHeaders.Add("User-Agent", $userAgent)
 
     # Set the timeout for the HttpClient
-    $httpClient.Timeout = [System.TimeSpan]::FromSeconds($timeoutSec)
+    $httpClient.Timeout = [System.TimeSpan]::FromSeconds($timeout)
 
     # Send an HTTP GET request to the URL
-    return $httpClient,$httpClient.GetAsync($url).Result
+    return $httpClient, $httpClient.GetAsync($url).Result
 }
 
 function Get-PSWCDocumentElements {
@@ -553,7 +596,7 @@ function Get-PSWCDocumentElements {
     $rootXmlNode = $htmlDocument.DocumentNode
 
     # Extract all anchor elements from the HTML document
-    return $htmlDocument,$rootXmlNode.SelectNodes($Node)
+    return $htmlDocument, $rootXmlNode.SelectNodes($Node)
 }
 
 function Set-PSWCCleanWebsiteURL {
@@ -724,6 +767,7 @@ function Start-PSWebCrawler {
     param (
         [Parameter(ParameterSetName = 'WebCrawl', Mandatory = $true)]
         [Parameter(ParameterSetName = 'ShowAllElements', Mandatory = $true)]
+        [Parameter(ParameterSetName = 'GetImageUrls')]
         [ValidateNotNullOrEmpty()]
         [ValidatePattern('^https?://.*')]
         [string]$Url,
@@ -746,7 +790,12 @@ function Start-PSWebCrawler {
         [string]$outputFolder = (Get-PSWCCacheFolder),
 
         [Parameter(ParameterSetName = 'ShowCacheFolder', Mandatory = $true)]
-        [switch]$ShowCacheFolder
+        [switch]$ShowCacheFolder,
+
+        # Parameter help description
+        [Parameter(ParameterSetName = 'GetImageUrls')]
+        [switch]
+        $GetImageUrls
        
         
     )
@@ -810,13 +859,21 @@ function Start-PSWebCrawler {
             Get-PSWCAllElements -url $url -onlyDomains:$onlyDomains -Type $type
             break
         }
+        'GetImageUrls' {
+            $response = Get-PSWCHttpResponse -url $url
+            $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+            $ImageUrlsArray = Get-PSWCImageUrls -HtmlContent $htmlContent -url $Url
+            write-host "Images count: [ $($ImageUrlsArray.count) ] for [ $url ]"
+            $ImageUrlsArray | ft
+
+        }
         default {
             $helpinfo = @'
 How to use, examples:
-[1] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 1
-[2] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 2 -onlyDomains
-[3] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -ShowAllElements -Type
-[4] 
+[1] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 2 -onlyDomains
+[2] PSWC -ShowAllElements -Type All -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf"
+[3] PSWC -GetImageUrls -url "http://allafrica.com/tools/"
+[4]
 [5] 
 [6] 
 [7] 
