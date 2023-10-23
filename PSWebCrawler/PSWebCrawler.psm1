@@ -904,6 +904,29 @@ function Write-Log {
     $strToLog | Out-File $Logfile -Append -Encoding utf8
 }
 
+function Show-PSWCMenu {
+    param (        
+    )
+    $helpinfo = @'
+How to use, examples:
+[1] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 2 -onlyDomains
+[2] PSWC -ShowAllElements -Type All -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf"
+[3] PSWC -GetImageUrls -url "http://allafrica.com/tools/"
+[4] PSWC -GetHTMLMetadata -url "http://allafrica.com/tools/headlines/rdf"
+[5] PSWC -GetContactInformation -Url "http://allafrica.com/"
+[6] PSWC -GetHeaders -url "http://allafrica.com
+[7] 
+[8] 
+[9] 
+[10] 
+[11] 
+[11] PSWC -ShowCacheFolder  
+
+
+
+'@
+    Write-Output $helpinfo
+}
 
 function Start-PSWebCrawler {
     <#
@@ -974,112 +997,100 @@ function Start-PSWebCrawler {
        
         
     )
-    Get-PSWCBanner
-    Write-Verbose "ParameterSetName: [$($PSCmdlet.ParameterSetName)]" -Verbose
-    switch ($PSCmdlet.ParameterSetName) {
-        'WebCrawl' {
-            $script:ArrayData = @()
-            Write-Log "Initializing array [ArrayData]"
-            $script:ArrayData += [PSCustomObject] @{
-                Depth     = $depth
-                Url       = $url
-                Domain    = ""
-                Href      = ""
-                UrlServer = ""
-                Date      = (get-date)
-            }
-            Write-Log "insert to [ArrayData] depth: [$depth], url: [$url]"
-            if (-not $outputFolder) {
-                #    $outputFile = join-path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -url $url)
-                $outputfoldertext = "not set"
+    try {
+        Get-PSWCBanner
+        Write-Verbose "ParameterSetName: [$($PSCmdlet.ParameterSetName)]" -Verbose
+        switch ($PSCmdlet.ParameterSetName) {
+            'WebCrawl' {
+                $script:ArrayData = @()
+                Write-Log "Initializing array [ArrayData]"
+                $script:ArrayData += [PSCustomObject] @{
+                    Depth     = $depth
+                    Url       = $url
+                    Domain    = ""
+                    Href      = ""
+                    UrlServer = ""
+                    Date      = (get-date)
+                }
+                Write-Log "insert to [ArrayData] depth: [$depth], url: [$url]"
+                if (-not $outputFolder) {
+                    #    $outputFile = join-path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -url $url)
+                    $outputfoldertext = "not set"
+                    
+                }
+                else {
+                    $outputfoldertext = $outputFolder
+                    Write-Log "[outputfoldertext] is set to [$outputfolder]"
+                }
+                # Start crawling the start URL
+                Write-Host "Url: [$Url]"
+                Write-Host "Depth: $depth"
+                write-host "onlyDomains: $onlydomains"
+                write-host "outputFolder: [$outputfoldertext]"
+                #$script:historydomains += (Get-PSWCSchemeAndDomain -url $url)
+                Write-Log "Start iteration for [$url] with depth: [$depth]"
+                Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder
                 
+                Write-Host "liczba sprawdzonych domen: " -NoNewline
+                ($script:historyDomains | Select-Object -Unique | Measure-Object).count
+                
+                Write-Host "sprawdzone domeny (po url):"
+                $script:historyDomains | Select-Object -Unique  | Sort-Object
+                #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
+                $ArrayData | Where-Object { $_.Domain } | Sort-Object url, domain | Select-Object url, server -Unique | Format-Table url, server
+    
+                Write-Host "sprawdzone domeny (po domain):"
+                $script:historyDomains | Select-Object -Unique  | Sort-Object
+                #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
+                $ArrayData | Where-Object { $_.Domain } | Sort-Object domain, domain | Select-Object domain, server -Unique | Format-Table domain, server
+    
+                $ArrayData | Out-GridView
+    
+                break
             }
-            else {
-                $outputfoldertext = $outputFolder
-                Write-Log "[outputfoldertext] is set to [$outputfolder]"
+            'ShowCacheFolder' {
+                #New-PSWCCacheFolder -FolderName $script:WCtoolfolderFullName
+                Open-PSWCExplorerCache -FolderName $script:ModuleName
+                break
             }
-            # Start crawling the start URL
-            Write-Host "Url: [$Url]"
-            Write-Host "Depth: $depth"
-            write-host "onlyDomains: $onlydomains"
-            write-host "outputFolder: [$outputfoldertext]"
-            #$script:historydomains += (Get-PSWCSchemeAndDomain -url $url)
-            Write-Log "Start iteration for [$url] with depth: [$depth]"
-            Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder
-            
-            Write-Host "liczba sprawdzonych domen: " -NoNewline
-            ($script:historyDomains | Select-Object -Unique | Measure-Object).count
-            
-            Write-Host "sprawdzone domeny (po url):"
-            $script:historyDomains | Select-Object -Unique  | Sort-Object
-            #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
-            $ArrayData | Where-Object { $_.Domain } | Sort-Object url, domain | Select-Object url, server -Unique | Format-Table url, server
-
-            Write-Host "sprawdzone domeny (po domain):"
-            $script:historyDomains | Select-Object -Unique  | Sort-Object
-            #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
-            $ArrayData | Where-Object { $_.Domain } | Sort-Object domain, domain | Select-Object domain, server -Unique | Format-Table domain, server
-
-            $ArrayData | Out-GridView
-
-            break
-        }
-        'ShowCacheFolder' {
-            #New-PSWCCacheFolder -FolderName $script:WCtoolfolderFullName
-            Open-PSWCExplorerCache -FolderName $script:ModuleName
-            break
-        }
-        'ShowAllElements' {
-            #Write-Verbose "ShowAllElements" -Verbose
-            Get-PSWCAllElements -url $url -onlyDomains:$onlyDomains -Type $type
-            break
-        }
-        'GetImageUrls' {
-            $response = Get-PSWCHttpResponse -url $url
-            $htmlContent = $response[1].Content.ReadAsStringAsync().Result
-            $ImageUrlsArray = Get-PSWCImageUrls -HtmlContent $htmlContent -url $Url
-            write-host "Images count: [ $($ImageUrlsArray.count) ] for [ $url ]"
-            $ImageUrlsArray | ft
-
-        }
-        'GetHTMLMetadata' {
-            $response = Get-PSWCHttpResponse -url $url
-            $htmlContent = $response[1].Content.ReadAsStringAsync().Result
-            Get-PSWCHTMLMetadata -htmlContent $htmlContent | Format-List
-        }
-        'GetContactInformation'{
-            $response = Get-PSWCHttpResponse -url $url
-            $htmlContent = $response[1].Content.ReadAsStringAsync().Result
-            Get-PSWCContactInformation -htmlContent $htmlContent | Format-List
-        }
-        'GetHeadersAndValues'{
-            $response = Get-PSWCHttpResponse -url $url
-            $htmlContent = $response[1].Content.ReadAsStringAsync().Result
-            Get-PSWCHeadersAndValues -htmlContent $htmlContent
-        }
-        default {
-            $helpinfo = @'
-How to use, examples:
-[1] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 2 -onlyDomains
-[2] PSWC -ShowAllElements -Type All -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf"
-[3] PSWC -GetImageUrls -url "http://allafrica.com/tools/"
-[4] PSWC -GetHTMLMetadata -url "http://allafrica.com/tools/headlines/rdf"
-[5] PSWC -GetContactInformation -Url "http://allafrica.com/"
-[6] PSWC -GetHeaders -url "http://allafrica.com
-[7] 
-[8] 
-[9] 
-[10] 
-[11] 
-[11] PSWC -ShowCacheFolder  
-
-
-
-'@
-            Write-Output $helpinfo
-            break
+            'ShowAllElements' {
+                #Write-Verbose "ShowAllElements" -Verbose
+                Get-PSWCAllElements -url $url -onlyDomains:$onlyDomains -Type $type
+                break
+            }
+            'GetImageUrls' {
+                $response = Get-PSWCHttpResponse -url $url
+                $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+                $ImageUrlsArray = Get-PSWCImageUrls -HtmlContent $htmlContent -url $Url
+                write-host "Images count: [ $($ImageUrlsArray.count) ] for [ $url ]"
+                $ImageUrlsArray | Format-Table
+    
+            }
+            'GetHTMLMetadata' {
+                $response = Get-PSWCHttpResponse -url $url
+                $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+                $HTMLMetadata = Get-PSWCHTMLMetadata -htmlContent $htmlContent
+                $HTMLMetadata | Format-List                
+            }
+            'GetContactInformation' {
+                $response = Get-PSWCHttpResponse -url $url
+                $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+                Get-PSWCContactInformation -htmlContent $htmlContent | Format-List
+            }
+            'GetHeadersAndValues' {
+                $response = Get-PSWCHttpResponse -url $url
+                $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+                Get-PSWCHeadersAndValues -htmlContent $htmlContent
+            }
+            default {
+                Show-PSWCMenu
+                break
+            }
         }
     }
+    catch {
+        Write-Error "An error occurred: $_"
+    }    
 }
 
 Clear-Host
