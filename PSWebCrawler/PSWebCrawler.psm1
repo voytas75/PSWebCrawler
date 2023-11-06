@@ -261,6 +261,13 @@ Function Get-PSWCHTMLMetadata {
     $metadata
 }
 
+function Get-PSWCGetHostAddresses {
+    param (
+        [string]$domain
+    )
+    return ([System.Net.Dns]::GetHostAddresses($domain)).IPAddressToString
+}
+
 Function Get-PSWCContactInformation {
     param (
         [string]$htmlContent
@@ -337,6 +344,7 @@ function Start-PSWCCrawl {
         [switch]$statusCodeVerbose,
         [switch]$noCrawlExternalLinks,
         [switch]$onlyDomains,
+        [switch]$resolve,
         [string]$userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.43"
     )
 
@@ -486,7 +494,10 @@ Depth                : 0
                             
                             # Get the domain of the linked URL
                             $linkedDomain = [System.Uri]::new($href).Host
-    
+                            
+                            if($resolve.IsPresent) {
+                                Get-PSWCIPfromDomain -domain $linkedDomain
+                            }
                             # Check if the linked domain is different from the current domain
                             if ($linkedDomain -ne $currentDomain -and -not $noCrawlExternalLinks) {
                                 # Decrease the depth when moving to a different site
@@ -545,6 +556,12 @@ Depth                : 0
                             # Get the domain of the linked URL
                             $linkedDomain = [System.Uri]::new($href).Host
                             Write-Log "[LinkedDomain] is for [$linkedDomain]"
+
+                            #resolve to IP address
+                            if($resolve.IsPresent) {
+                                Get-PSWCGetHostAddresses -domain $linkedDomain
+                            }
+
                             #Write-Verbose "  domain '$linkedDomain'"
                             #if ($script:ArrayData.domain.contains($hrefdomain)){
                             #    continue
@@ -910,17 +927,28 @@ function Show-PSWCMenu {
     $helpinfo = @'
 How to use, examples:
 [1] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 2 -onlyDomains
-[2] PSWC -ShowAllElements -Type All -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf"
-[3] PSWC -GetImageUrls -url "http://allafrica.com/tools/"
-[4] PSWC -GetHTMLMetadata -url "http://allafrica.com/tools/headlines/rdf"
-[5] PSWC -GetContactInformation -Url "http://allafrica.com/"
-[6] PSWC -GetHeaders -url "http://allafrica.com
-[7] 
-[8] 
-[9] 
-[10] 
-[11] 
-[11] PSWC -ShowCacheFolder  
+    Only domain from url is crawled
+
+[2] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 2 -onlyDomains -Resolve
+    Resolve to IP address
+
+[3] PSWC -ShowAllElements -Type All -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf"
+    Show all href elements
+
+[4] PSWC -GetImageUrls -url "http://allafrica.com/tools/"
+    get image urls
+
+[5] PSWC -GetHTMLMetadata -url "http://allafrica.com/tools/headlines/rdf"
+    Get HTML metadata elements
+
+[6] PSWC -GetContactInformation -Url "http://allafrica.com/"
+    Get contact information elements 
+
+[7] PSWC -GetHeaders -url "http://allafrica.com
+    Display all items from header
+
+[8] PSWC -ShowCacheFolder
+    Openn explorer with cache folder
 
 
 
@@ -963,6 +991,9 @@ function Start-PSWebCrawler {
         
         [Parameter(ParameterSetName = 'WebCrawl')]
         [int]$Depth = 2,
+
+        [Parameter(ParameterSetName = 'WebCrawl')]
+        [switch]$Resolve,
 
         [Parameter(ParameterSetName = 'ShowAllElements')]
         [Parameter(ParameterSetName = 'WebCrawl')]
@@ -1026,10 +1057,11 @@ function Start-PSWebCrawler {
                 Write-Host "Url: [$Url]"
                 Write-Host "Depth: $depth"
                 write-host "onlyDomains: $onlydomains"
+                write-host "Resolve: $resolve"
                 write-host "outputFolder: [$outputfoldertext]"
                 #$script:historydomains += (Get-PSWCSchemeAndDomain -url $url)
                 Write-Log "Start iteration for [$url] with depth: [$depth]"
-                Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder
+                Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder -resolve:$resolve
                 
                 Write-Host "liczba sprawdzonych domen: " -NoNewline
                 ($script:historyDomains | Select-Object -Unique | Measure-Object).count
