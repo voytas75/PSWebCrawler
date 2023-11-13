@@ -1,0 +1,30 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "PowerShell: WebCrawler -Depth 2 -onlyDomains -outputFolder",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "import-module -Force D:/dane/voytas/Dokumenty/visual_studio_code/github/PSWebCrawler/PSWebCrawler/PSWebCrawler.psd1; PSWC -Url \"https://gunb.gov.pl\" -Depth 2 -onlyDomains -outputFolder \"\""
+            
+        },
+        {
+            "name": "PowerShell: WebCrawler import module only",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "import-module -Force D:/dane/voytas/Dokumenty/visual_studio_code/github/PSWebCrawler/PSWebCrawler/PSWebCrawler.psd1"
+            
+        },
+        {
+            "name": "PowerShell: WebCrawler - show all elements for a Url",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "import-module D:/dane/voytas/Dokumenty/visual_studio_code/github/PSWebCrawler/PSWebCrawler/PSWebCrawler.psd1 -Force; pswc -ShowAllElements -Url \"http://gunb.gov.pl\" -onlyDomains:$false -type all"
+            
+        }
+        
+    ]
+}
