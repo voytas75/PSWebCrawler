@@ -1,0 +1,5 @@
+{
+    "editor.stickyScroll.defaultModel": "outlineModel",
+    "breadcrumbs.symbolSortOrder": "position",
+    "outline.collapseItems": "alwaysCollapse"
+}
