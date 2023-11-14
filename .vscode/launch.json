@@ -22,9 +22,8 @@
             "name": "PowerShell: WebCrawler - show all elements for a Url",
             "type": "PowerShell",
             "request": "launch",
-            "script": "import-module D:/dane/voytas/Dokumenty/visual_studio_code/github/PSWebCrawler/PSWebCrawler/PSWebCrawler.psd1 -Force; pswc -ShowAllElements -Url \"http://gunb.gov.pl\" -onlyDomains:$false -type all"
+            "script": "import-module D:/dane/voytas/Dokumenty/visual_studio_code/github/PSWebCrawler/PSWebCrawler/PSWebCrawler.psd1 -Force; pswc -Url \"http://gunb.gov.pl\" -depth 1 -onlyDomains:$false"
             
-        }
-        
+        }        
     ]
 }

@@ -496,28 +496,77 @@ Depth                : 0
                             $linkedDomain = [System.Uri]::new($href).Host
                             
                             if($resolve.IsPresent) {
-                                Get-PSWCIPfromDomain -domain $linkedDomain
+                                Get-PSWCGetHostAddresses -domain $linkedDomain
                             }
                             # Check if the linked domain is different from the current domain
                             if ($linkedDomain -ne $currentDomain -and -not $noCrawlExternalLinks) {
+                                Write-Log "[$currentDomain] is different then [$linkedDomain] and not [noCrawlExternalLinks]"
+                                if (-not ($script:ArrayData.url.contains($href))) {
+                                    Write-Host "  [$depth] ['$url' - '$href']"
+                                    $thisobject = [PSCustomObject] @{
+                                        Depth     = $depth
+                                        Url       = $href
+                                        Domain    = ""
+                                        Href      = ""
+                                        UrlServer = ""
+                                        Date      = (get-date)
+                                    }
+                                    $script:ArrayData += $thisobject
+                                    Write-Log "Depth:[$depth] and url:[$href] added to ArrayData"
+                                }
+                            
                                 # Decrease the depth when moving to a different site
                                 $newDepth = $depth - 1
+                                Write-Log "Newdepth is [$newDepth]"
+                                $domains += $hrefdomain
+                                Write-Log "[$href] added to [domains] list"
+                                if (-not ($script:ArrayData.domain.contains($href))) {
+                                    $server = $response[1].Headers.Server -join "; "
+                                    if ($server -eq "") {
+                                        $server = "no data"
+                                    }
+                                    #$server_ = $server.count
+                                    #write-host "[${server}]"
+                                    $thisobject = [PSCustomObject] @{
+                                        Depth     = $depth
+                                        Url       = $url
+                                        Domain    = $hrefDomain
+                                        Href      = $href
+                                        UrlServer = $server
+                                        Date      = (get-date)
+                                    }
+                                    $script:ArrayData += $thisobject
+                                    Write-Log "Depth:[$depth], url:[$url], domain:[$hrefDomain], href:[$href], server:[$server] added to ArrayData"
+                                }
+                                Write-Log "start new iteration for [$href]"
+                                if ($depth -le 1) {
+                                    # immediately returns the program flow to the top of a program loop
+                                    Write-Log "Depth is 0; skipping [$href]"
+                                    continue
+                                }
+                                #Start-PSWCCrawl -url $hrefDomain -depth $newDepth -timeoutSec $timeoutSec -outputFolder $outputFolder -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains -verbose:$verbose -debug:$debug
+                                Start-PSWCCrawl -url $href -depth $newDepth -timeoutSec $timeoutSec -outputFolder $outputFolder -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains -verbose:$verbose -debug:$debug
+                                                        
                             }
                             else {
                                 $newDepth = $depth
+                                Write-Log "Newdepth is [$newDepth]"
+
                             }
     
                             # Add the link to the list of links to crawl
-                            Write-Verbose "Found link: $href (Depth: $newDepth)"
+                            #Write-Verbose "Found link: $href (Depth: $newDepth)"
                             
                             # Recursively crawl with the adjusted depth
-                            Crawl-Url -url $href -depth $newDepth -timeoutSec $timeoutSec -outputFile $outputFile -verbose:$verbose -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains
+                            #Start-PSWCCrawl -url $href -depth $newDepth -timeoutSec $timeoutSec -outputFolder $outputFolder -verbose:$verbose -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains
+                            #Start-PSWCCrawl -url $href -depth $newDepth -timeoutSec $timeoutSec -outputFolder $outputFolder -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains -verbose:$verbose -debug:$debug
+
                         }
                         else {
                             # Add the link to the output file, if specified
                             if ($outputFolder -ne "") {
                                 #$hrefFile = (Join-Path -Path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -Url $url)) + ".hrefs.anchorElement.txt"
-                                Add-Content -Path (j[string]::Concat($outputFile, ".hrefs.anchorElement.txt")) -Value $href
+                                Add-Content -Path ([string]::Concat($outputFile, ".hrefs.anchorElement.txt")) -Value $href
                             }
                         }
                     }
@@ -620,7 +669,7 @@ Depth                : 0
                                 }
                             
                                 Write-Log "start new iteration for [$hrefDomain]"
-                                if ($depth -eq 0) {
+                                if ($depth -le 1) {
                                     # immediately returns the program flow to the top of a program loop
                                     Write-Log "Depth is 0; skipping [$hrefDomain]"
                                     continue
@@ -1028,7 +1077,7 @@ function Start-PSWebCrawler {
        
         
     )
-    try {
+   # try {
         Get-PSWCBanner
         Write-Verbose "ParameterSetName: [$($PSCmdlet.ParameterSetName)]" -Verbose
         switch ($PSCmdlet.ParameterSetName) {
@@ -1119,10 +1168,10 @@ function Start-PSWebCrawler {
                 break
             }
         }
-    }
-    catch {
-        Write-Error "An error occurred: $_"
-    }    
+    #}
+    #catch {
+        #Write-Error "An error occurred: $_"
+    #}    
 }
 
 Clear-Host
