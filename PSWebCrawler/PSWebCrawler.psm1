@@ -396,10 +396,8 @@ function Start-PSWCCrawl {
     #if (-not ($url -in $script:historydomains)) {
     #write-verbose "`$script:ArrayData.url.Contains($url): $($script:ArrayData.url.Contains($url))"
 
-    if ($script:ArrayData.url.Contains($url)) {
-        #if (-not $visitedUrls.ContainsKey($url) -and -not ((Get-PSWCSchemeAndDomain -url $url) -in $script:historydomains)) {
-        #$visitedUrls[$url] = $true
-        Write-Log "[Arraydata] url contains [$url] "
+    if ($script:ArrayData.url.Contains($url)) { # why?
+        Write-Log "[Arraydata] url contains '$url' "
         try {
             # Send an HTTP GET request to the URL
             $response = Get-PSWCHttpResponse -url $url -userAgent $userAgent -timeout $timeoutSec
@@ -471,7 +469,7 @@ Depth                : 0
                 Write-Log "Created empty array [domains]"
 
                 if (-not $onlyDomains.IsPresent) {
-                    Write-Verbose "processing hreflinks..."
+                    Write-Verbose "processing hreflinks from '$url'..."
                     
                     # Iterate over the anchor elements and extract the href attributes
                     foreach ($anchorElement in $anchorElements[1]) {
@@ -530,7 +528,7 @@ Depth                : 0
                                     $thisobject = [PSCustomObject] @{
                                         Depth     = $depth
                                         Url       = $url
-                                        Domain    = $hrefDomain
+                                        Domain    = $linkedDomain
                                         Href      = $href
                                         UrlServer = $server
                                         Date      = (get-date)
@@ -573,7 +571,7 @@ Depth                : 0
                 }
                 else {
 
-                    #Write-Verbose "processing onlydomains..."
+                    Write-Verbose "processing onlydomains url from '$url'..."
                     # Iterate over the anchor elements and extract the href attributes - only domains
                     foreach ($anchorElement in $anchorElements[1]) {
                         $href = $anchorElement.GetAttributeValue("href", "")
@@ -1073,8 +1071,6 @@ function Start-PSWebCrawler {
         [Parameter(ParameterSetName = 'GetHeadersAndValues', Mandatory = $true)]
         [switch]
         $GetHeadersAndValues
-
-       
         
     )
    # try {
@@ -1104,23 +1100,24 @@ function Start-PSWebCrawler {
                 }
                 # Start crawling the start URL
                 Write-Host "Url: [$Url]"
-                Write-Host "Depth: $depth"
+                Write-Host "depth: $depth"
                 write-host "onlyDomains: $onlydomains"
-                write-host "Resolve: $resolve"
+                write-host "resolve: $resolve"
                 write-host "outputFolder: [$outputfoldertext]"
                 #$script:historydomains += (Get-PSWCSchemeAndDomain -url $url)
                 Write-Log "Start iteration for [$url] with depth: [$depth]"
                 Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder -resolve:$resolve
                 
-                Write-Host "liczba sprawdzonych domen: " -NoNewline
+                Write-Host "`nLiczba sprawdzonych domen (var: historyDomains): " -NoNewline
                 ($script:historyDomains | Select-Object -Unique | Measure-Object).count
+                ($script:ArrayData.domain | Select-Object -Unique | Measure-Object).count
                 
-                Write-Host "sprawdzone domeny (po url):"
+                Write-Host "sprawdzone domeny (po url; var: historyDomains):"
                 $script:historyDomains | Select-Object -Unique  | Sort-Object
                 #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
                 $ArrayData | Where-Object { $_.Domain } | Sort-Object url, domain | Select-Object url, server -Unique | Format-Table url, server
     
-                Write-Host "sprawdzone domeny (po domain):"
+                Write-Host "`nsprawdzone domeny (po domain; var: historyDomains):"
                 $script:historyDomains | Select-Object -Unique  | Sort-Object
                 #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
                 $ArrayData | Where-Object { $_.Domain } | Sort-Object domain, domain | Select-Object domain, server -Unique | Format-Table domain, server
