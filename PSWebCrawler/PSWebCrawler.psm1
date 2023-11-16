@@ -396,7 +396,8 @@ function Start-PSWCCrawl {
     #if (-not ($url -in $script:historydomains)) {
     #write-verbose "`$script:ArrayData.url.Contains($url): $($script:ArrayData.url.Contains($url))"
 
-    if ($script:ArrayData.url.Contains($url)) { # why?
+    if ($script:ArrayData.url.Contains($url)) {
+        # why?
         Write-Log "[Arraydata] url contains '$url' "
         try {
             # Send an HTTP GET request to the URL
@@ -480,7 +481,10 @@ Depth                : 0
 
                         # Remove tel: links
                         $href = $href -replace "tel:", ""
-    
+
+                        # Remove # links
+                        $href = $href -replace "#", ""
+
                         # Filter out non-HTTP links
                         if ($href -match "^https?://") {
                             <#                             if ($depth -eq 0) {
@@ -496,7 +500,7 @@ Depth                : 0
                             # Get the domain of the linked URL
                             $linkedDomain = [System.Uri]::new($href).Host
                             
-                            if($resolve.IsPresent) {
+                            if ($resolve.IsPresent) {
                                 Get-PSWCGetHostAddresses -domain $linkedDomain
                             }
                             # Check if the linked domain is different from the current domain
@@ -589,6 +593,10 @@ Depth                : 0
                         # Remove tel: links
                         $href = $href -replace "tel:", ""
 
+                        # Remove # links
+                        $href = $href -replace "#", ""
+
+
                         # Filter out non-HTTP links
                         if ($href -match "^https?://") {
                             #Write-Verbose "  processing '$href'..."
@@ -614,7 +622,7 @@ Depth                : 0
                             Write-Log "[LinkedDomain] is for [$linkedDomain]"
 
                             #resolve to IP address
-                            if($resolve.IsPresent) {
+                            if ($resolve.IsPresent) {
                                 Get-PSWCGetHostAddresses -domain $linkedDomain
                             }
 
@@ -1082,108 +1090,108 @@ function Start-PSWebCrawler {
         $GetHeadersAndValues
         
     )
-   # try {
-        Get-PSWCBanner
-        Write-Verbose "ParameterSetName: [$($PSCmdlet.ParameterSetName)]" -Verbose
-        switch ($PSCmdlet.ParameterSetName) {
-            'WebCrawl' {
-                $script:ArrayData = @()
-                Write-Log "Initializing array [ArrayData]"
-                $script:ArrayData += [PSCustomObject] @{
-                    Depth     = $depth
-                    Url       = $url
-                    Domain    = ""
-                    Href      = ""
-                    UrlServer = ""
-                    Date      = (get-date)
-                }
-                Write-Log "insert to [ArrayData] depth: [$depth], url: [$url]"
-                if (-not $outputFolder) {
-                    #    $outputFile = join-path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -url $url)
-                    $outputfoldertext = "not set"
+    # try {
+    Get-PSWCBanner
+    Write-Verbose "ParameterSetName: [$($PSCmdlet.ParameterSetName)]" -Verbose
+    switch ($PSCmdlet.ParameterSetName) {
+        'WebCrawl' {
+            $script:ArrayData = @()
+            Write-Log "Initializing array [ArrayData]"
+            $script:ArrayData += [PSCustomObject] @{
+                Depth     = $depth
+                Url       = $url
+                Domain    = ""
+                Href      = ""
+                UrlServer = ""
+                Date      = (get-date)
+            }
+            Write-Log "insert to [ArrayData] depth: [$depth], url: [$url]"
+            if (-not $outputFolder) {
+                #    $outputFile = join-path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -url $url)
+                $outputfoldertext = "not set"
                     
-                }
-                else {
-                    $outputfoldertext = $outputFolder
-                    Write-Log "[outputfoldertext] is set to [$outputfolder]"
-                }
-                # Start crawling the start URL
-                Write-Host "Url: [$Url]"
-                Write-Host "depth: $depth"
-                write-host "onlyDomains: $onlydomains"
-                write-host "resolve: $resolve"
-                write-host "outputFolder: [$outputfoldertext]"
-                #$script:historydomains += (Get-PSWCSchemeAndDomain -url $url)
-                Write-Log "Start iteration for [$url] with depth: [$depth]"
-                Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder -resolve:$resolve
+            }
+            else {
+                $outputfoldertext = $outputFolder
+                Write-Log "[outputfoldertext] is set to [$outputfolder]"
+            }
+            # Start crawling the start URL
+            Write-Host "Url: [$Url]"
+            Write-Host "depth: $depth"
+            write-host "onlyDomains: $onlydomains"
+            write-host "resolve: $resolve"
+            write-host "outputFolder: [$outputfoldertext]"
+            #$script:historydomains += (Get-PSWCSchemeAndDomain -url $url)
+            Write-Log "Start iteration for [$url] with depth: [$depth]"
+            Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder -resolve:$resolve
                 
-                Write-Host "`nLiczba sprawdzonych domen (var: historyDomains): " -NoNewline
+            Write-Host "`nLiczba sprawdzonych domen (var: historyDomains): " -NoNewline
                 ($script:historyDomains | Select-Object -Unique | Measure-Object).count
-                Write-Host "`nLiczba sprawdzonych domen (var: ArrayData): " -NoNewline
+            Write-Host "`nLiczba sprawdzonych domen (var: ArrayData): " -NoNewline
                 ($script:ArrayData.domain | Select-Object -Unique | Measure-Object).count
                 
-                Write-Host "sprawdzone domeny (po url; var: historyDomains):"
-                $script:historyDomains | Select-Object -Unique  | Sort-Object
-                #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
-                $ArrayData | Where-Object { $_.Domain } | Sort-Object url, domain | Select-Object url, server -Unique | Format-Table url, server
+            Write-Host "sprawdzone domeny (po url; var: historyDomains):"
+            $script:historyDomains | Select-Object -Unique  | Sort-Object
+            #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
+            $ArrayData | Where-Object { $_.Domain } | Sort-Object url, domain | Select-Object url, server -Unique | Format-Table url, server
     
-                Write-Host "`nsprawdzone domeny (po domain; var: historyDomains):"
-                $script:historyDomains | Select-Object -Unique  | Sort-Object
-                #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
-                $ArrayData | Where-Object { $_.Domain } | Sort-Object domain, domain | Select-Object domain, server -Unique | Format-Table domain, server
+            Write-Host "`nsprawdzone domeny (po domain; var: historyDomains):"
+            $script:historyDomains | Select-Object -Unique  | Sort-Object
+            #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
+            $ArrayData | Where-Object { $_.Domain } | Sort-Object domain, domain | Select-Object domain, server -Unique | Format-Table domain, server
     
-                Write-Host "`nsprawdzone linki (var: historyDomains):"
-                $script:historyDomains | Select-Object -Unique  | Sort-Object
-                Write-Host "`nsprawdzone linki (var: ArrayData):"
-                $ArrayData.href | Where-Object { $_.href }
+            Write-Host "`nsprawdzone linki (var: historyDomains):"
+            $script:historyDomains | Select-Object -Unique  | Sort-Object
+            Write-Host "`nsprawdzone linki (var: ArrayData):"
+            $ArrayData.href | Where-Object { $_.href }
 
 
-                $ArrayData | Out-GridView
+            $ArrayData | Out-GridView
     
-                break
-            }
-            'ShowCacheFolder' {
-                #New-PSWCCacheFolder -FolderName $script:WCtoolfolderFullName
-                Open-PSWCExplorerCache -FolderName $script:ModuleName
-                break
-            }
-            'ShowAllElements' {
-                #Write-Verbose "ShowAllElements" -Verbose
-                Get-PSWCAllElements -url $url -onlyDomains:$onlyDomains -Type $type
-                break
-            }
-            'GetImageUrls' {
-                $response = Get-PSWCHttpResponse -url $url
-                $htmlContent = $response[1].Content.ReadAsStringAsync().Result
-                $ImageUrlsArray = Get-PSWCImageUrls -HtmlContent $htmlContent -url $Url
-                write-host "Images count: [ $($ImageUrlsArray.count) ] for [ $url ]"
-                $ImageUrlsArray | Format-Table
-    
-            }
-            'GetHTMLMetadata' {
-                $response = Get-PSWCHttpResponse -url $url
-                $htmlContent = $response[1].Content.ReadAsStringAsync().Result
-                $HTMLMetadata = Get-PSWCHTMLMetadata -htmlContent $htmlContent
-                $HTMLMetadata | Format-List                
-            }
-            'GetContactInformation' {
-                $response = Get-PSWCHttpResponse -url $url
-                $htmlContent = $response[1].Content.ReadAsStringAsync().Result
-                Get-PSWCContactInformation -htmlContent $htmlContent | Format-List
-            }
-            'GetHeadersAndValues' {
-                $response = Get-PSWCHttpResponse -url $url
-                $htmlContent = $response[1].Content.ReadAsStringAsync().Result
-                Get-PSWCHeadersAndValues -htmlContent $htmlContent
-            }
-            default {
-                Show-PSWCMenu
-                break
-            }
+            break
         }
+        'ShowCacheFolder' {
+            #New-PSWCCacheFolder -FolderName $script:WCtoolfolderFullName
+            Open-PSWCExplorerCache -FolderName $script:ModuleName
+            break
+        }
+        'ShowAllElements' {
+            #Write-Verbose "ShowAllElements" -Verbose
+            Get-PSWCAllElements -url $url -onlyDomains:$onlyDomains -Type $type
+            break
+        }
+        'GetImageUrls' {
+            $response = Get-PSWCHttpResponse -url $url
+            $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+            $ImageUrlsArray = Get-PSWCImageUrls -HtmlContent $htmlContent -url $Url
+            write-host "Images count: [ $($ImageUrlsArray.count) ] for [ $url ]"
+            $ImageUrlsArray | Format-Table
+    
+        }
+        'GetHTMLMetadata' {
+            $response = Get-PSWCHttpResponse -url $url
+            $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+            $HTMLMetadata = Get-PSWCHTMLMetadata -htmlContent $htmlContent
+            $HTMLMetadata | Format-List                
+        }
+        'GetContactInformation' {
+            $response = Get-PSWCHttpResponse -url $url
+            $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+            Get-PSWCContactInformation -htmlContent $htmlContent | Format-List
+        }
+        'GetHeadersAndValues' {
+            $response = Get-PSWCHttpResponse -url $url
+            $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+            Get-PSWCHeadersAndValues -htmlContent $htmlContent
+        }
+        default {
+            Show-PSWCMenu
+            break
+        }
+    }
     #}
     #catch {
-        #Write-Error "An error occurred: $_"
+    #Write-Error "An error occurred: $_"
     #}    
 }
 
