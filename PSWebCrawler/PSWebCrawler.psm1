@@ -477,6 +477,9 @@ Depth                : 0
                         
                         # Remove mailto: links
                         $href = $href -replace "mailto:", ""
+
+                        # Remove tel: links
+                        $href = $href -replace "tel:", ""
     
                         # Filter out non-HTTP links
                         if ($href -match "^https?://") {
@@ -579,9 +582,13 @@ Depth                : 0
                         $href = $anchorElement.GetAttributeValue("href", "")
                         #Write-Verbose " processing '$href'..."
                         #Write-Log "analyze element [$href]"
+
                         # Remove mailto: links
                         $href = $href -replace "mailto:", ""
-    
+
+                        # Remove tel: links
+                        $href = $href -replace "tel:", ""
+
                         # Filter out non-HTTP links
                         if ($href -match "^https?://") {
                             #Write-Verbose "  processing '$href'..."
