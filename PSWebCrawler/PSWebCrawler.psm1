@@ -534,15 +534,17 @@ Depth                : 0
                                         Date      = (get-date)
                                     }
                                     $script:ArrayData += $thisobject
-                                    Write-Log "Depth:[$depth], url:[$url], domain:[$hrefDomain], href:[$href], server:[$server] added to ArrayData"
+                                    Write-Log "Depth: [$depth], url: [$url], domain: [$linkedDomain], href: [$href], server: [$server] added to ArrayData"
                                 }
-                                Write-Log "start new iteration for [$href]"
+                                
                                 if ($depth -le 1) {
                                     # immediately returns the program flow to the top of a program loop
                                     Write-Log "Depth is 0; skipping [$href]"
                                     continue
                                 }
-                                #Start-PSWCCrawl -url $hrefDomain -depth $newDepth -timeoutSec $timeoutSec -outputFolder $outputFolder -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains -verbose:$verbose -debug:$debug
+
+                                Write-Log "start new iteration for [$href]"
+                                
                                 Start-PSWCCrawl -url $href -depth $newDepth -timeoutSec $timeoutSec -outputFolder $outputFolder -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains -verbose:$verbose -debug:$debug
                                                         
                             }
