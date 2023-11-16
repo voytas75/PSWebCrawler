@@ -475,17 +475,9 @@ Depth                : 0
                     # Iterate over the anchor elements and extract the href attributes
                     foreach ($anchorElement in $anchorElements[1]) {
                         $href = $anchorElement.GetAttributeValue("href", "")
-                        
-<#                         # Remove mailto: links
-                        $href = $href -replace "mailto:", ""
 
-                        # Remove tel: links
-                        $href = $href -replace "tel:", ""
-
-                        # Remove # links
-                        $href = $href -replace "#", ""
- #>
-                        $hrefcontains = @("^mailto:","^tel:","^#")
+                        # remove from hreflinks
+                        $hrefcontains = @("^mailto:", "^tel:", "^#")
                         $href = $href | Where-Object { $_ -notMatch ($hrefcontains -join "|") }
 
 
@@ -591,16 +583,8 @@ Depth                : 0
                         #Write-Verbose " processing '$href'..."
                         #Write-Log "analyze element [$href]"
 
-<#                         # Remove mailto: links
-                        $href = $href -replace "mailto:", ""
-
-                        # Remove tel: links
-                        $href = $href -replace "tel:", ""
-
-                        # Remove # links
-                        $href = $href -replace "#", ""
- #>
-                        $hrefcontains = @("^mailto:","^tel:","^#")
+                        # remove from hreflinks
+                        $hrefcontains = @("^mailto:", "^tel:", "^#")
                         $href = $href | Where-Object { $_ -notMatch ($hrefcontains -join "|") }
 
                         # Filter out non-HTTP links
@@ -1150,7 +1134,7 @@ function Start-PSWebCrawler {
             ($ArrayData | Where-Object { $_.url } | Select-Object url -Unique | Sort-Object url).url
 
             Write-Host "`nsprawdzone linki (var: ArrayData.href):"
-            ($ArrayData | Where-Object { $_.href }| Select-Object href -Unique | Sort-Object href).href
+            ($ArrayData | Where-Object { $_.href } | Select-Object href -Unique | Sort-Object href).href
 
 
             $ArrayData | Out-GridView
