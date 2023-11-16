@@ -1112,6 +1112,7 @@ function Start-PSWebCrawler {
                 
                 Write-Host "`nLiczba sprawdzonych domen (var: historyDomains): " -NoNewline
                 ($script:historyDomains | Select-Object -Unique | Measure-Object).count
+                Write-Host "`nLiczba sprawdzonych domen (var: ArrayData): " -NoNewline
                 ($script:ArrayData.domain | Select-Object -Unique | Measure-Object).count
                 
                 Write-Host "sprawdzone domeny (po url; var: historyDomains):"
@@ -1124,6 +1125,12 @@ function Start-PSWebCrawler {
                 #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
                 $ArrayData | Where-Object { $_.Domain } | Sort-Object domain, domain | Select-Object domain, server -Unique | Format-Table domain, server
     
+                Write-Host "`nsprawdzone linki (var: historyDomains):"
+                $script:historyDomains | Select-Object -Unique  | Sort-Object
+                Write-Host "`nsprawdzone linki (var: ArrayData):"
+                $ArrayData.href | Where-Object { $_.href }
+
+
                 $ArrayData | Out-GridView
     
                 break
