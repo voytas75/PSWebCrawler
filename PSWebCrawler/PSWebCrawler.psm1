@@ -476,7 +476,7 @@ Depth                : 0
                     foreach ($anchorElement in $anchorElements[1]) {
                         $href = $anchorElement.GetAttributeValue("href", "")
                         
-                        # Remove mailto: links
+<#                         # Remove mailto: links
                         $href = $href -replace "mailto:", ""
 
                         # Remove tel: links
@@ -484,6 +484,10 @@ Depth                : 0
 
                         # Remove # links
                         $href = $href -replace "#", ""
+ #>
+                        $hrefcontains = @("^mailto:","^tel:","^#")
+                        $href = $href | Where-Object { $_ -notMatch ($hrefcontains -join "|") }
+
 
                         # Filter out non-HTTP links
                         if ($href -match "^https?://") {
@@ -587,7 +591,7 @@ Depth                : 0
                         #Write-Verbose " processing '$href'..."
                         #Write-Log "analyze element [$href]"
 
-                        # Remove mailto: links
+<#                         # Remove mailto: links
                         $href = $href -replace "mailto:", ""
 
                         # Remove tel: links
@@ -595,7 +599,9 @@ Depth                : 0
 
                         # Remove # links
                         $href = $href -replace "#", ""
-
+ #>
+                        $hrefcontains = @("^mailto:","^tel:","^#")
+                        $href = $href | Where-Object { $_ -notMatch ($hrefcontains -join "|") }
 
                         # Filter out non-HTTP links
                         if ($href -match "^https?://") {
@@ -1133,17 +1139,18 @@ function Start-PSWebCrawler {
             Write-Host "sprawdzone domeny (po url; var: historyDomains):"
             $script:historyDomains | Select-Object -Unique  | Sort-Object
             #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
-            $ArrayData | Where-Object { $_.Domain } | Sort-Object url, domain | Select-Object url, server -Unique | Format-Table url, server
+            $ArrayData | Where-Object { $_.Domain } | Sort-Object url, domain | Select-Object url -Unique | Format-Table url
     
             Write-Host "`nsprawdzone domeny (po domain; var: historyDomains):"
             $script:historyDomains | Select-Object -Unique  | Sort-Object
             #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
-            $ArrayData | Where-Object { $_.Domain } | Sort-Object domain, domain | Select-Object domain, server -Unique | Format-Table domain, server
+            $ArrayData | Where-Object { $_.Domain } | Sort-Object domain | Select-Object domain -Unique | Format-Table domain
     
-            Write-Host "`nsprawdzone linki (var: historyDomains):"
-            $script:historyDomains | Select-Object -Unique  | Sort-Object
-            Write-Host "`nsprawdzone linki (var: ArrayData):"
-            $ArrayData.href | Where-Object { $_.href }
+            Write-Host "`nsprawdzone linki (var: ArrayData.url):"
+            $ArrayData | Where-Object { $_.url } | Select-Object url -Unique
+
+            Write-Host "`nsprawdzone linki (var: ArrayData.href):"
+            $ArrayData | Where-Object { $_.href } | Select-Object href -Unique
 
 
             $ArrayData | Out-GridView
