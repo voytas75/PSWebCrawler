@@ -1147,10 +1147,10 @@ function Start-PSWebCrawler {
             $ArrayData | Where-Object { $_.Domain } | Sort-Object domain | Select-Object domain -Unique | Format-Table domain
     
             Write-Host "`nsprawdzone linki (var: ArrayData.url):"
-            $ArrayData | Where-Object { $_.url } | Select-Object url -Unique
+            ($ArrayData | Where-Object { $_.url } | Select-Object url -Unique | Sort-Object url).url
 
             Write-Host "`nsprawdzone linki (var: ArrayData.href):"
-            $ArrayData | Where-Object { $_.href } | Select-Object href -Unique
+            ($ArrayData | Where-Object { $_.href }| Select-Object href -Unique | Sort-Object href).href
 
 
             $ArrayData | Out-GridView
