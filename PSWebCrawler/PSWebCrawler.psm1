@@ -1055,25 +1055,31 @@ function Start-PSWebCrawler {
                 $outputfoldertext = $outputFolder
                 Write-Log "[outputfoldertext] is set to [$outputfolder]"
             }
+
+            if(-not $verbose.IsPresent) {
+                $verbose = $false
+            }
             # Start crawling the start URL
-            Write-Host "Url: [$Url]"
-            Write-Host "depth: $depth"
-            write-host "onlyDomains: $onlydomains"
-            write-host "resolve: $resolve"
+            Write-Host "Url:          [$Url]"
+            Write-Host "depth:        $depth"
+            write-host "onlyDomains:  $onlydomains"
+            write-host "resolve:      $resolve"
             write-host "outputFolder: [$outputfoldertext]"
-            write-host "Log: $(Join-Path $env:TEMP "$($script:ModuleName).log")"
+            write-host "Log:          [$(Join-Path $env:TEMP "$($script:ModuleName).log")]"
+            write-host "Verbose:      $verbose"
+
             #$script:historydomains += (Get-PSWCSchemeAndDomain -url $url)
             
             Write-output "`nStart crawling with [$url] on depth: [$depth]`n"
             Write-Log "Start iteration for [$url] with depth: [$depth]"
-            Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder -resolve:$resolve
+            Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder -resolve:$resolve -Verbose:$verbose
                 
             #Write-Host "`nLiczba sprawdzonych domen (var: historyDomains): " -NoNewline
             #($script:historyDomains | Select-Object -Unique | Measure-Object).count
             Write-Host "`nChcecked domains: " -NoNewline
                 ($script:ArrayData.domain | Where-Object { $_ } | Select-Object -Unique | Measure-Object).count
             #($script:ArrayData.url | Where-Object { $_ } | Select-Object -Unique | Measure-Object).count
-            $ArrayData | Where-Object { $_.Domain } | Sort-Object domain | Select-Object domain -Unique | Format-Table domain
+            ($ArrayData | Where-Object { $_.Domain } | Select-Object domain -Unique | Sort-Object domain).domain -join "; "
                 
             #Write-Host "sprawdzone domeny (po url; var: historyDomains):"
             #$script:historyDomains | Select-Object -Unique  | Sort-Object
@@ -1086,7 +1092,7 @@ function Start-PSWebCrawler {
 
             Write-host "`nChecked links:" -NoNewline
             ($ArrayData | Where-Object { $_.href } | Select-Object href -Unique).count
-            $ArrayData | Where-Object { $_.href } | Select-Object href -Unique | Sort-Object href | Out-String
+            ($ArrayData | Where-Object { $_.href } | Select-Object href -Unique | Sort-Object href).href -join "; "
 
 
             #$ArrayData | Out-GridView
