@@ -452,9 +452,14 @@ function Start-PSWCCrawl {
                             }
                             # Check if the linked domain is different from the current domain
                             if ($linkedDomain -ne $currentDomain -and -not $noCrawlExternalLinks) {
+
                                 Write-Log "[$currentDomain] is different then [$linkedDomain] and not [noCrawlExternalLinks]"
+
+                                # Decrease the depth when moving to a different site
+                                $newDepth = $depth - 1
+
                                 if (-not ($script:ArrayData.url.contains($href))) {
-                                    Write-Host "  [$depth] ['$url' - '$href']"
+                                    Write-Host "  [$depth] ['$url' -  [$newDepth] '$href']"
                                     $thisobject = [PSCustomObject] @{
                                         Depth     = $depth
                                         Url       = $href
@@ -466,10 +471,9 @@ function Start-PSWCCrawl {
                                     $script:ArrayData += $thisobject
                                     Write-Log "Depth:[$depth] and url:[$href] added to ArrayData"
                                 }
-                            
-                                # Decrease the depth when moving to a different site
-                                $newDepth = $depth - 1
+
                                 Write-Log "Newdepth is [$newDepth]"
+
                                 $domains += $hrefdomain
                                 Write-Log "[$href] added to [domains] list"
                                 if (-not ($script:ArrayData.domain.contains($href))) {
@@ -497,7 +501,7 @@ function Start-PSWCCrawl {
                                     continue
                                 }
 
-                                Write-Log "start new iteration for [$href]"
+                                Write-Log "start iteration for [$href]"
                                 
                                 Start-PSWCCrawl -url $href -depth $newDepth -timeoutSec $timeoutSec -outputFolder $outputFolder -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains -verbose:$verbose -debug:$debug
                                                         
