@@ -332,7 +332,6 @@ Function Get-PSWCHeadersAndValues {
     $headersAndValues
 }
 
-
 # Function to crawl a URL
 function Start-PSWCCrawl {
     [CmdletBinding()]
