@@ -1033,7 +1033,7 @@ function Start-PSWebCrawler {
     )
     # try {
     Get-PSWCBanner
-    Write-Verbose "ParameterSetName: [$($PSCmdlet.ParameterSetName)]" -Verbose
+    Write-Verbose "ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
     switch ($PSCmdlet.ParameterSetName) {
         'WebCrawl' {
             $script:ArrayData = @()
@@ -1050,7 +1050,6 @@ function Start-PSWebCrawler {
             if (-not $outputFolder) {
                 #    $outputFile = join-path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -url $url)
                 $outputfoldertext = "not set"
-                    
             }
             else {
                 $outputfoldertext = $outputFolder
@@ -1062,33 +1061,35 @@ function Start-PSWebCrawler {
             write-host "onlyDomains: $onlydomains"
             write-host "resolve: $resolve"
             write-host "outputFolder: [$outputfoldertext]"
+            write-host "Log: $(Join-Path $env:TEMP "$($script:ModuleName).log")"
             #$script:historydomains += (Get-PSWCSchemeAndDomain -url $url)
+            
+            Write-output "`nStart crawling with [$url] on depth: [$depth]`n"
             Write-Log "Start iteration for [$url] with depth: [$depth]"
             Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder -resolve:$resolve
                 
-            Write-Host "`nLiczba sprawdzonych domen (var: historyDomains): " -NoNewline
-                ($script:historyDomains | Select-Object -Unique | Measure-Object).count
-            Write-Host "`nLiczba sprawdzonych domen (var: ArrayData): " -NoNewline
-                ($script:ArrayData.domain | Select-Object -Unique | Measure-Object).count
-                
-            Write-Host "sprawdzone domeny (po url; var: historyDomains):"
-            $script:historyDomains | Select-Object -Unique  | Sort-Object
-            #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
-            $ArrayData | Where-Object { $_.Domain } | Sort-Object url, domain | Select-Object url -Unique | Format-Table url
-    
-            Write-Host "`nsprawdzone domeny (po domain; var: historyDomains):"
-            $script:historyDomains | Select-Object -Unique  | Sort-Object
-            #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
+            #Write-Host "`nLiczba sprawdzonych domen (var: historyDomains): " -NoNewline
+            #($script:historyDomains | Select-Object -Unique | Measure-Object).count
+            Write-Host "`nChcecked domains: " -NoNewline
+                ($script:ArrayData.domain | Where-Object { $_ } | Select-Object -Unique | Measure-Object).count
+            #($script:ArrayData.url | Where-Object { $_ } | Select-Object -Unique | Measure-Object).count
             $ArrayData | Where-Object { $_.Domain } | Sort-Object domain | Select-Object domain -Unique | Format-Table domain
+                
+            #Write-Host "sprawdzone domeny (po url; var: historyDomains):"
+            #$script:historyDomains | Select-Object -Unique  | Sort-Object
+            #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
+            #$ArrayData | Where-Object { $_.Domain } | Sort-Object url, domain | Select-Object url -Unique | Format-Table url
     
-            Write-Host "`nsprawdzone linki (var: ArrayData.url):"
-            ($ArrayData | Where-Object { $_.url } | Select-Object url -Unique | Sort-Object url).url
+            #Write-Host "`nsprawdzone domeny (po domain; var: historyDomains):"
+            #$script:historyDomains | Select-Object -Unique  | Sort-Object
+            #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
 
-            Write-Host "`nsprawdzone linki (var: ArrayData.href):"
-            ($ArrayData | Where-Object { $_.href } | Select-Object href -Unique | Sort-Object href).href
+            Write-host "`nChecked links:" -NoNewline
+            ($ArrayData | Where-Object { $_.href } | Select-Object href -Unique).count
+            $ArrayData | Where-Object { $_.href } | Select-Object href -Unique | Sort-Object href | Out-String
 
 
-            $ArrayData | Out-GridView
+            #$ArrayData | Out-GridView
     
             break
         }
