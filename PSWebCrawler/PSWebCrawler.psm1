@@ -348,21 +348,6 @@ function Start-PSWCCrawl {
         [string]$userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.43"
     )
 
-    #$ArrayData | ft
-
-    <#     Write-Verbose "Parameters and Default Values:"
-    foreach ($param in $MyInvocation.MyCommand.Parameters.keys) {
-        $value = Get-Variable -Name $param -ValueOnly -ErrorAction SilentlyContinue
-        if (-not $null -eq [string]$value) {
-            Write-Verbose "${param}: [${value}]"
-        }
-    }
- #>
-    # Initialize the visitedUrls variable if it doesn't exist
-    #$outputFolder = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "webcrawler"
-    #if (-not (Test-Path -Path $outputFolder)) {
-    #    [void](New-Item -Path $outputFolder -ItemType Directory)
-    #}
     $outputFile = ""
     if ($outputFolder) { 
         $outputFile = join-path $outputFolder -ChildPath (Set-PSWCCleanWebsiteURL -url $url) 
@@ -379,7 +364,6 @@ function Start-PSWCCrawl {
         Write-Log "Array [historyDomains] was initialized"
         #write-verbose 'create $script:historyDomains'
     }
-    #$script:historyDomains
 
     if ($onlyDomains.IsPresent) {
         $url = Get-PSWCSchemeAndDomain -url $url
@@ -428,38 +412,6 @@ function Start-PSWCCrawl {
                 $anchorElements = Get-PSWCDocumentElements -htmlContent $htmlContent -Node "//a"
                 Write-Log "Got all [a] anhors from [$url]"
 
-                <# $anchorElements:
-Attributes           : {href, class}
-ChildNodes           : {#text}
-Closed               : True
-ClosingAttributes    : {}
-EndNode              : HtmlAgilityPack.HtmlNode
-FirstChild           : HtmlAgilityPack.HtmlTextNode
-HasAttributes        : True
-HasChildNodes        : True
-HasClosingAttributes : False
-Id                   :
-InnerHtml            : Przejdź do menu głównego
-InnerText            : Przejdź do menu głównego
-LastChild            : HtmlAgilityPack.HtmlTextNode
-Line                 : 105
-LinePosition         : 8
-InnerStartIndex      : 20567
-OuterStartIndex      : 20491
-InnerLength          : 24
-OuterLength          : 104
-Name                 : a
-NextSibling          : HtmlAgilityPack.HtmlTextNode
-NodeType             : Element
-OriginalName         : a
-OuterHtml            : <a href="#block-menu-menu-gunb" class="element-invisible element-focusable">Przejdź do menu głównego</a>
-OwnerDocument        : HtmlAgilityPack.HtmlDocument
-ParentNode           : HtmlAgilityPack.HtmlNode
-PreviousSibling      : HtmlAgilityPack.HtmlTextNode
-StreamPosition       : 20491
-XPath                : /html[1]/body[1]/div[1]/a[1]
-Depth                : 0
-                #>
                 # Get the domain of the current URL
                 $currentDomain = [System.Uri]::new($url).Host
                 Write-Log "Current domain is [$currentDomain]"
@@ -1221,64 +1173,3 @@ Write-Host "Thank you for using PSWC ($($moduleVersion))." -ForegroundColor Yell
 #Write-Host "- You can filter the built-in snippets (category: 'Example') by setting 'ShowExampleSnippets' to '`$false' in config. Use: 'Save-PAFConfiguration -settingName ""ShowExampleSnippets"" -settingValue `$false'" -ForegroundColor Yellow
 
 New-PSWCCacheFolder -FolderName $script:ModuleName
-
-<# 
-# Set the URL to start crawling from
-$startUrl = $url
-
-# Create a list to store the visited URLs
-$visitedUrls = @()
-
-# Set the timeout for the web requests
-$Timeout = 10
-
-# Get the temporary folder path
-$tempFolder = [System.IO.Path]::GetTempPath()
-
-# Replace any invalid characters in the URL with underscores
-$validFileName = Clean-WebsiteURL $url
-#$validFileName = $url -replace '[^\w\d-]', $null
-
-#check for files
-$xmlfiles = Get-childItem -Path $tempFolder -Filter "*.xml"
-$xmlfiles.fullname
-
-# Create a file path to store the output XML file
-$outputContentFilePath = Join-Path -Path $tempFolder -ChildPath "$validFileName.xml"
-
-# Try to download and save the feed data
-try {
-    # Invoke-WebRequest -Uri $Url -TimeoutSec $Timeout -OutFile $outputContentFilePath
-    # | Out-Null
-
-    # Save the feed data to a temporary XML file
-    #Invoke-WebRequest -Uri $Url -TimeoutSec $Timeout | Export-Clixml $outputContentFilePath
-
-    # If the file was saved successfully, return $true
-    if (Test-Path -Path $outputContentFilePath -PathType Leaf) {
-        Write-Verbose "Web downloaded and saved to '$outputContentFilePath'."
-
-        # Import the feed data from the temporary XML file
-        $webdata = Import-Clixml $outputContentFilePath
-
-        # Display the feed data
-        if ($showwebdata.IsPresent) { 
-            $webdata
-        }
-        #return $true
-    }
-    else {
-        # If the file was not saved successfully, write a warning message and return $false
-        Write-Warning "Failed to save feed data to file: $outputContentFilePath"
-        #return $false
-    }
-}
-catch {
-    # If the download or save failed, write a warning message and return $false
-    Write-Warning "Failed to download feed data: $($_.Exception.Message)"
-    #return $false
-}
-
- #>
-
-
