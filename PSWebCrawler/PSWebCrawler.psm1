@@ -584,8 +584,12 @@ function Start-PSWCCrawl {
                                 Write-Log "[$currentDomain] is different then [$linkedDomain] and not [noCrawlExternalLinks]"
                                 #Write-Verbose "  processing '$hrefdomain'..."
                                 #$script:ArrayData.url.contains($hrefdomain)
+
+                                # Decrease the depth when moving to a different site
+                                $newDepth = $depth - 1
+
                                 if (-not ($script:ArrayData.url.contains($hrefdomain))) {
-                                    Write-Host "  [$depth] ['$url' - '$hrefdomain']"
+                                    Write-Host "  [$depth] ['$url' - [$newDepth] '$hrefdomain']"
                                     $thisobject = [PSCustomObject] @{
                                         Depth     = $depth
                                         Url       = $hrefDomain
@@ -598,8 +602,6 @@ function Start-PSWCCrawl {
                                     Write-Log "Depth:[$depth] and url:[$hrefdomain] added to ArrayData"
                                 }
     
-                                # Decrease the depth when moving to a different site
-                                $newDepth = $depth - 1
                                 Write-Log "Newdepth is [$newDepth]"
                                 #Write-Verbose "  set new depth to $newDepth"
                                 
