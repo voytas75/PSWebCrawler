@@ -344,10 +344,8 @@ function Start-PSWCCrawl {
         [switch]$noCrawlExternalLinks,
         [switch]$onlyDomains,
         [switch]$resolve,
-        [string]$userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.43"
+        [string]$userAgent = (get-RandomUserAgent)
     )
-
-    write-verbose -Message $userAgent
 
     $outputFile = ""
     if ($outputFolder) { 
@@ -1081,20 +1079,24 @@ function Start-PSWebCrawler {
                 $verbose = $false
             }
             # Start crawling the start URL
+
+            $UserAgent = get-RandomUserAgent
+
             Write-Host "Url:          [$Url]"
             Write-Host "depth:        $depth"
             write-host "onlyDomains:  $onlydomains"
             write-host "resolve:      $resolve"
             write-host "outputFolder: [$outputfoldertext]"
             write-host "Log:          [$(Join-Path $env:TEMP "$($script:ModuleName).log")]"
-            write-host "Verbose:      $verbose"
+            Write-Output "UserAgent:    [$UserAgent]"
+            #write-host "Verbose:      $verbose"
 
             #$script:historydomains += (Get-PSWCSchemeAndDomain -url $url)
             
             Write-output "`nStart crawling with [$url] on depth: [$depth]`n"
             Write-Log "Start iteration for [$url] with depth: [$depth]"
 
-            Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder -resolve:$resolve -Verbose:$verbose -userAgent (get-RandomUserAgent)
+            Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder -resolve:$resolve -Verbose:$verbose -userAgent $UserAgent
                 
             #Write-Host "`nLiczba sprawdzonych domen (var: historyDomains): " -NoNewline
             #($script:historyDomains | Select-Object -Unique | Measure-Object).count
