@@ -9,28 +9,30 @@
 @{
 
     # Script module or binary module file associated with this manifest.
-    RootModule        = 'PSWebCrawler'
+    RootModule             = 'PSWebCrawler'
 
     # Version number of this module.
-    ModuleVersion     = '0.0.2'
+    ModuleVersion          = '0.0.2'
 
     # Supported PSEditions
-    # CompatiblePSEditions = @()
+    CompatiblePSEditions   = @(
+        "Desktop"
+    )
 
     # ID used to uniquely identify this module
-    GUID              = 'bf2af5e0-fc62-44df-bda3-3aeae1b02445'
+    GUID                   = 'bf2af5e0-fc62-44df-bda3-3aeae1b02445'
 
     # Author of this module
-    Author            = 'Wojciech Napierala'
+    Author                 = 'Wojciech Napierala'
 
     # Company or vendor of this module
-    CompanyName       = 'Script Savvy Ninja'
+    CompanyName            = 'Script Savvy Ninja'
 
     # Copyright statement for this module
-    Copyright         = 'Script Savvy Ninja'
+    Copyright              = 'Script Savvy Ninja'
 
     # Description of the functionality provided by this module
-    Description       = 'A PowerShell module to web crawl is a collection of PowerShell functions that can be used to automatically download and parse web pages.'
+    Description            = 'A PowerShell module to web crawl is a collection of PowerShell functions that can be used to automatically download and parse web pages.'
 
     # Minimum version of the PowerShell engine required by this module
     # PowerShellVersion = ''
@@ -42,7 +44,7 @@
     # PowerShellHostVersion = ''
 
     # Minimum version of Microsoft .NET Framework required by this module. This prerequisite is valid for the PowerShell Desktop edition only.
-    # DotNetFrameworkVersion = ''
+    DotNetFrameworkVersion = '4.5'
 
     # Minimum version of the common language runtime (CLR) required by this module. This prerequisite is valid for the PowerShell Desktop edition only.
     # ClrVersion = ''
@@ -51,7 +53,7 @@
     # ProcessorArchitecture = ''
 
     # Modules that must be imported into the global environment prior to importing this module
-    RequiredModules   = @(
+    RequiredModules        = @(
         "PSparseHTML"
     )
 
@@ -71,18 +73,18 @@
     # NestedModules = @()
 
     # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-    FunctionsToExport = @(
+    FunctionsToExport      = @(
         "Start-PSWebCrawler"
     )
 
     # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
-    CmdletsToExport   = @()
+    CmdletsToExport        = @()
 
     # Variables to export from this module
-    VariablesToExport = @()
+    VariablesToExport      = @()
 
     # Aliases to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no aliases to export.
-    AliasesToExport   = @(
+    AliasesToExport        = @(
         "PSWC",
         "PSWebCrawler"
     )
@@ -97,7 +99,7 @@
     # FileList = @()
 
     # Private data to pass to the module specified in RootModule/ModuleToProcess. This may also contain a PSData hashtable with additional module metadata used by PowerShell.
-    PrivateData       = @{
+    PrivateData            = @{
 
         PSData = @{
 
