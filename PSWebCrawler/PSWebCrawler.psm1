@@ -395,12 +395,14 @@ function Start-PSWCCrawl {
                 $htmlContent = $response[1].Content.ReadAsStringAsync().Result
 
                 if ($outputFolder -ne "") {
+
+                    #Convert HTML2Text - PSparseHTML
+                    Convert-HTMLToText -Content ($htmlContent) -OutputFile ([string]::Concat($outputFile, "$(get-date -Format "HHmmss").ConvertedtoTextContent.txt"))
+
                     #format HTML - PSparseHTML
                     $formatedContent = Format-HTML -Content $htmlContent -RemoveHTMLComments -RemoveOptionalTags -RemoveEmptyBlocks -RemoveEmptyAttributes -AlphabeticallyOrderAttributes
                     $formatedContentFileFullName = ([string]::Concat($outputFile, "$(get-date -Format "HHmmss").FormatedHTMLContent.txt"))
                     Out-File -FilePath $formatedContentFileFullName -InputObject $formatedContent        
-                    #Convert HTML2Text - PSparseHTML
-                    Convert-HTMLToText -file $formatedContentFileFullName -OutputFile ([string]::Concat($outputFile, "$(get-date -Format "HHmmss").ConvertedtoTextContent.txt"))
                 }
 
 
