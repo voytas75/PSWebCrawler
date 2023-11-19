@@ -347,6 +347,8 @@ function Start-PSWCCrawl {
         [string]$userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.43"
     )
 
+    write-verbose -Message $userAgent
+
     $outputFile = ""
     if ($outputFolder) { 
         $outputFile = join-path $outputFolder -ChildPath (Set-PSWCCleanWebsiteURL -url $url) 
@@ -1091,7 +1093,8 @@ function Start-PSWebCrawler {
             
             Write-output "`nStart crawling with [$url] on depth: [$depth]`n"
             Write-Log "Start iteration for [$url] with depth: [$depth]"
-            Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder -resolve:$resolve -Verbose:$verbose
+
+            Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder -resolve:$resolve -Verbose:$verbose -userAgent (get-RandomUserAgent)
                 
             #Write-Host "`nLiczba sprawdzonych domen (var: historyDomains): " -NoNewline
             #($script:historyDomains | Select-Object -Unique | Measure-Object).count
@@ -1161,6 +1164,13 @@ function Start-PSWebCrawler {
     #catch {
     #Write-Error "An error occurred: $_"
     #}    
+}
+
+function get-RandomUserAgent {
+    param (
+        $UserAgentFileFullName = "$PSScriptRoot\Private\useragents.txt"
+    )
+    return (get-random (Get-Content $UserAgentFileFullName))
 }
 
 Clear-Host
