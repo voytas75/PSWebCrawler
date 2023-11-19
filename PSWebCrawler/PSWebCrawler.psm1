@@ -393,6 +393,12 @@ function Start-PSWCCrawl {
                 Write-Log "Response succeded from [$url] "
                 #write-verbose "`$response.IsSuccessStatusCode for '$url': $($response.IsSuccessStatusCode)"
                 $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+
+                if ($outputFolder -ne "") {
+                    Out-File -FilePath ([string]::Concat($outputFile, "$(get-date -Format "HHmmss").htmlcontent.txt")) -InputObject $htmlContent
+                }
+
+
                 $responseHeaders = $response[1].Headers | ConvertTo-Json  # Capture response headers
 
                 # Save the headers to a file if specified
@@ -1062,7 +1068,7 @@ function Start-PSWebCrawler {
                 Write-Log "[outputfoldertext] is set to [$outputfolder]"
             }
 
-            if(-not $verbose.IsPresent) {
+            if (-not $verbose.IsPresent) {
                 $verbose = $false
             }
             # Start crawling the start URL
@@ -1152,9 +1158,64 @@ function Start-PSWebCrawler {
 
 Clear-Host
 
+$Public = @( Get-ChildItem -Path $PSScriptRoot\Public\*.ps1 -ErrorAction SilentlyContinue -Recurse )
+$Private = @( Get-ChildItem -Path $PSScriptRoot\Private\*.ps1 -ErrorAction SilentlyContinue -Recurse )
+
 # Import the necessary .NET libraries
+if ($PSEdition -eq 'core') {
+    Write-Error "Module can not be run on core edition!"
+    exit
+}
+elseif ($PSEdition -eq 'desktop') {
+    $Assembly = @( Get-ChildItem -Path $PSScriptRoot\Lib\Net45\*.dll -ErrorAction SilentlyContinue )
+}
+
+$FoundErrors = @(
+    Foreach ($Import in @($Assembly)) {
+        try {
+            Add-Type -Path $Import.Fullname -ErrorAction Stop
+        }
+        catch [System.Reflection.ReflectionTypeLoadException] {
+            Write-Warning "Processing $($Import.Name) Exception: $($_.Exception.Message)"
+            $LoaderExceptions = $($_.Exception.LoaderExceptions) | Sort-Object -Unique
+            foreach ($E in $LoaderExceptions) {
+                Write-Warning "Processing $($Import.Name) LoaderExceptions: $($E.Message)"
+            }
+            $true
+            #Write-Error -Message "StackTrace: $($_.Exception.StackTrace)"
+        }
+        catch {
+            Write-Warning "Processing $($Import.Name) Exception: $($_.Exception.Message)"
+            $LoaderExceptions = $($_.Exception.LoaderExceptions) | Sort-Object -Unique
+            foreach ($E in $LoaderExceptions) {
+                Write-Warning "Processing $($Import.Name) LoaderExceptions: $($E.Message)"
+            }
+            $true
+            #Write-Error -Message "StackTrace: $($_.Exception.StackTrace)"
+        }
+    }
+    #Dot source the files
+    Foreach ($Import in @($Public + $Private)) {
+        Try {
+            . $Import.Fullname
+        }
+        Catch {
+            Write-Error -Message "Failed to import functions from $($import.Fullname): $_"
+            $true
+        }
+    }
+)
+
+
+if ($FoundErrors.Count -gt 0) {
+    $ModuleName = (Get-ChildItem $PSScriptRoot\*.psd1).BaseName
+    Write-Warning "Importing module $ModuleName failed. Fix errors before continuing."
+    break
+}
+
+
 #Add-Type -Path "D:\dane\voytas\Dokumenty\visual_studio_code\github\htmlagilitypack.1.11.52\lib\netstandard2.0\HtmlAgilityPack.dll"
-Add-Type -Path "D:\dane\voytas\Dokumenty\visual_studio_code\github\htmlagilitypack.1.11.54\lib\Net45\HtmlAgilityPack.dll"
+#Add-Type -Path "D:\dane\voytas\Dokumenty\visual_studio_code\github\htmlagilitypack.1.11.54\lib\Net45\HtmlAgilityPack.dll"
 
 # Switch to using TLS 1.2
 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
