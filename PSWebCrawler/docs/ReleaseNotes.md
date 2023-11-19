@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.0.2] - 2023.11.13
+## [0.0.2] - 2023.11.19
 
 ### Added
 
@@ -15,10 +15,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - contact function `Get-PSWCContactInformation`
 - header function `Get-PSWCHeadersAndValues`
 - resolve function `Get-PSWCGetHostAddresses`
+- `lib` folder
+- `PSparceHTML` dependency ([#2](https://github.com/voytas75/PSWebCrawler/issues/2))
 
 ### Changed
 
 - function `Start-PSWCCrawl`
+- [#1](https://github.com/voytas75/PSWebCrawler/issues/1)
 
 ## [0.0.1] - 2023.10.12
 
