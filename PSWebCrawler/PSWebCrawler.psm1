@@ -766,8 +766,14 @@ function Get-PSWCHttpResponse {
     param (
         [string]$url,
         [string]$userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36 Edg/118.0.2088.57",
-        [int]$timeout = "10"
+        [int]$timeout = 10
     )
+
+    # This function is called Get-PSWCHttpResponse and takes in three parameters: $url, $userAgent, and $timeout.
+    # $url is a string that represents the URL to send an HTTP GET request to.
+    # $userAgent is a string that represents the User-Agent header to use in the HTTP request. It defaults to a Chrome User-Agent string.
+    # $timeout is an integer that represents the number of seconds to wait for a response before timing out. It defaults to 10 seconds.
+    
 
     # Create an HttpClient with a custom User-Agent header
     $httpClient = New-Object System.Net.Http.HttpClient
@@ -777,7 +783,13 @@ function Get-PSWCHttpResponse {
     $httpClient.Timeout = [System.TimeSpan]::FromSeconds($timeout)
 
     # Send an HTTP GET request to the URL
-    return $httpClient, $httpClient.GetAsync($url).Result
+    $response = $httpClient.GetAsync($url).Result # Stored the response in a variable before returning it
+    return $httpClient, $response
+
+    # The function creates an instance of the HttpClient class and sets the User-Agent header to the value of $userAgent.
+    # It then sets the timeout for the HttpClient to the value of $timeout.
+    # Finally, it sends an HTTP GET request to the URL specified in $url and stores the response in the $response variable.
+    # The function then returns both the HttpClient instance and the response.
 }
 
 function Get-PSWCDocumentElements {
