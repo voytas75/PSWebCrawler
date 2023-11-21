@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - function `Start-PSWCCrawl`
 - [#1](https://github.com/voytas75/PSWebCrawler/issues/1)
+- [#5](https://github.com/voytas75/PSWebCrawler/issues/5)
 
 ## [0.0.1] - 2023.10.12
 
