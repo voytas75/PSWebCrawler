@@ -405,7 +405,6 @@ function Start-PSWCCrawl {
                     Out-File -FilePath $formatedContentFileFullName -InputObject $formatedContent        
                 }
 
-
                 $responseHeaders = $response[1].Headers | ConvertTo-Json  # Capture response headers
 
                 # Save the headers to a file if specified
@@ -472,7 +471,7 @@ function Start-PSWCCrawl {
                                 $newDepth = $depth - 1
 
                                 if (-not ($script:ArrayData.url.contains($href))) {
-                                    Write-Host "  [$depth] ['$url' -  [$newDepth] '$href']"
+                                    Write-Host "`t[$depth] '$url' - [$newDepth] '$href'"
                                     $thisobject = [PSCustomObject] @{
                                         Depth     = $depth
                                         Url       = $href
@@ -755,8 +754,12 @@ Handle Errors Gracefully: Implement error handling logic to handle the Bad Reque
         }
     }
     else {
-        Write-Verbose "Already processed domain: '$url'"
-        Write-Log "url [$url] was skipped"
+        if ($onlyDomains) {
+            Write-Verbose "Already processed domain: '$url'" -verbose
+         } else {
+            Write-Verbose "Already processed href: '$url'" -verbose
+         }
+        Write-Log "[$url] was skipped"
         continue
     }
 
@@ -980,7 +983,7 @@ How to use, examples:
 [6] PSWC -GetContactInformation -Url "http://allafrica.com/"
     Get contact information elements 
 
-[7] PSWC -GetHeaders -url "http://allafrica.com
+[7] PSWC -GetHeaders -url "http://allafrica.com"
     Display all items from header
 
 [8] PSWC -ShowCacheFolder
