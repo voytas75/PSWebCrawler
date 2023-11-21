@@ -1182,7 +1182,7 @@ function Start-PSWebCrawler {
 
 function get-RandomUserAgent {
     param (
-        $UserAgentFileFullName = "$PSScriptRoot\Private\useragents.txt"
+        $UserAgentFileFullName = "$PSScriptRoot\Data\useragents.txt"
     )
     return (get-random (Get-Content $UserAgentFileFullName))
 }
