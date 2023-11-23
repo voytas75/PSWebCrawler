@@ -1,8 +1,8 @@
 function Get-PSWCBanner {
     param ()
-    $banner = get-content -Path "${PSScriptRoot}\images\PSWCbanner.txt"
+    $bannerPath = Join-Path -Path $PSScriptRoot -ChildPath "images\PSWCbanner.txt"
+    $banner = Get-Content -Path $bannerPath -Raw
     Write-Output $banner
-    return
 }
 
 function Get-PSWCAllElements {
@@ -369,22 +369,11 @@ function Start-PSWCCrawl {
         #write-verbose "create `$url as Get-PSWCSchemeAndDomain -url '$url'"
     }
 
-    # If the URL has not already been visited, add it to the list of visited URLs and crawl it
-    # sprawdzamy takze ddwiedzone domeny, zadziala nawet jak bedziemy uzywac url z query path
-    #write-verbose "(-not `$visitedUrls.ContainsKey($url) -and -not ((Get-PSWCSchemeAndDomain -url $url) -in `$script:historydomains)): ($(-not $visitedUrls.ContainsKey($url) -and -not ((Get-PSWCSchemeAndDomain -url $url) -in $script:historydomains)))"
-    #if (-not $visitedUrls.ContainsKey($url) -and -not ((Get-PSWCSchemeAndDomain -url $url) -in $script:historydomains)) {
-    #    write-verbose "(-not `$visitedUrls.ContainsKey($url))): ($(-not $visitedUrls.ContainsKey($url))"
-    #    if (-not $visitedUrls.ContainsKey($url)) {
-    #write-verbose "(-not (`$url -in `$script:historydomains)): $(-not ($url -in $script:historydomains))"
-    #if (-not ($url -in $script:historydomains)) {
-    #write-verbose "`$script:ArrayData.url.Contains($url): $($script:ArrayData.url.Contains($url))"
-
-    if ($script:ArrayData.url.Contains($url)) {
-        # why?
+    if ($script:ArrayData.url.Contains($url)) {       # why?
         Write-Log "[Arraydata] url contains '$url' "
         try {
             # Send an HTTP GET request to the URL
-            $response = Get-PSWCHttpResponse -url $url -userAgent $userAgent -timeout $timeoutSec
+            $response = Get-PSWCHttpResponse -url $url -userAgent "$userAgent" -timeout $timeoutSec
             Write-Log "Got response from [$url] "
             #$response | ConvertTo-Json
 
@@ -423,6 +412,12 @@ function Start-PSWCCrawl {
                 $anchorElements = Get-PSWCDocumentElements -htmlContent $htmlContent -Node "//a"
                 Write-Log "Got all [a] anhors from [$url]"
 
+                if (-not ($anchorElements[1] -and (($anchorElements[1].GetAttributeValue("href", "")) -match "^https?://"))) {
+                    # This code is checking if the second element in the $anchorElements array exists and if the href attribute of that element matches the regex pattern "^https?://"
+                    # If the condition is not true, the code will continue to the next iteration of the loop
+                    continue
+                }
+
                 # Get the domain of the current URL
                 $currentDomain = [System.Uri]::new($url).Host
                 Write-Log "Current domain is [$currentDomain]"
@@ -433,43 +428,44 @@ function Start-PSWCCrawl {
                 Write-Log "Created empty array [domains]"
 
                 if (-not $onlyDomains.IsPresent) {
+
                     Write-Verbose "processing hreflinks from '$url'..."
-                    
+                        
                     # Iterate over the anchor elements and extract the href attributes
                     foreach ($anchorElement in $anchorElements[1]) {
                         $href = $anchorElement.GetAttributeValue("href", "")
-
+    
                         # remove from hreflinks
                         $hrefcontains = @("^mailto:", "^tel:", "^#")
                         $href = $href | Where-Object { $_ -notMatch ($hrefcontains -join "|") }
-
-
+    
+    
                         # Filter out non-HTTP links
                         if ($href -match "^https?://") {
                             <#                             if ($depth -eq 0) {
-                                # immediately returns the program flow to the top of a program loop
-                                continue
-                            }
- #>                            # Add the link to the output file, if specified
+                                    # immediately returns the program flow to the top of a program loop
+                                    continue
+                                }
+     #>                            # Add the link to the output file, if specified
                             if ($outputFolder -ne "") {
                                 #$hrefFile = (Join-Path -Path $outputFolder -ChildPath (Set-PSWCCleanWebsiteURL -Url $url)) + ".hrefs.txt"
                                 Add-Content -Path ([string]::Concat($outputFile, ".hrefs.txt")) -Value $href
                             }
-                            
+                                
                             # Get the domain of the linked URL
                             $linkedDomain = [System.Uri]::new($href).Host
-                            
+                                
                             if ($resolve.IsPresent) {
                                 Get-PSWCGetHostAddresses -domain $linkedDomain
                             }
                             # Check if the linked domain is different from the current domain
-                            if ($linkedDomain -ne $currentDomain -and -not $noCrawlExternalLinks) {
-
+                            if ($linkedDomain -ne $currentDomain -and -not $noCrawlExternalLinks -and -not $script:ArrayData.href.Contains($href)) {
+                                    
                                 Write-Log "[$currentDomain] is different then [$linkedDomain] and not [noCrawlExternalLinks]"
-
+    
                                 # Decrease the depth when moving to a different site
                                 $newDepth = $depth - 1
-
+    
                                 if (-not ($script:ArrayData.url.contains($href))) {
                                     Write-Host "`t[$depth] '$url' - [$newDepth] '$href'"
                                     $thisobject = [PSCustomObject] @{
@@ -483,9 +479,9 @@ function Start-PSWCCrawl {
                                     $script:ArrayData += $thisobject
                                     Write-Log "Depth:[$depth] and url:[$href] added to ArrayData"
                                 }
-
+    
                                 Write-Log "Newdepth is [$newDepth]"
-
+    
                                 $domains += $hrefdomain
                                 Write-Log "[$href] added to [domains] list"
                                 if (-not ($script:ArrayData.domain.contains($href))) {
@@ -506,31 +502,31 @@ function Start-PSWCCrawl {
                                     $script:ArrayData += $thisobject
                                     Write-Log "Depth: [$depth], url: [$url], domain: [$linkedDomain], href: [$href], server: [$server] added to ArrayData"
                                 }
-                                
+                                    
                                 if ($depth -le 1) {
                                     # immediately returns the program flow to the top of a program loop
                                     Write-Log "Depth is 0; skipping [$href]"
                                     continue
                                 }
-
+    
                                 Write-Log "start iteration for [$href]"
-                                
+                                    
                                 Start-PSWCCrawl -url $href -depth $newDepth -timeoutSec $timeoutSec -outputFolder $outputFolder -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains -verbose:$verbose -debug:$debug
-                                                        
+                                                            
                             }
                             else {
                                 $newDepth = $depth
                                 Write-Log "Newdepth is [$newDepth]"
-
-                            }
     
+                            }
+        
                             # Add the link to the list of links to crawl
                             #Write-Verbose "Found link: $href (Depth: $newDepth)"
-                            
+                                
                             # Recursively crawl with the adjusted depth
                             #Start-PSWCCrawl -url $href -depth $newDepth -timeoutSec $timeoutSec -outputFolder $outputFolder -verbose:$verbose -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains
                             #Start-PSWCCrawl -url $href -depth $newDepth -timeoutSec $timeoutSec -outputFolder $outputFolder -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains -verbose:$verbose -debug:$debug
-
+    
                         }
                         else {
                             # Add the link to the output file, if specified
@@ -540,6 +536,7 @@ function Start-PSWCCrawl {
                             }
                         }
                     }
+    
                 }
                 else {
 
@@ -756,9 +753,10 @@ Handle Errors Gracefully: Implement error handling logic to handle the Bad Reque
     else {
         if ($onlyDomains) {
             Write-Verbose "Already processed domain: '$url'" -verbose
-         } else {
+        }
+        else {
             Write-Verbose "Already processed href: '$url'" -verbose
-         }
+        }
         Write-Log "[$url] was skipped"
         continue
     }
@@ -1111,7 +1109,7 @@ function Start-PSWebCrawler {
             Write-output "`nStart crawling with [$url] on depth: [$depth]`n"
             Write-Log "Start iteration for [$url] with depth: [$depth]"
 
-            Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder -resolve:$resolve -Verbose:$verbose -userAgent $UserAgent
+            Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder -resolve:$resolve -Verbose:$verbose -userAgent "$UserAgent"
                 
             #Write-Host "`nLiczba sprawdzonych domen (var: historyDomains): " -NoNewline
             #($script:historyDomains | Select-Object -Unique | Measure-Object).count
