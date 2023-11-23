@@ -1,11 +1,48 @@
 function Get-PSWCBanner {
     param ()
+    # Define the path to the banner file.
     $bannerPath = Join-Path -Path $PSScriptRoot -ChildPath "images\PSWCbanner.txt"
+
+    # Read the content of the banner file.
     $banner = Get-Content -Path $bannerPath -Raw
+
+    # Display the banner in the console.
     Write-Output $banner
 }
 
 function Get-PSWCAllElements {
+    <#
+    .SYNOPSIS
+        Get-PSWCAllElements - Extracts all elements from a given URL.
+
+    .DESCRIPTION
+        This function extracts all elements from a given URL, including Href elements, non-Href elements, domains, and internal links.
+
+    .PARAMETER url
+        The URL to extract elements from.
+
+    .PARAMETER Node
+        The XPath node to select elements from. Default is "//a[@href]".
+
+    .PARAMETER timeoutSec
+        The timeout in seconds for the HTTP request. Default is 10 seconds.
+
+    .PARAMETER onlyDomains
+        If specified, only the domains will be returned.
+
+    .PARAMETER Type
+        The type of elements to return. Valid values are "Href", "noHref", "onlyDomains", and "All". Default is "All".
+
+    .PARAMETER userAgent
+        The user agent string to use for the HTTP request. Default is "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.43".
+
+    .EXAMPLE
+        Get-PSWCAllElements -url "https://www.example.com" -Type "All"
+
+        This example extracts all elements from the URL "https://www.example.com".
+
+    #>
+
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
@@ -18,6 +55,7 @@ function Get-PSWCAllElements {
         [string]$userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.43"
     )
     begin {
+        # Output the parameters and their default values.
         Write-verbose "Parameters and Default Values:" -Verbose
         foreach ($param in $MyInvocation.MyCommand.Parameters.keys) {
             $value = Get-Variable -Name $param -ValueOnly -ErrorAction SilentlyContinue
@@ -25,32 +63,32 @@ function Get-PSWCAllElements {
                 Write-Verbose "${param}: [${value}]" -Verbose
             }
         }
+
+        # Initialize arrays to store the results.
         $domains = @()
         $hrefElements = @()
         $nonhrefElements = @()
         $internalLinks = @()
+
     }
     process {
-        #write-verbose "Get-PSWCAllElements" -Verbose
-        
+        # If onlyDomains switch is present, get the domain from the URL.
         if ($onlyDomains.IsPresent) {
             $url = Get-PSWCSchemeAndDomain -Url $url
         }
         # Send an HTTP GET request to the URL
         $response = Get-PSWCHttpResponse -url $url -userAgent $userAgent -timeout $timeoutSec
         Write-Log "Got response from [$url]"
-        #Write-Log ($response | out-string)
+
+        # If the HTTP request is successful, extract the elements from the HTML content.
         if ($response[1].IsSuccessStatusCode) {
             Write-Log "Response [$($response[1].StatusCode)] succeded from [$url] "
-            #write-verbose "`$response.IsSuccessStatusCode for '$url': $($response.IsSuccessStatusCode)"
             $htmlContent = $response[1].Content.ReadAsStringAsync().Result
-            #$responseHeaders = $response.Headers | ConvertTo-Json  # Capture response headers
             # Extract all anchor elements from the HTML document
             $anchorElements = Get-PSWCDocumentElements -htmlContent $htmlContent -Node $Node
 
+            # If there are anchor elements, extract the Href and non-Href elements.
             if ($anchorElements[1].count -gt 0) {
-            
-                # wykryte domeny w linkach
                 foreach ($anchorElement in $anchorElements[1]) {
                     $href = $anchorElement.GetAttributeValue("href", "")
                     # Remove mailto: links
@@ -84,6 +122,7 @@ function Get-PSWCAllElements {
         }
     }
     end {
+        # Output the results based on the Type parameter.
         $domainsunique = $domains | Select-Object -Unique | Sort-Object
         $hrefsUnique = $hrefelements | Select-Object -Unique | Sort-Object
         $nonhrefsUnique = $nonhrefelements | Select-Object -Unique | Sort-Object
@@ -119,11 +158,12 @@ function Get-PSWCAllElements {
             }
             Default {}
         }
+        
+        # Output the results to the log.
         Write-Log "Hrefs (w/o domains) count: [$($hrefelements.count)], unique: $(($hrefsUnique).count)"
         Write-Log "no-Hrefs (w/o domains) count: [$($nonhrefelements.count)], unique: $(($nonhrefsUnique).count)"
         Write-Log "Domain count: [$($domains.count)], unique: $(($domainsUnique).count)"
         Write-Log "no-Hrefs as absolute links count: [$($internalLinks.count)], unique: $(($internalLinksUnique).count)"
-        
     }
 }
 
@@ -369,7 +409,8 @@ function Start-PSWCCrawl {
         #write-verbose "create `$url as Get-PSWCSchemeAndDomain -url '$url'"
     }
 
-    if ($script:ArrayData.url.Contains($url)) {       # why?
+    if ($script:ArrayData.url.Contains($url)) {
+        # why?
         Write-Log "[Arraydata] url contains '$url' "
         try {
             # Send an HTTP GET request to the URL
