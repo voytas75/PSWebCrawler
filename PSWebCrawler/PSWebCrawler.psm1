@@ -158,7 +158,7 @@ function Get-PSWCAllElements {
             }
             Default {}
         }
-        
+
         # Output the results to the log.
         Write-Log "Hrefs (w/o domains) count: [$($hrefelements.count)], unique: $(($hrefsUnique).count)"
         Write-Log "no-Hrefs (w/o domains) count: [$($nonhrefelements.count)], unique: $(($nonhrefsUnique).count)"
@@ -168,6 +168,22 @@ function Get-PSWCAllElements {
 }
 
 function Get-PSWCImageUrls {
+    <#
+    .SYNOPSIS
+        Retrieves the URLs of all images in an HTML document.
+    .DESCRIPTION
+        This function retrieves the URLs of all images in an HTML document using the HtmlAgilityPack library.
+    .PARAMETER HtmlContent
+        The HTML content to search for images.
+    .PARAMETER url
+        The base URL of the HTML content.
+    .PARAMETER SelectQuery
+        The XPath query to select the image nodes. Defaults to "//img".
+    .EXAMPLE
+        PS> Get-PSWCImageUrls -HtmlContent $html -url "https://example.com"
+        Retrieves the URLs of all images in the $html content.
+    #>
+
     param (
         [Parameter(Mandatory = $true, ValueFromPipeline)]
         [string]$HtmlContent,
