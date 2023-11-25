@@ -1038,10 +1038,28 @@ function Set-PSWCCleanWebsiteURL {
 }
 
 function Get-PSWCSchemeAndDomain {
-    # Example usage:
-    #$url = "https://www.example.com/path/to/page"
-    #$schemeAndDomain = Get-PSWCSchemeAndDomain -url $url
-    #Write-Host "Scheme and Domain: $schemeAndDomain"
+    <#
+    .SYNOPSIS
+    Extracts the scheme and domain from a given URL.
+
+    .DESCRIPTION
+    The Get-PSWCSchemeAndDomain function takes a URL as input and extracts the scheme (e.g., "http" or "https") and the domain (e.g., "www.example.com") from it.
+
+    .PARAMETER url
+    Specifies the URL from which to extract the scheme and domain.
+
+    .EXAMPLE
+    $url = "https://www.example.com/path/to/page"
+    $schemeAndDomain = Get-PSWCSchemeAndDomain -url $url
+    Write-Host "Scheme and Domain: $schemeAndDomain"
+    
+    This example extracts the scheme and domain from the provided URL and displays it.
+
+    .NOTES
+    Author         : Wojciech Napierała (@scriptsavvyninja)
+    Date           : 25.11.2023
+    #>
+
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
