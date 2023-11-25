@@ -903,6 +903,33 @@ Handle Errors Gracefully: Implement error handling logic to handle the Bad Reque
 }
 
 function Get-PSWCHttpResponse {
+    <#
+    .SYNOPSIS
+    Sends an HTTP GET request and retrieves the response.
+
+    .DESCRIPTION
+    The Get-PSWCHttpResponse function sends an HTTP GET request to the specified URL and retrieves the response.
+
+    .PARAMETER url
+    Specifies the URL to send the HTTP GET request to.
+
+    .PARAMETER userAgent
+    Specifies the User-Agent header to use in the HTTP request. Defaults to a Chrome User-Agent string.
+
+    .PARAMETER timeout
+    Specifies the number of seconds to wait for a response before timing out. Defaults to 10 seconds.
+
+    .EXAMPLE
+    $url = "https://www.example.com"
+    $response = Get-PSWCHttpResponse -url $url
+    $response
+    Sends an HTTP GET request to the specified URL and retrieves the response.
+
+    .NOTES
+    Author: scripsavvyninja
+    Date: 25.11.2023
+    #>
+
     param (
         [string]$url,
         [string]$userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36 Edg/118.0.2088.57",
@@ -924,6 +951,8 @@ function Get-PSWCHttpResponse {
 
     # Send an HTTP GET request to the URL
     $response = $httpClient.GetAsync($url).Result # Stored the response in a variable before returning it
+
+    # Return the HttpClient instance and the response
     return $httpClient, $response
 
     # The function creates an instance of the HttpClient class and sets the User-Agent header to the value of $userAgent.
@@ -950,16 +979,16 @@ function Get-PSWCDocumentElements {
 
 function Set-PSWCCleanWebsiteURL {
     <#
-.SYNOPSIS
-    Cleans an array of website URLs by removing "http://" or "https://://" and replacing non-letter and non-digit characters with underscores.
+    .SYNOPSIS
+    Cleans an array of website URLs by removing "http://" or "https://" and replacing non-letter and non-digit characters with underscores.
 
-.DESCRIPTION
-    The Set-PSWCCleanWebsiteURL function takes an array of website URLs as input, removes "http://" or "https://://" from each URL, and replaces all characters that are not digits or letters with underscores. It then returns an array of cleaned URLs.
+    .DESCRIPTION
+    The Set-PSWCCleanWebsiteURL function takes an array of website URLs as input, removes "http://" or "https://" from each URL, and replaces all characters that are not digits or letters with underscores. It then returns an array of cleaned URLs.
 
-.PARAMETER Urls
+    .PARAMETER Urls
     Specifies an array of website URLs to be cleaned.
 
-.EXAMPLE
+    .EXAMPLE
     $websiteUrls = @("https://www.example.com?param=value", "http://another-example.com")
     $cleanedUrls = fuction clean -Urls $websiteUrls
     $cleanedUrls | ForEach-Object {
@@ -968,11 +997,11 @@ function Set-PSWCCleanWebsiteURL {
     
     This example cleans the provided array of website URLs and displays the cleaned URLs.
 
-.NOTES
+    .NOTES
     Author         : Wojciech Napierała (@scriptsavvyninja)
     Prerequisite   : PowerShell v3
-    
-#>
+    #>
+
     param (
         [Parameter(Mandatory = $true)]
         [string]$Url
