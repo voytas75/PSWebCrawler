@@ -366,6 +366,27 @@ function Get-PSWCGetHostAddresses {
 }
 
 Function Get-PSWCContactInformation {
+    <#
+    .SYNOPSIS
+    Extracts contact information from an HTML document.
+
+    .DESCRIPTION
+    The Get-PSWCContactInformation function extracts contact information (emails, addresses, phone numbers) from an HTML document.
+
+    .PARAMETER htmlContent
+    Specifies the HTML content to extract contact information from.
+
+    .EXAMPLE
+    $htmlContent = Get-Content -Path "C:\path\to\index.html" -Raw
+    $contactInfo = Get-PSWCContactInformation -htmlContent $htmlContent
+    $contactInfo
+    Retrieves the contact information from the specified HTML content and displays it.
+
+    .NOTES
+    Author: scripsavvyninja
+    Date: 25.11.2023
+    #>
+
     param (
         [string]$htmlContent
     )
@@ -398,7 +419,7 @@ Function Get-PSWCContactInformation {
     }
 
     # Return the contact information
-    $contactInfo
+    return $contactInfo
 }
 
 Function Get-PSWCHeadersAndValues {
