@@ -1181,18 +1181,19 @@ How to use, examples:
 
 function Start-PSWebCrawler {
     <#
-.SYNOPSIS
+    .SYNOPSIS
     Performs various operations related to web crawler.
 
-.DESCRIPTION
+    .DESCRIPTION
     The 'WebCrawler' function allows you to process and web crawl.
 
-.PARAMETER SavePath
+    .PARAMETER SavePath
     Specifies the path to save the feed data. This parameter is mandatory when 'AddFeed' is used.
 
-.PARAMETER Timeout
+    .PARAMETER Timeout
     Specifies the timeout value for URL accessibility testing. This parameter is optional and only applicable when 'AddFeed' is used.
-#>
+    #>
+
     [CmdletBinding(DefaultParameterSetName = 'Default')]
     param (
         [Parameter(ParameterSetName = 'WebCrawl', Mandatory = $true)]
@@ -1367,8 +1368,9 @@ function Start-PSWebCrawler {
     #}    
 }
 
-function get-RandomUserAgent {
+function Get-RandomUserAgent {
     param (
+        [string]
         $UserAgentFileFullName = "$PSScriptRoot\Data\useragents.txt"
     )
     return (get-random (Get-Content $UserAgentFileFullName))
