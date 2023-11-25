@@ -15,7 +15,7 @@ function Get-PSWCBanner {
 
     .NOTES
     Author: scripsavvyninja
-    Date: January 1, 2023
+    Date: 25.11.2023
     #>
 
     param (
@@ -248,6 +248,27 @@ function Get-PSWCImageUrls {
 }
 
 Function Get-PSWCHTMLMetadata {
+    <#
+    .SYNOPSIS
+    Extracts metadata from an HTML document.
+
+    .DESCRIPTION
+    The Get-PSWCHTMLMetadata function extracts metadata (title, description, keywords, author, copyright, robots, viewport, generator) from an HTML document.
+
+    .PARAMETER htmlContent
+    Specifies the HTML content to extract metadata from.
+
+    .EXAMPLE
+    $htmlContent = Get-Content -Path "C:\path\to\index.html" -Raw
+    $metadata = Get-PSWCHTMLMetadata -htmlContent $htmlContent
+    $metadata
+    Retrieves the metadata from the specified HTML content and displays it.
+
+    .NOTES
+    Author: scripsavvyninja
+    Date: 25.11.2023
+    #>
+
     param (
         [string]$htmlContent
     )
@@ -334,7 +355,7 @@ Function Get-PSWCHTMLMetadata {
     }
 
     # Return the metadata
-    $metadata
+    return $metadata
 }
 
 function Get-PSWCGetHostAddresses {
