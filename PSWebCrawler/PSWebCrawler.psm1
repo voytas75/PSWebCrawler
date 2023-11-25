@@ -1156,9 +1156,8 @@ function Write-Log {
     This example writes the log message "Error occurred" to the specified log file path "C:\Logs\MyLogFile.log".
 
     .NOTES
-    Author: Your Name
-    Date: January 1, 2022
-    Version: 1.0
+    Author: scriptsavvyninja
+    Date: 25.11.2023
     #>
 
     param(
@@ -1166,7 +1165,6 @@ function Write-Log {
         [ValidateNotNullOrEmpty()]
         [string]$logstring,
         [string]$logFile = (Join-Path $env:TEMP "$($script:ModuleName).log")
-
     )
 
     # Create the log message with a timestamp
