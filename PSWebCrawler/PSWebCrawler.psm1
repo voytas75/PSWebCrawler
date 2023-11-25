@@ -1132,6 +1132,35 @@ function Open-PSWCExplorerCache {
 }
 
 function Write-Log {
+    <#
+    .SYNOPSIS
+    Writes a log message to a log file with a timestamp.
+
+    .DESCRIPTION
+    The Write-Log function appends a log message to a log file with a timestamp. The log message is provided as the mandatory input parameter, and the log file path is an optional parameter. If the log file path is not specified, the function creates a log file in the user's temporary directory with the name of the module that contains the function.
+
+    .PARAMETER logstring
+    Specifies the log message to be written to the log file.
+
+    .PARAMETER logFile
+    Specifies the path to the log file. If not specified, the log file will be created in the user's temporary directory with the name of the module that contains the function.
+
+    .EXAMPLE
+    Write-Log -logstring "This is a log message"
+
+    This example writes the log message "This is a log message" to the default log file in the user's temporary directory.
+
+    .EXAMPLE
+    Write-Log -logstring "Error occurred" -logFile "C:\Logs\MyLogFile.log"
+
+    This example writes the log message "Error occurred" to the specified log file path "C:\Logs\MyLogFile.log".
+
+    .NOTES
+    Author: Your Name
+    Date: January 1, 2022
+    Version: 1.0
+    #>
+
     param(
         [Parameter(Mandatory = $true, ValueFromPipeline = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
@@ -1139,9 +1168,12 @@ function Write-Log {
         [string]$logFile = (Join-Path $env:TEMP "$($script:ModuleName).log")
 
     )
-    #Write-Debug -Message "Append [$logstring] to log file: [$logfile]"
-    $strToLog = "[$(get-date)]: $logstring"
-    $strToLog | Out-File $Logfile -Append -Encoding utf8
+
+    # Create the log message with a timestamp
+    $strToLog = "[{0}]: {1}" -f (get-date), $logstring
+    # Append the log message to the log file
+    Add-Content -Path $Logfile -Value $strToLog -Encoding utf8
+
 }
 
 function Show-PSWCMenu {
