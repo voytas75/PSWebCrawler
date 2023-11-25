@@ -595,8 +595,9 @@ function Start-PSWCCrawl {
                             $linkedDomain = [System.Uri]::new($href).Host
                                 
                             if ($resolve.IsPresent) {
-                                Get-PSWCGetHostAddresses -domain $linkedDomain
+                                (Get-PSWCGetHostAddresses -domain $linkedDomain)[0]
                             }
+
                             # Check if the linked domain is different from the current domain
                             if ($linkedDomain -ne $currentDomain -and -not $noCrawlExternalLinks -and -not $script:ArrayData.href.Contains($href)) {
                                     
@@ -716,7 +717,7 @@ function Start-PSWCCrawl {
 
                             #resolve to IP address
                             if ($resolve.IsPresent) {
-                                Get-PSWCGetHostAddresses -domain $linkedDomain
+                                (Get-PSWCGetHostAddresses -domain $linkedDomain)[0]
                             }
 
                             #Write-Verbose "  domain '$linkedDomain'"
