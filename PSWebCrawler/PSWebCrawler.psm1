@@ -423,6 +423,27 @@ Function Get-PSWCContactInformation {
 }
 
 Function Get-PSWCHeadersAndValues {
+    <#
+    .SYNOPSIS
+    Extracts headers and their values from an HTML document.
+
+    .DESCRIPTION
+    The Get-PSWCHeadersAndValues function extracts headers and their corresponding values from the `<head>` section of an HTML document.
+
+    .PARAMETER htmlContent
+    Specifies the HTML content to extract headers and values from.
+
+    .EXAMPLE
+    $htmlContent = Get-Content -Path "C:\path\to\index.html" -Raw
+    $headersAndValues = Get-PSWCHeadersAndValues -htmlContent $htmlContent
+    $headersAndValues
+    Retrieves the headers and their values from the specified HTML content and displays them.
+
+    .NOTES
+    Author: scripsavvyninja
+    Date: 25.11.2023
+    #>
+
     param (
         [string]$htmlContent
     )
@@ -447,10 +468,9 @@ Function Get-PSWCHeadersAndValues {
     }
 
     # Return the headers and values
-    $headersAndValues
+    return $headersAndValues
 }
 
-# Function to crawl a URL
 function Start-PSWCCrawl {
     [CmdletBinding()]
     param (
