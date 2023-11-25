@@ -1,10 +1,30 @@
 function Get-PSWCBanner {
-    param ()
-    # Define the path to the banner file.
-    $bannerPath = Join-Path -Path $PSScriptRoot -ChildPath "images\PSWCbanner.txt"
+    <#
+    .SYNOPSIS
+    Retrieves and displays the content of a banner file.
+
+    .DESCRIPTION
+    The Get-PSWCBanner function reads the content of a banner file and displays it in the console.
+
+    .PARAMETER FilePath
+    Specifies the path to the banner file.
+
+    .EXAMPLE
+    Get-PSWCBanner -FilePath "C:\path\to\banner.txt"
+    Retrieves the content of the banner file located at the specified path and displays it in the console.
+
+    .NOTES
+    Author: scripsavvyninja
+    Date: January 1, 2023
+    #>
+
+    param (
+        [string] 
+        $FilePath = (Join-Path -Path $PSScriptRoot -ChildPath "images\PSWCbanner.txt")
+    )
 
     # Read the content of the banner file.
-    $banner = Get-Content -Path $bannerPath -Raw
+    $banner = Get-Content -Path $FilePath -Raw
 
     # Display the banner in the console.
     Write-Output $banner
