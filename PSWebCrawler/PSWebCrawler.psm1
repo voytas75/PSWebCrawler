@@ -559,6 +559,7 @@ function Start-PSWCCrawl {
 
                 # Get the domain of the current URL
                 $currentDomain = [System.Uri]::new($url).Host
+                $script:CurrentDomainSessionFolder = Set-PSWCSessionFolder -FolderPath $script:SessionFolder -FolderName $currentDomain
                 Write-Log "Current domain is [$currentDomain]"
                 #Write-Verbose "`$currentDomain: '$currentDomain', Domains: $domains"
 
@@ -589,25 +590,28 @@ function Start-PSWCCrawl {
                             if ($outputFolder -ne "") {
                                 #$hrefFile = (Join-Path -Path $outputFolder -ChildPath (Set-PSWCCleanWebsiteURL -Url $url)) + ".hrefs.txt"
                                 Add-Content -Path ([string]::Concat($outputFile, ".hrefs.txt")) -Value $href
+                                Add-Content -Path (join-path $CurrentDomainSessionFolder $(Set-PSWCCleanWebsiteURL -url $url) ) -Value $href
                             }
                                 
                             # Get the domain of the linked URL
                             $linkedDomain = [System.Uri]::new($href).Host
-                                
-                            if ($resolve.IsPresent) {
-                                (Get-PSWCGetHostAddresses -domain $linkedDomain)[0]
-                            }
 
                             # Check if the linked domain is different from the current domain
                             if ($linkedDomain -ne $currentDomain -and -not $noCrawlExternalLinks -and -not $script:ArrayData.href.Contains($href)) {
-                                    
+
+                                if ($resolve.IsPresent) {
+                                    $ResolveIPs = ""
+                                    $ResolveIPs = (Get-PSWCGetHostAddresses -domain $linkedDomain)
+                                    $ResolveIPs
+                                }
+    
                                 Write-Log "[$currentDomain] is different then [$linkedDomain] and not [noCrawlExternalLinks]"
     
                                 # Decrease the depth when moving to a different site
                                 $newDepth = $depth - 1
     
                                 if (-not ($script:ArrayData.url.contains($href))) {
-                                    Write-Host "`t[$depth] '$url' - [$newDepth] '$href'"
+                                    #Write-Host "`t[$depth] '$url' - [$newDepth] '$href'"
                                     $thisobject = [PSCustomObject] @{
                                         Depth     = $depth
                                         Url       = $href
@@ -650,9 +654,20 @@ function Start-PSWCCrawl {
                                 }
     
                                 Write-Log "start iteration for [$href]"
-                                    
+
+                                Write-Host "Crawling depth: $newdepth"
+                                Write-host "Crawling: $href"
+                                Write-host "Status: In progress"
+                                $CrawlingStartTimestamp = get-date 
+                                Write-host "Timestamp: $CrawlingStartTimestamp"
+
                                 Start-PSWCCrawl -url $href -depth $newDepth -timeoutSec $timeoutSec -outputFolder $outputFolder -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains -verbose:$verbose -debug:$debug
-                                                            
+                                
+                                Write-Host "Crawling depth: $newdepth"
+                                Write-host "Crawling: $href"
+                                Write-host "Status: Completed"
+                                $CrawlingCompletedTimestamp = get-date 
+                                Write-host "Timestamp: $CrawlingCompletedTimestamp"
                             }
                             else {
                                 $newDepth = $depth
@@ -717,7 +732,9 @@ function Start-PSWCCrawl {
 
                             #resolve to IP address
                             if ($resolve.IsPresent) {
-                                (Get-PSWCGetHostAddresses -domain $linkedDomain)[0]
+                                $ResolveIPs = ""
+                                $ResolveIPs = (Get-PSWCGetHostAddresses -domain $linkedDomain)
+                                $ResolveIPs
                             }
 
                             #Write-Verbose "  domain '$linkedDomain'"
@@ -1107,6 +1124,57 @@ function Get-PSWCCacheFolder {
 
 }
 
+function Set-PSWCDataFolder {
+    $userDocumentFolder = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::MyDocuments)
+    $moduleName = $MyInvocation.MyCommand.Module.Name
+    $dataFolder = Join-Path $userDocumentFolder $moduleName
+    #Write-Verbose $dataFolder -Verbose
+    if (-not (Test-Path -Path $dataFolder)) {
+        New-Item -Path $dataFolder -ItemType Directory | Out-Null
+    }
+    return $dataFolder
+}
+
+function Set-PSWCSessionFolder {
+    <#
+    .SYNOPSIS
+    Creates a session folder for storing web crawling session data.
+
+    .DESCRIPTION
+    The Set-PSWCSessionFolder function creates a session folder with the specified name at the specified path for storing web crawling session data. If the folder already exists, it does not create a new one.
+
+    .PARAMETER FolderName
+    Specifies the name of the session folder to be created.
+
+    .PARAMETER FolderPath
+    Specifies the path where the session folder will be created.
+
+    .EXAMPLE
+    Set-PSWCSessionFolder -FolderName "Session1" -FolderPath "C:\WebCrawlingSessions"
+    Creates a session folder named "Session1" at the specified path "C:\WebCrawlingSessions".
+    #>
+
+    param (
+        [string]$FolderName,
+        [string]$FolderPath
+    )
+    $sessionFolder = Join-Path $FolderPath $FolderName
+    if (-not (Test-Path -Path $sessionFolder)) {
+        try {
+            [void](New-Item -Path $sessionFolder -ItemType Directory)
+            Write-Verbose "Session folder '$sessionFolder' was created successfully."
+            Write-Log "Session folder '$sessionFolder' was created successfully."
+            return $sessionFolder
+        }
+        catch {
+            Write-Error "Error creating session folder. [$($_.error.message)]"
+            return $false
+        }
+    }
+    return $sessionFolder
+}
+
+
 function Open-PSWCExplorerCache {
     param (
         [string]$FolderName
@@ -1168,11 +1236,18 @@ function Write-Log {
         [string]$logFile = (Join-Path $env:TEMP "$($script:ModuleName).log")
     )
 
-    # Create the log message with a timestamp
-    $strToLog = "[{0}]: {1}" -f (get-date), $logstring
-    # Append the log message to the log file
-    Add-Content -Path $Logfile -Value $strToLog -Encoding utf8
-
+    try {
+        if (-not (Test-Path -Path $logFile)) {
+            New-Item -Path $logFile -ItemType File | Out-Null
+        }
+        # Create the log message with a timestamp
+        $strToLog = "[{0}]: {1}" -f (Get-Date), $logstring
+        # Append the log message to the log file
+        Add-Content -Path $logFile -Value $strToLog -Encoding utf8
+    }
+    catch {
+        Write-Error "Failed to write to the log file: $_"
+    }
 }
 
 function Show-PSWCMenu {
@@ -1286,6 +1361,13 @@ function Start-PSWebCrawler {
     Write-Verbose "ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
     switch ($PSCmdlet.ParameterSetName) {
         'WebCrawl' {
+            $watch_webCrawl = start-watch
+
+            $date = Get-Date -Format "dd-MM-yyyy-HH-mm-ss"
+            $script:SessionFolder = Set-PSWCSessionFolder -FolderName $date -FolderPath $script:dataFolderPath
+            Write-Host "Session folder path: $SessionFolder"
+            
+
             $script:ArrayData = @()
             Write-Log "Initializing array [ArrayData]"
             $script:ArrayData += [PSCustomObject] @{
@@ -1327,12 +1409,30 @@ function Start-PSWebCrawler {
             Write-output "`nStart crawling with [$url] on depth: [$depth]`n"
             Write-Log "Start iteration for [$url] with depth: [$depth]"
 
+            Write-Host "Crawling depth: $depth"
+            Write-host "Crawling: $url"
+            Write-host "Status: In progress"
+            $CrawlingStartTimestamp = get-date 
+            Write-host "Timestamp: $CrawlingStartTimestamp"
+
             Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder -resolve:$resolve -Verbose:$verbose -userAgent "$UserAgent"
-                
+
+            Write-Host "Crawling depth: $depth"
+            Write-host "Crawling: $url"
+            Write-host "Status: Completed"
+            $CrawlingCompletedTimestamp = get-date 
+            Write-host "Timestamp: $CrawlingCompletedTimestamp"
+
+            $DomainsFound = ($script:ArrayData.domain | Where-Object { $_ } | Select-Object -Unique | Measure-Object).count
+            $LinksFound = ($ArrayData | Where-Object { $_.href } | Select-Object href -Unique).count
+
+            write-host "Domains found: $DomainsFound"
+            Write-Host "Links found: $LinksFound"
+
             #Write-Host "`nLiczba sprawdzonych domen (var: historyDomains): " -NoNewline
             #($script:historyDomains | Select-Object -Unique | Measure-Object).count
-            Write-Host "`nChcecked domains: " -NoNewline
-                ($script:ArrayData.domain | Where-Object { $_ } | Select-Object -Unique | Measure-Object).count
+            Write-Host "`nChecked domains: " -NoNewline
+            $DomainsFound
             #($script:ArrayData.url | Where-Object { $_ } | Select-Object -Unique | Measure-Object).count
             ($ArrayData | Where-Object { $_.Domain } | Select-Object domain -Unique | Sort-Object domain).domain -join "; "
                 
@@ -1346,12 +1446,12 @@ function Start-PSWebCrawler {
             #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
 
             Write-host "`nChecked links:" -NoNewline
-            ($ArrayData | Where-Object { $_.href } | Select-Object href -Unique).count
+            $LinksFound 
             ($ArrayData | Where-Object { $_.href } | Select-Object href -Unique | Sort-Object href).href -join "; "
 
 
             #$ArrayData | Out-GridView
-    
+            stop-watch $watch_webCrawl
             break
         }
         'ShowCacheFolder' {
@@ -1497,3 +1597,6 @@ Write-Host "Thank you for using PSWC ($($moduleVersion))." -ForegroundColor Yell
 #Write-Host "- You can filter the built-in snippets (category: 'Example') by setting 'ShowExampleSnippets' to '`$false' in config. Use: 'Save-PAFConfiguration -settingName ""ShowExampleSnippets"" -settingValue `$false'" -ForegroundColor Yellow
 
 New-PSWCCacheFolder -FolderName $script:ModuleName
+$script:dataFolderPath = Set-PSWCDataFolder
+
+#Write-Host "Data folder path: $dataFolderPath"
