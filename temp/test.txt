@@ -1,0 +1,17 @@
+[Start Crawling] Initiating web crawling process...
+
+Timestamp: [timestamp1 in bold white]   URL: [url1 in cyan]   Depth: [depth1 in green]
+Timestamp: [timestamp2 in bold yellow]  URL: [url2 in magenta] Depth: [depth2 in blue]
+Timestamp: [timestamp3 in bold green]   URL: [url3 in red]     Depth: [depth3 in yellow]
+Timestamp: [timestamp4 in bold cyan]    URL: [url4 in blue]    Depth: [depth4 in magenta]
+
+[End Crawling] Web crawling completed successfully.
+
+Summary:
+- Total Unique Domains: [count of unique domains in bold cyan]
+- Total Unique URLs: [count of unique URLs in bold magenta]
+
+Files Saved at: [path to the directory where files are saved in bold yellow]
+- Domains: [filename for domains in cyan]
+- URLs: [filename for URLs in cyan]
+- Other Logs: [filename for other logs in cyan]
