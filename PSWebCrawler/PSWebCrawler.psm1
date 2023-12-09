@@ -60,7 +60,6 @@ function Get-PSWCAllElements {
         Get-PSWCAllElements -url "https://www.example.com" -Type "All"
 
         This example extracts all elements from the URL "https://www.example.com".
-
     #>
 
     [CmdletBinding()]
@@ -75,14 +74,6 @@ function Get-PSWCAllElements {
         [string]$userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36 Edg/117.0.2045.43"
     )
     begin {
-        # Output the parameters and their default values.
-        Write-verbose "Parameters and Default Values:" -Verbose
-        foreach ($param in $MyInvocation.MyCommand.Parameters.keys) {
-            $value = Get-Variable -Name $param -ValueOnly -ErrorAction SilentlyContinue
-            if (-not $null -eq [string]$value) {
-                Write-Verbose "${param}: [${value}]" -Verbose
-            }
-        }
 
         # Initialize arrays to store the results.
         $domains = @()
@@ -130,11 +121,93 @@ function Get-PSWCAllElements {
                         $nonhrefelements += $href
                     }
                 }
+                # Output the results based on the Type parameter.
+                $domainsunique = $domains | Select-Object -Unique | Sort-Object
+                $hrefsUnique = $hrefelements | Select-Object -Unique | Sort-Object
+                $nonhrefsUnique = $nonhrefelements | Select-Object -Unique | Sort-Object
+                $internalLinksUnique = $internalLinks | Select-Object -Unique | sort-object
+                switch ($Type) {
+                    "href" {
+                        
+                        Write-Host "Href elements: $($hrefsUnique.count)" -ForegroundColor Yellow
+                        
+                        #$hrefsUnique | Add-Content -Path (join-path $CurrentDomainSessionFolder $(Set-PSWCCleanWebsiteURL -url $url) )
+
+                        $UrlsFullName = Join-Path -Path $SessionFolder -ChildPath "UrlsUnique.txt"
+                        $hrefsUnique | Out-File -FilePath $UrlsFullName -Encoding utf8
+
+                        Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
+                        Write-Host "- Hrefs: $UrlsFullName" -ForegroundColor Cyan
+
+                    }
+                    "nohref" {
+                        Write-Host "no Href elements: $($nonhrefsUnique.count)"   -ForegroundColor Yellow
+                        #$nonhrefelements | Where-Object { $_ -notin ("", "/", "#") } | Select-Object -Unique | sort-object
+                        $noUrlsFullName = Join-Path -Path $SessionFolder -ChildPath "noHrefUnique.txt"
+                        $nonhrefsUnique | Out-File -FilePath $noUrlsFullName -Encoding utf8
+
+                        Write-Host "no Href elements as absolute links: $($internalLinksUnique.count)"   -ForegroundColor Yellow
+                        $InternalLinksFullName = Join-Path -Path $SessionFolder -ChildPath "InternalLinksUnique.txt"
+                        $internalLinksUnique | Out-File -FilePath $InternalLinksFullName -Encoding utf8
+
+                        Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
+                        Write-Host "- no Href: $noUrlsFullName" -ForegroundColor Cyan
+                        Write-Host "- no Href elements as absolute links: $InternalLinksFullName" -ForegroundColor Cyan
+
+                    }
+                    "onlyDomains" {
+                        Write-Host "Domains elements: $($domainsunique.count)"   -ForegroundColor Yellow
+                        #$domains | Select-Object -Unique | sort-object
+                        $DomainsFullName = Join-Path -Path $SessionFolder -ChildPath "DomainsUnique.txt"
+                        $domainsunique | Out-File -FilePath $DomainsFullName -Encoding utf8
+
+                        Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
+                        Write-Host "- Domains: $DomainsFullName" -ForegroundColor Cyan
+
+                    }
+                    "All" {
+                        Write-Host "All elements: " -ForegroundColor Yellow
+
+                        Write-Host "Href elements: $($hrefsUnique.count)" -ForegroundColor Yellow
+                        #$hrefsUnique | Add-Content -Path (join-path $CurrentDomainSessionFolder $(Set-PSWCCleanWebsiteURL -url $url) )
+                        $UrlsFullName = Join-Path -Path $SessionFolder -ChildPath "UrlsUnique.txt"
+                        $hrefsUnique | Out-File -FilePath $UrlsFullName -Encoding utf8
+
+                        Write-Host "no Href elements: $($nonhrefsUnique.count)"   -ForegroundColor Yellow
+                        #$nonhrefelements | Where-Object { $_ -notin ("", "/", "#") } | Select-Object -Unique | sort-object
+                        $noUrlsFullName = Join-Path -Path $SessionFolder -ChildPath "noHrefUnique.txt"
+                        $nonhrefsUnique | Out-File -FilePath $noUrlsFullName -Encoding utf8
+
+                        Write-Host "no Href elements as absolute links: $($internalLinksUnique.count)"   -ForegroundColor Yellow
+                        $InternalLinksFullName = Join-Path -Path $SessionFolder -ChildPath "InternalLinksUnique.txt"
+                        $internalLinksUnique | Out-File -FilePath $InternalLinksFullName -Encoding utf8
+
+                        Write-Host "Domains elements: $($domainsunique.count)"   -ForegroundColor Yellow
+                        #$domains | Select-Object -Unique | sort-object
+                        $DomainsFullName = Join-Path -Path $SessionFolder -ChildPath "DomainsUnique.txt"
+                        $domainsunique | Out-File -FilePath $DomainsFullName -Encoding utf8
+
+                        Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
+                        Write-Host "- Hrefs: $UrlsFullName" -ForegroundColor Cyan
+                        Write-Host "- no Href: $noUrlsFullName" -ForegroundColor Cyan
+                        Write-Host "- no Href elements as absolute links: $InternalLinksFullName" -ForegroundColor Cyan
+                        Write-Host "- Domains: $DomainsFullName" -ForegroundColor Cyan
+
+
+                    }
+                    Default {}
+                }
+    
+                # Output the results to the log.
+                Write-Log "Hrefs (w/o domains) count: [$($hrefelements.count)], unique: $(($hrefsUnique).count)"
+                Write-Log "no-Hrefs (w/o domains) count: [$($nonhrefelements.count)], unique: $(($nonhrefsUnique).count)"
+                Write-Log "Domain count: [$($domains.count)], unique: $(($domainsUnique).count)"
+                Write-Log "no-Hrefs as absolute links count: [$($internalLinks.count)], unique: $(($internalLinksUnique).count)"
     
             } 
             else {
-                Write-Host "No elemets in [$url]"    
-                Write-Log "No elemets in [$url]"    
+                Write-Host "No elements in [$url]" -ForegroundColor Red    
+                Write-Log "No elements in [$url]"
             }
         }
         else {
@@ -142,48 +215,9 @@ function Get-PSWCAllElements {
         }
     }
     end {
-        # Output the results based on the Type parameter.
-        $domainsunique = $domains | Select-Object -Unique | Sort-Object
-        $hrefsUnique = $hrefelements | Select-Object -Unique | Sort-Object
-        $nonhrefsUnique = $nonhrefelements | Select-Object -Unique | Sort-Object
-        $internalLinksUnique = $nonhrefelements | Select-Object -Unique | sort-object
-        switch ($Type) {
-            "href" {
-                Write-Host "`nHref elements, unique:"  
-                $hrefelements | Select-Object -Unique | sort-object
-            }
-            "nohref" {
-                Write-Host "`nno Href elements, unique:"  
-                $nonhrefelements | Where-Object { $_ -notin ("", "/", "#") } | Select-Object -Unique | sort-object
+        #if ($anchorElements[1].count -gt 0) {
 
-                Write-Host "`nno Href elements as absolute links, unique:"  
-                $internalLinksUnique
-
-            }
-            "onlyDomains" {
-                Write-Host "`nonly Domains elements, unique:"  
-                $domains | Select-Object -Unique | sort-object
-            }
-            "All" {
-                Write-Host "`nAll elements"
-                Write-Host "only Domains elements, unique:"  
-                $domains | Select-Object -Unique | sort-object
-                Write-Host "`nHref elements, unique:"  
-                $hrefelements | Select-Object -Unique | sort-object
-                Write-Host "`nno Href elements, unique:"  
-                $nonhrefelements | Where-Object { $_ -notin ("", "/", "#") } | Select-Object -Unique | sort-object
-                Write-Host "`nno Href elements as absolute links, unique:"  
-                $internalLinks | Select-Object -Unique | sort-object
-
-            }
-            Default {}
-        }
-
-        # Output the results to the log.
-        Write-Log "Hrefs (w/o domains) count: [$($hrefelements.count)], unique: $(($hrefsUnique).count)"
-        Write-Log "no-Hrefs (w/o domains) count: [$($nonhrefelements.count)], unique: $(($nonhrefsUnique).count)"
-        Write-Log "Domain count: [$($domains.count)], unique: $(($domainsUnique).count)"
-        Write-Log "no-Hrefs as absolute links count: [$($internalLinks.count)], unique: $(($internalLinksUnique).count)"
+        #}
     }
 }
 
@@ -363,6 +397,7 @@ function Get-PSWCGetHostAddresses {
         [string]$domain
     )
     return ([System.Net.Dns]::GetHostAddresses($domain)).IPAddressToString
+    #return (Resolve-DnsName $domain -NoHostsFile).ipaddress
 }
 
 Function Get-PSWCContactInformation {
@@ -589,7 +624,7 @@ function Start-PSWCCrawl {
      #>                            # Add the link to the output file, if specified
                             if ($outputFolder -ne "") {
                                 #$hrefFile = (Join-Path -Path $outputFolder -ChildPath (Set-PSWCCleanWebsiteURL -Url $url)) + ".hrefs.txt"
-                                Add-Content -Path ([string]::Concat($outputFile, ".hrefs.txt")) -Value $href
+                                #Add-Content -Path ([string]::Concat($outputFile, ".hrefs.txt")) -Value $href
                                 Add-Content -Path (join-path $CurrentDomainSessionFolder $(Set-PSWCCleanWebsiteURL -url $url) ) -Value $href
                             }
                                 
@@ -599,12 +634,6 @@ function Start-PSWCCrawl {
                             # Check if the linked domain is different from the current domain
                             if ($linkedDomain -ne $currentDomain -and -not $noCrawlExternalLinks -and -not $script:ArrayData.href.Contains($href)) {
 
-                                if ($resolve.IsPresent) {
-                                    $ResolveIPs = ""
-                                    $ResolveIPs = (Get-PSWCGetHostAddresses -domain $linkedDomain)
-                                    $ResolveIPs
-                                }
-    
                                 Write-Log "[$currentDomain] is different then [$linkedDomain] and not [noCrawlExternalLinks]"
     
                                 # Decrease the depth when moving to a different site
@@ -655,19 +684,31 @@ function Start-PSWCCrawl {
     
                                 Write-Log "start iteration for [$href]"
 
-                                Write-Host "Crawling depth: $newdepth"
-                                Write-host "Crawling: $href"
-                                Write-host "Status: In progress"
                                 $CrawlingStartTimestamp = get-date 
-                                Write-host "Timestamp: $CrawlingStartTimestamp"
+                                Write-host "`nTimestamp: $CrawlingStartTimestamp" -ForegroundColor Yellow
+                                Write-host "URL: $href" -ForegroundColor Magenta
+                                if ($resolve.IsPresent) {
+                                    $ResolveIPs = ""
+                                    $ResolveIPs = (Get-PSWCGetHostAddresses -domain ([System.Uri]::new($href).Host))
+                                    #$ResolveIPs = (Get-PSWCGetHostAddresses -domain $url)
+                                    Write-Host "IP address: $ResolveIPs" -ForegroundColor Cyan
+                                }
+                                Write-Host "Crawling depth: $newdepth" -ForegroundColor Blue
+                    
+
+                                #Write-Host "Crawling depth: $newdepth"
+                                #Write-host "Crawling: $href"
+                                #Write-host "Status: In progress"
+                                #$CrawlingStartTimestamp = get-date 
+                                #Write-host "Timestamp: $CrawlingStartTimestamp"
 
                                 Start-PSWCCrawl -url $href -depth $newDepth -timeoutSec $timeoutSec -outputFolder $outputFolder -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains -verbose:$verbose -debug:$debug
                                 
-                                Write-Host "Crawling depth: $newdepth"
-                                Write-host "Crawling: $href"
-                                Write-host "Status: Completed"
-                                $CrawlingCompletedTimestamp = get-date 
-                                Write-host "Timestamp: $CrawlingCompletedTimestamp"
+                                #Write-Host "Crawling depth: $newdepth"
+                                #Write-host "Crawling: $href"
+                                #Write-host "Status: Completed"
+                                #$CrawlingCompletedTimestamp = get-date 
+                                #Write-host "Timestamp: $CrawlingCompletedTimestamp"
                             }
                             else {
                                 $newDepth = $depth
@@ -721,7 +762,7 @@ function Start-PSWCCrawl {
                             # Add the link to the output file, if specified
                             if ($outputFolder -ne "") {
                                 #$hrefFile = (Join-Path -Path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -Url $url)) + ".hrefs.txt"
-                                Add-Content -Path ([string]::Concat($outputFile, ".hrefs.txt")) -Value $href
+                                #Add-Content -Path ([string]::Concat($outputFile, ".hrefs.txt")) -Value $href
                                 Write-Log "add content [$href] to file [${outputFile}.hrefs.txt]"
                                 #Write-Verbose "  processing '$href'...saving to '$hrefFile'"
                             }
@@ -729,13 +770,6 @@ function Start-PSWCCrawl {
                             # Get the domain of the linked URL
                             $linkedDomain = [System.Uri]::new($href).Host
                             Write-Log "[LinkedDomain] is for [$linkedDomain]"
-
-                            #resolve to IP address
-                            if ($resolve.IsPresent) {
-                                $ResolveIPs = ""
-                                $ResolveIPs = (Get-PSWCGetHostAddresses -domain $linkedDomain)
-                                $ResolveIPs
-                            }
 
                             #Write-Verbose "  domain '$linkedDomain'"
                             #if ($script:ArrayData.domain.contains($hrefdomain)){
@@ -747,7 +781,9 @@ function Start-PSWCCrawl {
                             #Write-Verbose "  ('$linkedDomain' -ne '$currentDomain' -and -not `$noCrawlExternalLinks): $($linkedDomain -ne $currentDomain -and -not $noCrawlExternalLinks)"
                             # Check if the linked domain is different from the current domain
                             if ($linkedDomain -ne $currentDomain -and -not $noCrawlExternalLinks) {
+
                                 Write-Log "[$currentDomain] is different then [$linkedDomain] and not [noCrawlExternalLinks]"
+
                                 #Write-Verbose "  processing '$hrefdomain'..."
                                 #$script:ArrayData.url.contains($hrefdomain)
 
@@ -755,7 +791,7 @@ function Start-PSWCCrawl {
                                 $newDepth = $depth - 1
 
                                 if (-not ($script:ArrayData.url.contains($hrefdomain))) {
-                                    Write-Host "  [$depth] ['$url' - [$newDepth] '$hrefdomain']"
+                                    #Write-Host "  [$depth] ['$url' - [$newDepth] '$hrefdomain']"
                                     $thisobject = [PSCustomObject] @{
                                         Depth     = $depth
                                         Url       = $hrefDomain
@@ -802,6 +838,18 @@ function Start-PSWCCrawl {
                                     Write-Log "Depth is 0; skipping [$hrefDomain]"
                                     continue
                                 }
+
+                                $CrawlingStartTimestamp = get-date 
+                                Write-host "`nTimestamp: $CrawlingStartTimestamp" -ForegroundColor Yellow
+                                Write-host "URL: $hrefDomain" -ForegroundColor Magenta
+                                #resolve to IP address
+                                if ($resolve.IsPresent) {
+                                    $ResolveIPs = ""
+                                    $ResolveIPs = (Get-PSWCGetHostAddresses -domain ([System.Uri]::new($hrefDomain).Host))
+                                    #$ResolveIPs = (Get-PSWCGetHostAddresses -domain $url)
+                                    Write-Host "IP address: $ResolveIPs" -ForegroundColor Cyan
+                                }
+                                Write-Host "Crawling depth: $newdepth" -ForegroundColor Blue
 
                                 Start-PSWCCrawl -url $hrefDomain -depth $newDepth -timeoutSec $timeoutSec -outputFolder $outputFolder -statusCodeVerbose:$statusCodeVerbose -noCrawlExternalLinks:$noCrawlExternalLinks -userAgent $userAgent -onlyDomains:$onlyDomains -verbose:$verbose -debug:$debug
 
@@ -1359,14 +1407,17 @@ function Start-PSWebCrawler {
     # try {
     Get-PSWCBanner
     Write-Verbose "ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
+
+    # start measure execution of script
+    $watch_ = start-watch
+    $UserAgent = get-RandomUserAgent
+
+    $date = Get-Date -Format "dd-MM-yyyy-HH-mm-ss"
+    $script:SessionFolder = Set-PSWCSessionFolder -FolderName $date -FolderPath $script:dataFolderPath
+
     switch ($PSCmdlet.ParameterSetName) {
         'WebCrawl' {
-            $watch_webCrawl = start-watch
 
-            $date = Get-Date -Format "dd-MM-yyyy-HH-mm-ss"
-            $script:SessionFolder = Set-PSWCSessionFolder -FolderName $date -FolderPath $script:dataFolderPath
-            Write-Host "Session folder path: $SessionFolder"
-            
 
             $script:ArrayData = @()
             Write-Log "Initializing array [ArrayData]"
@@ -1392,49 +1443,60 @@ function Start-PSWebCrawler {
                 $verbose = $false
             }
             # Start crawling the start URL
-
-            $UserAgent = get-RandomUserAgent
-
-            Write-Host "Url:          [$Url]"
-            Write-Host "depth:        $depth"
-            write-host "onlyDomains:  $onlydomains"
-            write-host "resolve:      $resolve"
-            write-host "outputFolder: [$outputfoldertext]"
-            write-host "Log:          [$(Join-Path $env:TEMP "$($script:ModuleName).log")]"
-            Write-Output "UserAgent:    [$UserAgent]"
+            
+            Write-Host "Settings:" -ForegroundColor Gray
+            Write-Host "[+] Url: $Url" -ForegroundColor DarkGray
+            Write-Host "[+] Depth: $depth" -ForegroundColor DarkGray
+            write-host "[+] OnlyDomains: $onlydomains" -ForegroundColor DarkGray
+            write-host "[+] Resolve: $resolve" -ForegroundColor DarkGray
+            Write-Host "[+] Session folder path: $SessionFolder" -ForegroundColor DarkGray
+            write-host "[+] Log output folder: $outputfoldertext" -ForegroundColor DarkGray
+            write-host "[+] Log: $(Join-Path $env:TEMP "$($script:ModuleName).log")" -ForegroundColor DarkGray
+            Write-Host "[+] Used UserAgent: $UserAgent" -ForegroundColor DarkGray
             #write-host "Verbose:      $verbose"
 
             #$script:historydomains += (Get-PSWCSchemeAndDomain -url $url)
-            
-            Write-output "`nStart crawling with [$url] on depth: [$depth]`n"
+            Write-Host ""
+            Write-Host "[Start Crawling] with '$url', depth: $depth`n" -ForegroundColor White
             Write-Log "Start iteration for [$url] with depth: [$depth]"
 
-            Write-Host "Crawling depth: $depth"
-            Write-host "Crawling: $url"
-            Write-host "Status: In progress"
             $CrawlingStartTimestamp = get-date 
-            Write-host "Timestamp: $CrawlingStartTimestamp"
+            Write-host "Timestamp: $CrawlingStartTimestamp" -ForegroundColor Yellow
+            Write-host "URL: $url" -ForegroundColor Magenta
+            if ($resolve.IsPresent) {
+                $ResolveIPs = ""
+                $ResolveIPs = (Get-PSWCGetHostAddresses -domain ([System.Uri]::new($url).Host))
+                #$ResolveIPs = (Get-PSWCGetHostAddresses -domain $url)
+                Write-Host "IP address: $ResolveIPs" -ForegroundColor Cyan
+            }
+            Write-Host "Crawling depth: $depth" -ForegroundColor Blue
+            # Write-host "Status: In progress"
 
             Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder -resolve:$resolve -Verbose:$verbose -userAgent "$UserAgent"
 
-            Write-Host "Crawling depth: $depth"
-            Write-host "Crawling: $url"
-            Write-host "Status: Completed"
-            $CrawlingCompletedTimestamp = get-date 
-            Write-host "Timestamp: $CrawlingCompletedTimestamp"
+            #Write-Host "Crawling depth: $depth"
+            #Write-host "Crawling: $url"
+            #Write-host "Status: Completed"
+            #$CrawlingCompletedTimestamp = get-date 
+            #Write-host "Timestamp: $CrawlingCompletedTimestamp"
 
-            $DomainsFound = ($script:ArrayData.domain | Where-Object { $_ } | Select-Object -Unique | Measure-Object).count
+            Write-Host "`n[End Crawling] Web crawling completed successfully.`n" -ForegroundColor White
+
+            Write-Host "Summary:" -ForegroundColor Cyan
+            $DomainsFound = ($ArrayData.domain | Where-Object { $_ } | Select-Object -Unique | Measure-Object).count
             $LinksFound = ($ArrayData | Where-Object { $_.href } | Select-Object href -Unique).count
+            write-host "- Total Unique Domains: $DomainsFound" -ForegroundColor Cyan
+            Write-Host "- Total Unique URLs: $LinksFound" -ForegroundColor Cyan
 
-            write-host "Domains found: $DomainsFound"
-            Write-Host "Links found: $LinksFound"
-
+            Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
+            
             #Write-Host "`nLiczba sprawdzonych domen (var: historyDomains): " -NoNewline
             #($script:historyDomains | Select-Object -Unique | Measure-Object).count
-            Write-Host "`nChecked domains: " -NoNewline
-            $DomainsFound
-            #($script:ArrayData.url | Where-Object { $_ } | Select-Object -Unique | Measure-Object).count
-            ($ArrayData | Where-Object { $_.Domain } | Select-Object domain -Unique | Sort-Object domain).domain -join "; "
+            $DomainsFullName = Join-Path -Path $SessionFolder -ChildPath "UniqueDomain.txt"
+            $ArrayData.domain | Where-Object { $_ } | Select-Object -Unique | Out-File -FilePath $DomainsFullName -Encoding utf8
+            Write-Host "- Domains: $DomainsFullName" -ForegroundColor Cyan
+            
+            #($ArrayData | Where-Object { $_.Domain } | Select-Object domain -Unique | Sort-Object domain).domain -join "; "
                 
             #Write-Host "sprawdzone domeny (po url; var: historyDomains):"
             #$script:historyDomains | Select-Object -Unique  | Sort-Object
@@ -1444,14 +1506,13 @@ function Start-PSWebCrawler {
             #Write-Host "`nsprawdzone domeny (po domain; var: historyDomains):"
             #$script:historyDomains | Select-Object -Unique  | Sort-Object
             #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
+            $URLsFullname = Join-Path -Path $SessionFolder -ChildPath "UniqueURLs.txt"
+            $ArrayData.href | Where-Object { $_ } | Select-Object -Unique | Out-File -FilePath $URLsFullname -Encoding utf8
+            Write-Host "- URLs: $URLsFullname" -ForegroundColor Cyan
+            #($ArrayData | Where-Object { $_.href } | Select-Object href -Unique | Sort-Object href).href -join "; "
+            Write-Host "- Other logs: $(Join-Path $env:TEMP "$($script:ModuleName).log")" -ForegroundColor Cyan
+            Write-Host "- Other logs: $outputfoldertext" -ForegroundColor Cyan
 
-            Write-host "`nChecked links:" -NoNewline
-            $LinksFound 
-            ($ArrayData | Where-Object { $_.href } | Select-Object href -Unique | Sort-Object href).href -join "; "
-
-
-            #$ArrayData | Out-GridView
-            stop-watch $watch_webCrawl
             break
         }
         'ShowCacheFolder' {
@@ -1460,8 +1521,27 @@ function Start-PSWebCrawler {
             break
         }
         'ShowAllElements' {
-            #Write-Verbose "ShowAllElements" -Verbose
-            Get-PSWCAllElements -url $url -onlyDomains:$onlyDomains -Type $type
+
+            if ($VerbosePreference -eq "Continue") {
+                Write-Log "Verbose output is requested."
+
+                # Output the parameters and their default values.
+                Write-verbose "Parameters and Default Values:" -Verbose
+                foreach ($param in $MyInvocation.MyCommand.Parameters.keys) {
+                    $value = Get-Variable -Name $param -ValueOnly -ErrorAction SilentlyContinue
+                    if (-not $null -eq [string]$value) {
+                        Write-Verbose "${param}: [${value}]" -Verbose
+                    }
+                }
+
+                Get-PSWCAllElements -url $url -onlyDomains:$onlyDomains -Type $type -Verbose
+                # Your verbose output logic here
+            }
+            else {
+                Write-Log "Verbose output is not requested."
+                Get-PSWCAllElements -url $url -onlyDomains:$onlyDomains -Type $type
+            }
+
             break
         }
         'GetImageUrls' {
@@ -1493,6 +1573,12 @@ function Start-PSWebCrawler {
             break
         }
     }
+
+    # stop measure execution of script
+    Write-Host ""
+    stop-watch $watch_
+    Write-Host ""
+
     #}
     #catch {
     #Write-Error "An error occurred: $_"
