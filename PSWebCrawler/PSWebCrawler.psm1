@@ -1514,11 +1514,15 @@ function Start-PSWebCrawler {
             Write-Host "- Other logs: $outputfoldertext" -ForegroundColor Cyan
 
             break
+
         }
         'ShowCacheFolder' {
             #New-PSWCCacheFolder -FolderName $script:WCtoolfolderFullName
+            Write-Host "Opening cache folder" -ForegroundColor Cyan
             Open-PSWCExplorerCache -FolderName $script:ModuleName
+
             break
+
         }
         'ShowAllElements' {
 
@@ -1545,28 +1549,60 @@ function Start-PSWebCrawler {
             break
         }
         'GetImageUrls' {
+            Write-Host "Images for '${url}':" -ForegroundColor Cyan
             $response = Get-PSWCHttpResponse -url $url
             $htmlContent = $response[1].Content.ReadAsStringAsync().Result
             $ImageUrlsArray = Get-PSWCImageUrls -HtmlContent $htmlContent -url $Url
-            write-host "Images count: [ $($ImageUrlsArray.count) ] for [ $url ]"
-            $ImageUrlsArray | Format-Table
-    
+            write-host "`nImages count: $($ImageUrlsArray.count)" -ForegroundColor white
+            $ImagesFullName = Join-Path -Path $SessionFolder -ChildPath "Images.txt"
+            $ImageUrlsArray | Out-File -FilePath $ImagesFullName -Encoding utf8
+            Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
+            Write-Host "- Images: $ImagesFullName" -ForegroundColor Cyan
+
+            break
+
         }
         'GetHTMLMetadata' {
+            Write-Host "Header data for '${url}':" -ForegroundColor Cyan
             $response = Get-PSWCHttpResponse -url $url
             $htmlContent = $response[1].Content.ReadAsStringAsync().Result
             $HTMLMetadata = Get-PSWCHTMLMetadata -htmlContent $htmlContent
             $HTMLMetadata | Format-List                
+            $HeaderFullName = Join-Path -Path $SessionFolder -ChildPath "Header.json"
+            $HTMLMetadata | convertto-json | Out-File -FilePath $HeaderFullName -Encoding utf8
+            Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
+            Write-Host "- Images: $HeaderFullName" -ForegroundColor Cyan
+
+            break
+
         }
         'GetContactInformation' {
+            Write-Host "Contact data for '${url}':" -ForegroundColor Cyan
             $response = Get-PSWCHttpResponse -url $url
             $htmlContent = $response[1].Content.ReadAsStringAsync().Result
-            Get-PSWCContactInformation -htmlContent $htmlContent | Format-List
+            $ContactData = Get-PSWCContactInformation -htmlContent $htmlContent
+            $ContactData | Format-List
+            $ContactFullName = Join-Path -Path $SessionFolder -ChildPath "Contact.json"
+            $ContactData | convertto-json | Out-File -FilePath $ContactFullName -Encoding utf8
+            Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
+            Write-Host "- Contact information: $ContactFullName" -ForegroundColor Cyan
+
+            break
+
         }
         'GetHeadersAndValues' {
+            Write-Host "HTML head data for '${url}':" -ForegroundColor Cyan
             $response = Get-PSWCHttpResponse -url $url
             $htmlContent = $response[1].Content.ReadAsStringAsync().Result
-            Get-PSWCHeadersAndValues -htmlContent $htmlContent
+            $HTMLheadData = Get-PSWCHeadersAndValues -htmlContent $htmlContent
+            $HTMLheadData
+            $HTMLheadFullName = Join-Path -Path $SessionFolder -ChildPath "HTMLhead.json"
+            $HTMLheadData | convertto-json | Out-File -FilePath $HTMLheadFullName -Encoding utf8
+            Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
+            Write-Host "- HTML head data: $HTMLheadFullName" -ForegroundColor Cyan
+
+            break
+
         }
         default {
             Show-PSWCMenu
