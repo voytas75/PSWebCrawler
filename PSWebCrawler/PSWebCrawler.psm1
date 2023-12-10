@@ -1301,36 +1301,32 @@ function Write-Log {
 function Show-PSWCMenu {
     param (        
     )
-    $helpinfo = @'
-How to use, examples:
-[1] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 2 -onlyDomains
-    Only domain from url is crawled
-
-[2] PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 2 -onlyDomains -Resolve
-    Resolve to IP address
-
-[3] PSWC -ShowAllElements -Type All -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf"
-    Show all href elements
-
-[4] PSWC -GetImageUrls -url "http://allafrica.com/tools/"
-    get image urls
-
-[5] PSWC -GetHTMLMetadata -url "http://allafrica.com/tools/headlines/rdf"
-    Get HTML metadata elements
-
-[6] PSWC -GetContactInformation -Url "http://allafrica.com/"
-    Get contact information elements 
-
-[7] PSWC -GetHeaders -url "http://allafrica.com"
-    Display all items from header
-
-[8] PSWC -ShowCacheFolder
-    Openn explorer with cache folder
-
-
-
-'@
-    Write-Output $helpinfo
+    Write-Host "How to use, examples:" -ForegroundColor White
+    Write-Host ""
+    Write-Host "[1] Crawling two levels from the given URL, only domains with Hypertext Reference (HREF) are taken:"
+    Write-Host "    PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 2 -onlyDomains" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "[2] Crawling two levels from the given URL, only resolved to address IP domains with Hypertext Reference (HREF) are taken"
+    Write-Host "    PSWC -Url 'http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf' -Depth 2 -onlyDomains -Resolve" -ForegroundColor Green  
+    Write-Host ""
+    Write-Host "[3] Show all href elements"
+    Write-Host "    PSWC -ShowAllElements -Type All -Url 'https://www.w3schools.com/'" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "[4] Show all image urls"
+    Write-Host "    PSWC -GetImageUrls -url 'http://allafrica.com/tools/'" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "[5] Show HTML metadata elements"
+    Write-Host "    PSWC -GetHTMLMetadata -url 'http://allafrica.com/tools/headlines/rdf'" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "[6] Show HTML contact information elements"
+    Write-Host "    PSWC -GetContactInformation -Url 'https://games.com'" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "[7] Show all HTML header elements"
+    Write-Host "    PSWC -GetHeadersAndValues -url 'http://allafrica.com'" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "[8] Open cache folder in Windows File Explorer"
+    Write-Host "    PSWC -ShowCacheFolder" -ForegroundColor Green
+    Write-Host ""
 }
 
 function Start-PSWebCrawler {
@@ -1410,6 +1406,8 @@ function Start-PSWebCrawler {
 
     # start measure execution of script
     $watch_ = start-watch
+
+    # get random User-Agent
     $UserAgent = get-RandomUserAgent
 
     $date = Get-Date -Format "dd-MM-yyyy-HH-mm-ss"
@@ -1417,8 +1415,6 @@ function Start-PSWebCrawler {
 
     switch ($PSCmdlet.ParameterSetName) {
         'WebCrawl' {
-
-
             $script:ArrayData = @()
             Write-Log "Initializing array [ArrayData]"
             $script:ArrayData += [PSCustomObject] @{
@@ -1442,7 +1438,6 @@ function Start-PSWebCrawler {
             if (-not $verbose.IsPresent) {
                 $verbose = $false
             }
-            # Start crawling the start URL
             
             Write-Host "Settings:" -ForegroundColor Gray
             Write-Host "[+] Url: $Url" -ForegroundColor DarkGray
@@ -1453,10 +1448,9 @@ function Start-PSWebCrawler {
             write-host "[+] Log output folder: $outputfoldertext" -ForegroundColor DarkGray
             write-host "[+] Log: $(Join-Path $env:TEMP "$($script:ModuleName).log")" -ForegroundColor DarkGray
             Write-Host "[+] Used UserAgent: $UserAgent" -ForegroundColor DarkGray
-            #write-host "Verbose:      $verbose"
+            Write-Host ""
 
             #$script:historydomains += (Get-PSWCSchemeAndDomain -url $url)
-            Write-Host ""
             Write-Host "[Start Crawling] with '$url', depth: $depth`n" -ForegroundColor White
             Write-Log "Start iteration for [$url] with depth: [$depth]"
 
@@ -1472,6 +1466,7 @@ function Start-PSWebCrawler {
             Write-Host "Crawling depth: $depth" -ForegroundColor Blue
             # Write-host "Status: In progress"
 
+            # Start crawling the start URL
             Start-PSWCCrawl -url $Url -depth $depth -onlyDomains:$onlyDomains -outputFolder $outputFolder -resolve:$resolve -Verbose:$verbose -userAgent "$UserAgent"
 
             #Write-Host "Crawling depth: $depth"
@@ -1518,13 +1513,22 @@ function Start-PSWebCrawler {
         }
         'ShowCacheFolder' {
             #New-PSWCCacheFolder -FolderName $script:WCtoolfolderFullName
-            Write-Host "Opening cache folder" -ForegroundColor Cyan
+            Write-Host "Open cache folder in Windows File Explorer" -ForegroundColor Cyan
             Open-PSWCExplorerCache -FolderName $script:ModuleName
 
             break
 
         }
         'ShowAllElements' {
+
+            Write-Host "Settings:" -ForegroundColor Gray
+            Write-Host "[+] Url: $Url" -ForegroundColor DarkGray
+            write-host "[+] Type: $Type" -ForegroundColor DarkGray
+            write-host "[+] OnlyDomains: $onlyDomains" -ForegroundColor DarkGray
+            Write-Host "[+] Used UserAgent: $UserAgent" -ForegroundColor DarkGray
+            Write-Host "[+] Session folder path: $SessionFolder" -ForegroundColor DarkGray
+            write-host "[+] Log: $(Join-Path $env:TEMP "$($script:ModuleName).log")" -ForegroundColor DarkGray
+            Write-Host ""
 
             if ($VerbosePreference -eq "Continue") {
                 Write-Log "Verbose output is requested."
@@ -1543,14 +1547,22 @@ function Start-PSWebCrawler {
             }
             else {
                 Write-Log "Verbose output is not requested."
-                Get-PSWCAllElements -url $url -onlyDomains:$onlyDomains -Type $type
+                Get-PSWCAllElements -url $url -onlyDomains:$onlyDomains -Type $type -userAgent $UserAgent
             }
 
             break
         }
         'GetImageUrls' {
+
+            Write-Host "Settings:" -ForegroundColor Gray
+            Write-Host "[+] Url: $Url" -ForegroundColor DarkGray
+            Write-Host "[+] Used UserAgent: $UserAgent" -ForegroundColor DarkGray
+            Write-Host "[+] Session folder path: $SessionFolder" -ForegroundColor DarkGray
+            write-host "[+] Log: $(Join-Path $env:TEMP "$($script:ModuleName).log")" -ForegroundColor DarkGray
+            Write-Host ""
+
             Write-Host "Images for '${url}':" -ForegroundColor Cyan
-            $response = Get-PSWCHttpResponse -url $url
+            $response = Get-PSWCHttpResponse -url $url -userAgent $UserAgent
             $htmlContent = $response[1].Content.ReadAsStringAsync().Result
             $ImageUrlsArray = Get-PSWCImageUrls -HtmlContent $htmlContent -url $Url
             write-host "`nImages count: $($ImageUrlsArray.count)" -ForegroundColor white
@@ -1563,11 +1575,19 @@ function Start-PSWebCrawler {
 
         }
         'GetHTMLMetadata' {
-            Write-Host "Header data for '${url}':" -ForegroundColor Cyan
-            $response = Get-PSWCHttpResponse -url $url
+
+            Write-Host "Settings:" -ForegroundColor Gray
+            Write-Host "[+] Url: $Url" -ForegroundColor DarkGray
+            Write-Host "[+] Used UserAgent: $UserAgent" -ForegroundColor DarkGray
+            Write-Host "[+] Session folder path: $SessionFolder" -ForegroundColor DarkGray
+            write-host "[+] Log: $(Join-Path $env:TEMP "$($script:ModuleName).log")" -ForegroundColor DarkGray
+            Write-Host ""
+
+            Write-Host "HTML header data for '${url}':" -ForegroundColor Cyan
+            $response = Get-PSWCHttpResponse -url $url -userAgent $UserAgent
             $htmlContent = $response[1].Content.ReadAsStringAsync().Result
             $HTMLMetadata = Get-PSWCHTMLMetadata -htmlContent $htmlContent
-            $HTMLMetadata | Format-List                
+            $HTMLMetadata | convertto-json           
             $HeaderFullName = Join-Path -Path $SessionFolder -ChildPath "Header.json"
             $HTMLMetadata | convertto-json | Out-File -FilePath $HeaderFullName -Encoding utf8
             Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
@@ -1577,8 +1597,16 @@ function Start-PSWebCrawler {
 
         }
         'GetContactInformation' {
+
+            Write-Host "Settings:" -ForegroundColor Gray
+            Write-Host "[+] Url: $Url" -ForegroundColor DarkGray
+            Write-Host "[+] Used UserAgent: $UserAgent" -ForegroundColor DarkGray
+            Write-Host "[+] Session folder path: $SessionFolder" -ForegroundColor DarkGray
+            write-host "[+] Log: $(Join-Path $env:TEMP "$($script:ModuleName).log")" -ForegroundColor DarkGray
+            Write-Host ""
+
             Write-Host "Contact data for '${url}':" -ForegroundColor Cyan
-            $response = Get-PSWCHttpResponse -url $url
+            $response = Get-PSWCHttpResponse -url $url -userAgent $UserAgent
             $htmlContent = $response[1].Content.ReadAsStringAsync().Result
             $ContactData = Get-PSWCContactInformation -htmlContent $htmlContent
             $ContactData | Format-List
@@ -1591,11 +1619,19 @@ function Start-PSWebCrawler {
 
         }
         'GetHeadersAndValues' {
+
+            Write-Host "Settings:" -ForegroundColor Gray
+            Write-Host "[+] Url: $Url" -ForegroundColor DarkGray
+            Write-Host "[+] Used UserAgent: $UserAgent" -ForegroundColor DarkGray
+            Write-Host "[+] Session folder path: $SessionFolder" -ForegroundColor DarkGray
+            write-host "[+] Log: $(Join-Path $env:TEMP "$($script:ModuleName).log")" -ForegroundColor DarkGray
+            Write-Host ""
+
             Write-Host "HTML head data for '${url}':" -ForegroundColor Cyan
-            $response = Get-PSWCHttpResponse -url $url
+            $response = Get-PSWCHttpResponse -url $url -userAgent $UserAgent
             $htmlContent = $response[1].Content.ReadAsStringAsync().Result
             $HTMLheadData = Get-PSWCHeadersAndValues -htmlContent $htmlContent
-            $HTMLheadData
+            $HTMLheadData | convertto-json
             $HTMLheadFullName = Join-Path -Path $SessionFolder -ChildPath "HTMLhead.json"
             $HTMLheadData | convertto-json | Out-File -FilePath $HTMLheadFullName -Encoding utf8
             Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
@@ -1605,14 +1641,18 @@ function Start-PSWebCrawler {
 
         }
         default {
+            
             Show-PSWCMenu
+
             break
         }
     }
 
     # stop measure execution of script
-    Write-Host ""
-    stop-watch $watch_
+    if ($($PSCmdlet.ParameterSetName) -ne "Default") {
+        Write-Host ""
+        stop-watch $watch_
+    }
     Write-Host ""
 
     #}
