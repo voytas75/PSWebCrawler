@@ -42,7 +42,7 @@ Get-Command -Module PSWebCrawler
 
     ```powershell
 PSWC
-    ```
+```
 
 ## Usage Examples
 
