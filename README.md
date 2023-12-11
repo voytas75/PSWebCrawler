@@ -46,11 +46,23 @@ Get-Command -Module PSWebCrawler
 
     `PSWC` is alias of `Start-PSWebCrawler`.
 
-## Usage Examples
+- Crawl a web page with a specified depth:
 
-- Crawl a web page with a specified depth: `PSWC -Url "https://example.com" -Depth 2`
-- Crawl and filter by domains: `PSWC -Url "https://example.com" -Depth 2 -onlyDomains`
-- Display the cache folder: `PSWC -ShowCacheFolder`
+    ```powershell
+    PSWC -Url "https://example.com" -Depth 2
+    ```
+
+- Crawl and filter by domains:
+
+    ```powershell
+    PSWC -Url "https://example.com" -Depth 2 -onlyDomains
+    ```
+
+- Display the cache folder:
+
+    ```powershell
+    PSWC -ShowCacheFolder`
+    ```
 
 ## Versioning
 
