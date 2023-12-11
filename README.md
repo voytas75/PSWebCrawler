@@ -14,16 +14,6 @@ PSWebCrawler is a PowerShell script that provides web crawling and URL processin
 - Timeout settings for URL accessibility testing.
 - Cache folder management for storing crawled data.
 
-## Usage
-
-- `Start-PSWebCrawler` cmdlet allows you to initiate web crawling with various parameters.
-
-## Usage Examples
-
-- Crawl a web page with a specified depth: `PSWC -Url "https://example.com" -Depth 2`
-- Crawl and filter by domains: `PSWC -Url "https://example.com" -Depth 2 -onlyDomains`
-- Display the cache folder: `PSWC -ShowCacheFolder`
-
 ## Installation and usage
 
 1. Clone or download the script.
@@ -49,11 +39,21 @@ To get all commands in installed module including cmdlets, functions and aliases
 Get-Command -Module PSWebCrawler
 ```
 
-Start module:
+## Usage
+
+- `Start-PSWebCrawler` cmdlet allows you to initiate web crawling with various parameters.
+
+Start module to display possible options:
 
 ```powershell
 PSWC
 ```
+
+## Usage Examples
+
+- Crawl a web page with a specified depth: `PSWC -Url "https://example.com" -Depth 2`
+- Crawl and filter by domains: `PSWC -Url "https://example.com" -Depth 2 -onlyDomains`
+- Display the cache folder: `PSWC -ShowCacheFolder`
 
 ## Versioning
 
