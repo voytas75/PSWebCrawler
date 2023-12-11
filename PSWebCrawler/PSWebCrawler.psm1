@@ -1009,15 +1009,21 @@ function Get-PSWCHttpResponse {
     
 
     # Create an HttpClient with a custom User-Agent header
-    $httpClient = New-Object System.Net.Http.HttpClient
-    $httpClient.DefaultRequestHeaders.Add("User-Agent", $userAgent)
+    try {
+        $httpClient = New-Object System.Net.Http.HttpClient
+        $httpClient.DefaultRequestHeaders.Add("User-Agent", $userAgent)
+        # Set the timeout for the HttpClient
+        $httpClient.Timeout = [System.TimeSpan]::FromSeconds($timeout)
+        # Send an HTTP GET request to the URL
+        $response = $httpClient.GetAsync($url).Result # Stored the response in a variable before returning it
+    }
+    catch {
+        # some user-agents (i.e. "Mozilla/4.0 (compatible; MSIE 6.0; Windows CE; IEMobile 7.11) Sprint:PPC6800") generate error 
+        $httpClient.Timeout = [System.TimeSpan]::FromSeconds($timeout)
+        # Send an HTTP GET request to the URL
+        $response = $httpClient.GetAsync($url).Result # Stored the response in a variable before returning it
 
-    # Set the timeout for the HttpClient
-    $httpClient.Timeout = [System.TimeSpan]::FromSeconds($timeout)
-
-    # Send an HTTP GET request to the URL
-    $response = $httpClient.GetAsync($url).Result # Stored the response in a variable before returning it
-
+    }
     # Return the HttpClient instance and the response
     return $httpClient, $response
 
@@ -1352,8 +1358,8 @@ function Start-PSWebCrawler {
         [Parameter(ParameterSetName = 'GetHTMLMetadata', Mandatory = $true)]
         [Parameter(ParameterSetName = 'GetContactInformation', Mandatory = $true)]
         [Parameter(ParameterSetName = 'GetHeadersAndValues', Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [ValidatePattern('^https?://.*')]
+        #[ValidateNotNullOrEmpty()]
+        #[ValidatePattern('^https?://.*')]
         [string]$Url,
 
         [Parameter(ParameterSetName = 'ShowAllElements')]
@@ -1403,12 +1409,26 @@ function Start-PSWebCrawler {
     # try {
     Get-PSWCBanner
     Write-Verbose "ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
+    Write-Log "ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
 
+    if ($($PSCmdlet.ParameterSetName) -notin 'ShowCacheFolder','Default')  {
+    
+        # Check if the URL is valid
+        while ((-not ($Url -match '^https?://.*')) -or [string]::IsNullOrEmpty($url) ) {
+            Write-Host "URL is not valid." -ForegroundColor Red
+            $url = ""
+            $url = Read-Host -Prompt "Provide valid URL"
+        
+            Write-Host ""
+
+        }
+    }
     # start measure execution of script
     $watch_ = start-watch
 
     # get random User-Agent
     $UserAgent = get-RandomUserAgent
+    #$UserAgent = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows CE; IEMobile 7.11) Sprint:PPC6800'
 
     $date = Get-Date -Format "dd-MM-yyyy-HH-mm-ss"
     $script:SessionFolder = Set-PSWCSessionFolder -FolderName $date -FolderPath $script:dataFolderPath
@@ -1629,13 +1649,27 @@ function Start-PSWebCrawler {
 
             Write-Host "HTML head data for '${url}':" -ForegroundColor Cyan
             $response = Get-PSWCHttpResponse -url $url -userAgent $UserAgent
-            $htmlContent = $response[1].Content.ReadAsStringAsync().Result
-            $HTMLheadData = Get-PSWCHeadersAndValues -htmlContent $htmlContent
-            $HTMLheadData | convertto-json
-            $HTMLheadFullName = Join-Path -Path $SessionFolder -ChildPath "HTMLhead.json"
-            $HTMLheadData | convertto-json | Out-File -FilePath $HTMLheadFullName -Encoding utf8
-            Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
-            Write-Host "- HTML head data: $HTMLheadFullName" -ForegroundColor Cyan
+            # Verify that the response is not empty
+            if (-not [string]::IsNullOrEmpty($response[1])) {
+                $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+                $HTMLheadData = Get-PSWCHeadersAndValues -htmlContent $htmlContent
+                $HTMLheadData | convertto-json
+                $HTMLheadFullName = Join-Path -Path $SessionFolder -ChildPath "HTMLhead.json"
+                $HTMLheadData | convertto-json | Out-File -FilePath $HTMLheadFullName -Encoding utf8
+                Write-Host ""
+                Write-Host "Files Saved at:" -ForegroundColor Cyan
+                Write-Host "- HTML head data: $HTMLheadFullName" -ForegroundColor Cyan
+            }
+            else {
+                Write-Host "There was no data returned from the specified URL. Please check the URL and try again." -ForegroundColor Red
+                $LogMessage = "There was no data returned from the specified URL ($url). Please check the URL and try again."
+                Write-Log $LogMessage
+                Write-Host ""
+                $HTMLheadFullName = Join-Path -Path $SessionFolder -ChildPath "HTMLhead.json"
+                Out-File -FilePath $HTMLheadFullName -Encoding utf8 -InputObject $LogMessage
+                Write-Host "Files Saved at:" -ForegroundColor Cyan
+                Write-Host "- HTML head data: $HTMLheadFullName" -ForegroundColor Cyan
+            }           
 
             break
 

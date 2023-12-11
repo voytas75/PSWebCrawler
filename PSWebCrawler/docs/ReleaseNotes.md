@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.0.2] - 2023.12.10
+## [0.0.2] - 2023.12.11
 
 ### Added
 
@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - [#5](https://github.com/voytas75/PSWebCrawler/issues/5)
 - real-time console interface
 - [#7](https://github.com/voytas75/PSWebCrawler/issues/7)
+- [#14](https://github.com/voytas75/PSWebCrawler/issues/14)
 
 ## [0.0.1] - 2023.10.12
 
