@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - [#5](https://github.com/voytas75/PSWebCrawler/issues/5)
 - real-time console interface
 - [#7](https://github.com/voytas75/PSWebCrawler/issues/7)
+- [#14](https://github.com/voytas75/PSWebCrawler/issues/14)
 
 ## [0.0.1] - 2023.10.12
 

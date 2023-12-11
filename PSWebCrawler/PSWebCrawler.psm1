@@ -1009,15 +1009,21 @@ function Get-PSWCHttpResponse {
     
 
     # Create an HttpClient with a custom User-Agent header
-    $httpClient = New-Object System.Net.Http.HttpClient
-    $httpClient.DefaultRequestHeaders.Add("User-Agent", $userAgent)
+    try {
+        $httpClient = New-Object System.Net.Http.HttpClient
+        $httpClient.DefaultRequestHeaders.Add("User-Agent", $userAgent)
+        # Set the timeout for the HttpClient
+        $httpClient.Timeout = [System.TimeSpan]::FromSeconds($timeout)
+        # Send an HTTP GET request to the URL
+        $response = $httpClient.GetAsync($url).Result # Stored the response in a variable before returning it
+    }
+    catch {
+        # some user-agents (i.e. "Mozilla/4.0 (compatible; MSIE 6.0; Windows CE; IEMobile 7.11) Sprint:PPC6800") generate error 
+        $httpClient.Timeout = [System.TimeSpan]::FromSeconds($timeout)
+        # Send an HTTP GET request to the URL
+        $response = $httpClient.GetAsync($url).Result # Stored the response in a variable before returning it
 
-    # Set the timeout for the HttpClient
-    $httpClient.Timeout = [System.TimeSpan]::FromSeconds($timeout)
-
-    # Send an HTTP GET request to the URL
-    $response = $httpClient.GetAsync($url).Result # Stored the response in a variable before returning it
-
+    }
     # Return the HttpClient instance and the response
     return $httpClient, $response
 
@@ -1403,27 +1409,26 @@ function Start-PSWebCrawler {
     # try {
     Get-PSWCBanner
     Write-Verbose "ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
+    Write-Log "ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
 
-    # Check if the URL is valid
-    while ((-not ($Url -match '^https?://.*')) -or [string]::IsNullOrEmpty($url)) {
-        Write-Host "URL is not valid." -ForegroundColor Red
-        $url = ""
-        $url = Read-Host -Prompt "Provide valid URL"
-        #while ([string]::IsNullOrEmpty($url)) {
-        #    Write-Host "URL is not valid." -ForegroundColor Red
-        #    $url = Read-Host -Prompt "Provide valid URL"
-        #    #Write-Host "is empty" -ForegroundColor Red
-        #}
+    if ($($PSCmdlet.ParameterSetName) -notin 'ShowCacheFolder','Default')  {
+    
+        # Check if the URL is valid
+        while ((-not ($Url -match '^https?://.*')) -or [string]::IsNullOrEmpty($url) ) {
+            Write-Host "URL is not valid." -ForegroundColor Red
+            $url = ""
+            $url = Read-Host -Prompt "Provide valid URL"
         
-        Write-Host ""
+            Write-Host ""
 
+        }
     }
-
     # start measure execution of script
     $watch_ = start-watch
 
     # get random User-Agent
     $UserAgent = get-RandomUserAgent
+    #$UserAgent = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows CE; IEMobile 7.11) Sprint:PPC6800'
 
     $date = Get-Date -Format "dd-MM-yyyy-HH-mm-ss"
     $script:SessionFolder = Set-PSWCSessionFolder -FolderName $date -FolderPath $script:dataFolderPath
