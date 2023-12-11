@@ -61,7 +61,7 @@ Get-Command -Module PSWebCrawler
 - Display the cache folder:
 
     ```powershell
-    PSWC -ShowCacheFolder`
+    PSWC -ShowCacheFolder
     ```
 
 ## Versioning
