@@ -44,6 +44,8 @@ Get-Command -Module PSWebCrawler
     PSWC
     ```
 
+    `PSWC` is alias of `Start-PSWebCrawler`.
+
 ## Usage Examples
 
 - Crawl a web page with a specified depth: `PSWC -Url "https://example.com" -Depth 2`
