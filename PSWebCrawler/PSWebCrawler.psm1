@@ -1411,16 +1411,15 @@ function Start-PSWebCrawler {
     Write-Verbose "ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
     Write-Log "ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
 
-    if ($($PSCmdlet.ParameterSetName) -notin 'ShowCacheFolder','Default')  {
-    
+    if ($($PSCmdlet.ParameterSetName) -notin 'ShowCacheFolder', 'Default') {
         # Check if the URL is valid
-        while ((-not ($Url -match '^https?://.*')) -or [string]::IsNullOrEmpty($url) ) {
+        # The regex '^https?://[^/].*' checks if the URL starts with 'http://' or 'https://' and has at least one character after the domain name
+        while ((-not ($Url -match '^https?://[^/].*')) -or [string]::IsNullOrEmpty($url)) {
             Write-Host "URL is not valid." -ForegroundColor Red
             $url = ""
             $url = Read-Host -Prompt "Provide valid URL"
         
             Write-Host ""
-
         }
     }
     # start measure execution of script
@@ -1627,13 +1626,24 @@ function Start-PSWebCrawler {
 
             Write-Host "Contact data for '${url}':" -ForegroundColor Cyan
             $response = Get-PSWCHttpResponse -url $url -userAgent $UserAgent
-            $htmlContent = $response[1].Content.ReadAsStringAsync().Result
-            $ContactData = Get-PSWCContactInformation -htmlContent $htmlContent
-            $ContactData | Format-List
-            $ContactFullName = Join-Path -Path $SessionFolder -ChildPath "Contact.json"
-            $ContactData | convertto-json | Out-File -FilePath $ContactFullName -Encoding utf8
-            Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
-            Write-Host "- Contact information: $ContactFullName" -ForegroundColor Cyan
+            if (-not [string]::IsNullOrEmpty($response[1])) {
+                $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+                $ContactData = Get-PSWCContactInformation -htmlContent $htmlContent
+                $ContactData | convertto-json
+                $ContactFullName = Join-Path -Path $SessionFolder -ChildPath "Contact.json"
+                $ContactData | convertto-json | Out-File -FilePath $ContactFullName -Encoding utf8
+                Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
+                Write-Host "- Contact information: $ContactFullName" -ForegroundColor Cyan
+            } else {
+                Write-Host "There was no data returned from the specified URL. Please check the URL and try again." -ForegroundColor Red
+                $LogMessage = "There was no data returned from the specified URL ($url). Please check the URL and try again."
+                Write-Log $LogMessage
+                Write-Host ""
+                $ContactFullName = Join-Path -Path $SessionFolder -ChildPath "Contact.json"
+                Out-File -FilePath $ContactFullName -Encoding utf8 -InputObject $LogMessage
+                Write-Host "Files Saved at:" -ForegroundColor Cyan
+                Write-Host "- Contact information: $ContactFullName" -ForegroundColor Cyan
+            }
 
             break
 
