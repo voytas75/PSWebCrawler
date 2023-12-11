@@ -1352,8 +1352,8 @@ function Start-PSWebCrawler {
         [Parameter(ParameterSetName = 'GetHTMLMetadata', Mandatory = $true)]
         [Parameter(ParameterSetName = 'GetContactInformation', Mandatory = $true)]
         [Parameter(ParameterSetName = 'GetHeadersAndValues', Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [ValidatePattern('^https?://.*')]
+        #[ValidateNotNullOrEmpty()]
+        #[ValidatePattern('^https?://.*')]
         [string]$Url,
 
         [Parameter(ParameterSetName = 'ShowAllElements')]
@@ -1403,6 +1403,21 @@ function Start-PSWebCrawler {
     # try {
     Get-PSWCBanner
     Write-Verbose "ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
+
+    # Check if the URL is valid
+    while ((-not ($Url -match '^https?://.*')) -or [string]::IsNullOrEmpty($url)) {
+        Write-Host "URL is not valid." -ForegroundColor Red
+        $url = ""
+        $url = Read-Host -Prompt "Provide valid URL"
+        #while ([string]::IsNullOrEmpty($url)) {
+        #    Write-Host "URL is not valid." -ForegroundColor Red
+        #    $url = Read-Host -Prompt "Provide valid URL"
+        #    #Write-Host "is empty" -ForegroundColor Red
+        #}
+        
+        Write-Host ""
+
+    }
 
     # start measure execution of script
     $watch_ = start-watch
@@ -1629,13 +1644,27 @@ function Start-PSWebCrawler {
 
             Write-Host "HTML head data for '${url}':" -ForegroundColor Cyan
             $response = Get-PSWCHttpResponse -url $url -userAgent $UserAgent
-            $htmlContent = $response[1].Content.ReadAsStringAsync().Result
-            $HTMLheadData = Get-PSWCHeadersAndValues -htmlContent $htmlContent
-            $HTMLheadData | convertto-json
-            $HTMLheadFullName = Join-Path -Path $SessionFolder -ChildPath "HTMLhead.json"
-            $HTMLheadData | convertto-json | Out-File -FilePath $HTMLheadFullName -Encoding utf8
-            Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
-            Write-Host "- HTML head data: $HTMLheadFullName" -ForegroundColor Cyan
+            # Verify that the response is not empty
+            if (-not [string]::IsNullOrEmpty($response[1])) {
+                $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+                $HTMLheadData = Get-PSWCHeadersAndValues -htmlContent $htmlContent
+                $HTMLheadData | convertto-json
+                $HTMLheadFullName = Join-Path -Path $SessionFolder -ChildPath "HTMLhead.json"
+                $HTMLheadData | convertto-json | Out-File -FilePath $HTMLheadFullName -Encoding utf8
+                Write-Host ""
+                Write-Host "Files Saved at:" -ForegroundColor Cyan
+                Write-Host "- HTML head data: $HTMLheadFullName" -ForegroundColor Cyan
+            }
+            else {
+                Write-Host "There was no data returned from the specified URL. Please check the URL and try again." -ForegroundColor Red
+                $LogMessage = "There was no data returned from the specified URL ($url). Please check the URL and try again."
+                Write-Log $LogMessage
+                Write-Host ""
+                $HTMLheadFullName = Join-Path -Path $SessionFolder -ChildPath "HTMLhead.json"
+                Out-File -FilePath $HTMLheadFullName -Encoding utf8 -InputObject $LogMessage
+                Write-Host "Files Saved at:" -ForegroundColor Cyan
+                Write-Host "- HTML head data: $HTMLheadFullName" -ForegroundColor Cyan
+            }           
 
             break
 

@@ -62,3 +62,10 @@ else {
 
     #Write-Verbose "  no change to depth - $newDepth"
 }
+
+
+param(
+    [Parameter(Mandatory)]
+    [ValidateScript({$_ -match "[0-9]{4}"; "Input must be a four-digit number"})]
+    [string]$TicketID
+)
