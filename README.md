@@ -16,11 +16,6 @@ PSWebCrawler is a PowerShell script that provides web crawling and URL processin
 
 ## Installation and usage
 
-1. Clone or download the script.
-2. Import required .NET libraries and configure TLS settings.
-3. Set aliases for easier usage.
-4. Enjoy web crawling with PSWebCrawler!
-
 The module is available on [PowerShell Gallery](https://www.powershellgallery.com/packages/PSWebCrawler).
 
 ```powershell
@@ -43,11 +38,11 @@ Get-Command -Module PSWebCrawler
 
 - `Start-PSWebCrawler` cmdlet allows you to initiate web crawling with various parameters.
 
-Start module to display possible options:
+    Start module to display possible options:
 
-```powershell
+    ```powershell
 PSWC
-```
+    ```
 
 ## Usage Examples
 
