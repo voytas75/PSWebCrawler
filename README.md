@@ -40,7 +40,7 @@ Get-Command -Module PSWebCrawler
 
     Start module to display possible options:
 
-    ```powershell
+```powershell
 PSWC
 ```
 
