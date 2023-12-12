@@ -1232,6 +1232,20 @@ function Set-PSWCSessionFolder {
 
 
 function Open-PSWCExplorerCache {
+    <#
+    .SYNOPSIS
+    Opens the cache folder in Windows File Explorer.
+
+    .DESCRIPTION
+    The Open-PSWCExplorerCache function opens the cache folder in Windows File Explorer. It takes the name of the folder as input and attempts to start the Windows File Explorer process with the specified folder path as an argument. If the folder does not exist, it creates a new cache folder and then opens it in Windows File Explorer.
+
+    .PARAMETER FolderName
+    Specifies the name of the cache folder to be opened.
+
+    .EXAMPLE
+    Open-PSWCExplorerCache -FolderName "Cache1"
+    Opens the cache folder named "Cache1" in Windows File Explorer.
+    #>
     param (
         [string]$FolderName
     )
@@ -1241,12 +1255,12 @@ function Open-PSWCExplorerCache {
     if (test-path $tempfolderFullName) {
         try {
             Start-Process explorer.exe -ArgumentList $tempfolderFullName
-            Write-Log "Process Temp [explorer.exe] was started with arguments [$tempfolderFullName]"
+            Write-Log "Process [explorer.exe] was started with arguments [$tempfolderFullName]"
 
         }
         catch {
             Write-Error "An error starting process: $_"
-            Write-Log "Process Temp [explorer.exe] was not started with arguments [$tempfolderFullName]"
+            Write-Log "Process [explorer.exe] was not started with arguments [$tempfolderFullName]"
         }
     }
     else {
