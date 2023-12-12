@@ -193,7 +193,6 @@ function Get-PSWCAllElements {
                         Write-Host "- no Href elements as absolute links: $InternalLinksFullName" -ForegroundColor Cyan
                         Write-Host "- Domains: $DomainsFullName" -ForegroundColor Cyan
 
-
                     }
                     Default {}
                 }
@@ -206,12 +205,15 @@ function Get-PSWCAllElements {
     
             } 
             else {
-                Write-Host "No elements in [$url]" -ForegroundColor Red    
-                Write-Log "No elements in [$url]"
+                Write-Host "No elements in '$url'" -ForegroundColor Red    
+                Write-Log "No elements in '$url'"
             }
         }
         else {
-            Write-Host "HTTP request failed for URL: $url. Status code: $($response.StatusCode)"
+            Write-Host "HTTP request failed for URL: '$url'." -ForegroundColor Red
+            if ($response.StatusCode) {
+                Write-Host "Status code: $($response.StatusCode)" -ForegroundColor DarkRed
+            }
         }
     }
     end {
@@ -1584,15 +1586,16 @@ function Start-PSWebCrawler {
             $response = Get-PSWCHttpResponse -url $url -userAgent $UserAgent
             if (-not [string]::IsNullOrEmpty($response[1])) {
 
-            $htmlContent = $response[1].Content.ReadAsStringAsync().Result
-            $ImageUrlsArray = Get-PSWCImageUrls -HtmlContent $htmlContent -url $Url
-            write-host "`nImages count: $($ImageUrlsArray.count)" -ForegroundColor white
-            $ImagesFullName = Join-Path -Path $SessionFolder -ChildPath "Images.txt"
-            $ImageUrlsArray | Out-File -FilePath $ImagesFullName -Encoding utf8
-            Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
-            Write-Host "- Images URLs: $ImagesFullName" -ForegroundColor Cyan
+                $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+                $ImageUrlsArray = Get-PSWCImageUrls -HtmlContent $htmlContent -url $Url
+                write-host "`nImages count: $($ImageUrlsArray.count)" -ForegroundColor white
+                $ImagesFullName = Join-Path -Path $SessionFolder -ChildPath "Images.txt"
+                $ImageUrlsArray | Out-File -FilePath $ImagesFullName -Encoding utf8
+                Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
+                Write-Host "- Images URLs: $ImagesFullName" -ForegroundColor Cyan
 
-            } else {
+            }
+            else {
                 Write-Host "There was no data returned from the specified URL. Please check the URL and try again." -ForegroundColor Red
                 $LogMessage = "There was no data returned from the specified URL ($url). Please check the URL and try again."
                 Write-Log $LogMessage
