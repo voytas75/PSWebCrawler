@@ -1,4 +1,4 @@
-PSWC -Url "https://ettvi.com/" -Depth 1 -
+PSWC -Url "https://ettvi.com/" -Depth 1
 pSWC -Url "https://ettvi.com/" -Depth 1 -Resolve
 pSWC -Url "https://gunb.gov.sspl" -Depth 1 -Resolve -onlyDomains
 PSWC -Url "https://gunb.gov.sspl" -Depth 1 -Resolve -onlyDomains -outputFolder "c:\temp2"

@@ -33,6 +33,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - [#11](https://github.com/voytas75/PSWebCrawler/issues/11)
 - [#10](https://github.com/voytas75/PSWebCrawler/issues/10)
 - [#9](https://github.com/voytas75/PSWebCrawler/issues/9)
+- [#8](https://github.com/voytas75/PSWebCrawler/issues/8)
 
 ## [0.0.1] - 2023.10.12
 

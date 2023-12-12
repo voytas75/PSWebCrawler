@@ -899,7 +899,14 @@ function Start-PSWCCrawl {
             else {
                 # Handle non-successful HTTP responses here, e.g., log the error or take appropriate action
                 Write-Log "Response from [$url] wan not successful"
-                Write-Host "HTTP request failed for URL: $url. Status code: $($response.StatusCode)"
+                Write-Host "HTTP request failed for URL: $url." -ForegroundColor DarkRed
+                if ($response.StatusCode) {
+                    Write-Host "Status code: $($response.StatusCode)" -ForegroundColor DarkRed
+                }
+                else {
+                    Write-Host "Verify URL and try again." -ForegroundColor Red
+                    break
+                }
                 if ($statusCodeVerbose.IsPresent) {
                     switch ($response.StatusCode) {
                         "308" { 
