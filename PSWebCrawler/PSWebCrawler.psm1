@@ -1604,14 +1604,26 @@ function Start-PSWebCrawler {
 
             Write-Host "HTML header data for '${url}':" -ForegroundColor Cyan
             $response = Get-PSWCHttpResponse -url $url -userAgent $UserAgent
+            if (-not [string]::IsNullOrEmpty($response[1])) {
+
             $htmlContent = $response[1].Content.ReadAsStringAsync().Result
             $HTMLMetadata = Get-PSWCHTMLMetadata -htmlContent $htmlContent
             $HTMLMetadata | convertto-json           
             $HeaderFullName = Join-Path -Path $SessionFolder -ChildPath "Header.json"
             $HTMLMetadata | convertto-json | Out-File -FilePath $HeaderFullName -Encoding utf8
             Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
-            Write-Host "- Images: $HeaderFullName" -ForegroundColor Cyan
-
+            Write-Host "- HTML header data: $HeaderFullName" -ForegroundColor Cyan
+            } else {
+                Write-Host "There was no data returned from the specified URL. Please check the URL and try again." -ForegroundColor Red
+                $LogMessage = "There was no data returned from the specified URL ($url). Please check the URL and try again."
+                Write-Log $LogMessage
+                Write-Host ""
+                $HeaderFullName = Join-Path -Path $SessionFolder -ChildPath "Header.json"
+                Out-File -FilePath $HeaderFullName -Encoding utf8 -InputObject $LogMessage
+                Write-Host "Files Saved at:" -ForegroundColor Cyan
+                Write-Host "- HTML header data: $HeaderFullName" -ForegroundColor Cyan
+            }
+            
             break
 
         }
