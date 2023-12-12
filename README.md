@@ -6,13 +6,13 @@
 
 PSWebCrawler is a PowerShell script that provides web crawling and URL processing functionality. It allows you to crawl web pages, extract information, and store data for analysis or further processing.
 
-## Features
+## PSWebCrawler module features
 
-- Web crawling with customizable depth.
-- Handling of external and internal links.
-- Option to crawl only specific domains.
-- Timeout settings for URL accessibility testing.
-- Cache folder management for storing crawled data.
+- Web crawling functionality to retrieve HTML content from specified URLs
+- Ability to extract and save images from web pages
+- Extraction and storage of contact information from web pages
+- Retrieval and storage of HTML head data
+- Cache folder creation and data folder setup
 
 ## Installation and usage
 
