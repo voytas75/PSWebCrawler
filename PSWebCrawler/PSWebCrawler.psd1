@@ -35,7 +35,7 @@
     Description            = 'A PowerShell module to web crawl is a collection of PowerShell functions that can be used to automatically download and parse web pages.'
 
     # Minimum version of the PowerShell engine required by this module
-    # PowerShellVersion = ''
+    PowerShellVersion = '5.1'
 
     # Name of the PowerShell host required by this module
     # PowerShellHostName = ''
