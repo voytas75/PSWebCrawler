@@ -1830,7 +1830,7 @@ if ($FoundErrors.Count -gt 0) {
 $script:ModuleName = "PSWebCrawler"
 
 # Get the installed version of the module
-$ModuleVersion = [version]"0.0.3"
+$ModuleVersion = [version]"0.0.4"
 
 # Find the latest version of the module in the PSGallery repository
 $LatestModule = Find-Module -Name $ModuleName -Repository PSGallery -ErrorAction SilentlyContinue
