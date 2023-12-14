@@ -1155,26 +1155,32 @@ function Get-PSWCSchemeAndDomain {
     return $schemeAndDomain
 }
 
-function New-PSWCCacheFolder {
+function New-PSWCoutPath {
     param (
-        [string]$FolderName
+        [Parameter(Mandatory = $true)]
+        [string]$FolderName,
+        [ValidateSet("UserDoc", "UserTEMP")]
+        [string]$Type = "UserDoc"
     )
-    $tempfolder = [System.IO.Path]::GetTempPath()
-    $tempfolderFullName = Join-Path $tempfolder $FolderName
+    if ($Type -eq "UserDoc" -or -not $type) {
+        $outPathFolder = Join-Path ([Environment]::GetFolderPath("MyDocuments")) $FolderName
+    }
+    elseif ($Type -eq "UserTEMP") {
+        $outPathFolder = Join-Path ([System.IO.Path]::GetTempPath()) $FolderName
+    }
 
-    if (-not (Test-Path -Path $tempfolderFullName)) {
+    if (-not (Test-Path -Path $outPathFolder)) {
         try {
-            [void](New-Item -Path $tempfolderFullName -ItemType Directory)
-            Write-Verbose "Temp '$tempfolderFullName' folder was created successfully."
-            Write-Log "Temp '$tempfolderFullName' folder was created successfully."
-            return $true
+            [void](New-Item -Path $outPathFolder -ItemType Directory)
+            Write-Verbose "Out log and data folder '$outPathFolder' was created successfully."
+            return $outPathFolder
         }
         catch {
             Write-Error "Error creating cache folder. [$($_.error.message)]"
             return $false
         }
     }
-    return $true
+    return $outPathFolder
 }
 
 function Get-PSWCCacheFolder {
@@ -1187,7 +1193,7 @@ function Get-PSWCCacheFolder {
 
 }
 
-function Set-PSWCDataFolder {
+<# function Set-PSWCDataFolder {
     $userDocumentFolder = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::MyDocuments)
     $moduleName = $MyInvocation.MyCommand.Module.Name
     $dataFolder = Join-Path $userDocumentFolder $moduleName
@@ -1197,6 +1203,7 @@ function Set-PSWCDataFolder {
     }
     return $dataFolder
 }
+ #>
 
 function Set-PSWCSessionFolder {
     <#
@@ -1271,7 +1278,7 @@ function Open-PSWCExplorerCache {
         }
     }
     else {
-        New-PSWCCacheFolder -FolderName $FolderName
+        New-PSWCoutPath -FolderName $FolderName
         Open-PSWCExplorerCache -FolderName $FolderName
         #Write-Information -InformationAction Continue -MessageData "Cache folder does not exist."
     }
@@ -1310,7 +1317,7 @@ function Write-Log {
         [Parameter(Mandatory = $true, ValueFromPipeline = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
         [string]$logstring,
-        [string]$logFile = (Join-Path $env:TEMP "$($script:ModuleName).log")
+        [string]$logFile = (Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")
     )
 
     try {
@@ -1333,27 +1340,31 @@ function Show-PSWCMenu {
     Write-Host "How to use, examples:" -ForegroundColor White
     Write-Host ""
     Write-Host "[1] Crawling two levels from the given URL, only domains with Hypertext Reference (HREF) are taken:"
-    Write-Host "    PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 2 -onlyDomains" -ForegroundColor Green
+    Write-host "    If the 'outPath' parameter is not provided, the default output log and data folder path is set to the user's document folder under the 'PSWebCrawler' directory:"
+    Write-Host "    PSWC -Url 'http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf' -Depth 2 -onlyDomains" -ForegroundColor Green
     Write-Host ""
     Write-Host "[2] Crawling two levels from the given URL, only resolved to address IP domains with Hypertext Reference (HREF) are taken"
     Write-Host "    PSWC -Url 'http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf' -Depth 2 -onlyDomains -Resolve" -ForegroundColor Green  
     Write-Host ""
-    Write-Host "[3] Show all href elements"
+    Write-Host "[3] Crawling two levels from the given URL, only domains with Hypertext Reference (HREF) are taken. Output log and data folder path is given:"
+    Write-Host "    PSWC -Url 'http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf' -Depth 2 -onlyDomains -outPath 'c:\temp\crawl\loganddata\'" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "[4] Show all href elements"
     Write-Host "    PSWC -ShowAllElements -Type All -Url 'https://www.w3schools.com/'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[4] Show all image urls"
+    Write-Host "[5] Show all image urls"
     Write-Host "    PSWC -GetImageUrls -url 'http://allafrica.com/tools/'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[5] Show HTML metadata elements"
+    Write-Host "[6] Show HTML metadata elements"
     Write-Host "    PSWC -GetHTMLMetadata -url 'http://allafrica.com/tools/headlines/rdf'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[6] Show HTML contact information elements"
+    Write-Host "[7] Show HTML contact information elements"
     Write-Host "    PSWC -GetContactInformation -Url 'https://games.com'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[7] Show all HTML header elements"
+    Write-Host "[8] Show all HTML header elements"
     Write-Host "    PSWC -GetHeadersAndValues -url 'http://allafrica.com'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[8] Open cache folder in Windows File Explorer"
+    Write-Host "[9] Open cache folder in Windows File Explorer"
     Write-Host "    PSWC -ShowCacheFolder" -ForegroundColor Green
     Write-Host ""
 }
@@ -1403,7 +1414,7 @@ function Start-PSWebCrawler {
         [switch]$onlyDomains,
 
         [Parameter(ParameterSetName = 'WebCrawl')]
-        [string]$outputFolder = (Get-PSWCCacheFolder),
+        [string]$outputFolder = $script:loganddatafolderPath,
 
         [Parameter(ParameterSetName = 'ShowCacheFolder', Mandatory = $true)]
         [switch]$ShowCacheFolder,
@@ -1453,7 +1464,7 @@ function Start-PSWebCrawler {
     #$UserAgent = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows CE; IEMobile 7.11) Sprint:PPC6800'
 
     $date = Get-Date -Format "dd-MM-yyyy-HH-mm-ss"
-    $script:SessionFolder = Set-PSWCSessionFolder -FolderName $date -FolderPath $script:dataFolderPath
+    $script:SessionFolder = Set-PSWCSessionFolder -FolderName $date -FolderPath $script:loganddatafolderPath
 
     switch ($PSCmdlet.ParameterSetName) {
         'WebCrawl' {
@@ -1470,7 +1481,7 @@ function Start-PSWebCrawler {
             Write-Log "insert to [ArrayData] depth: [$depth], url: [$url]"
             if (-not $outputFolder) {
                 #    $outputFile = join-path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -url $url)
-                $outputfoldertext = "not set"
+
             }
             else {
                 $outputfoldertext = $outputFolder
@@ -1554,7 +1565,7 @@ function Start-PSWebCrawler {
 
         }
         'ShowCacheFolder' {
-            #New-PSWCCacheFolder -FolderName $script:WCtoolfolderFullName
+            #New-PSWCoutPath -FolderName $script:WCtoolfolderFullName
             Write-Host "Open cache folder in Windows File Explorer" -ForegroundColor Cyan
             Open-PSWCExplorerCache -FolderName $script:ModuleName
 
@@ -1852,7 +1863,8 @@ Write-Host "Thank you for using PSWC ($($moduleVersion))." -ForegroundColor Yell
 #Write-Host "Some important changes and informations that may be of interest to you:" -ForegroundColor Yellow
 #Write-Host "- You can filter the built-in snippets (category: 'Example') by setting 'ShowExampleSnippets' to '`$false' in config. Use: 'Save-PAFConfiguration -settingName ""ShowExampleSnippets"" -settingValue `$false'" -ForegroundColor Yellow
 
-New-PSWCCacheFolder -FolderName $script:ModuleName
-$script:dataFolderPath = Set-PSWCDataFolder
-
-#Write-Host "Data folder path: $dataFolderPath"
+# Set the default output folder path to the user's document folder under the 'PSWebCrawler' directory if 'outpath' is not provided
+$script:loganddatafolderPath = New-PSWCoutPath -FolderName $script:ModuleName -Type UserDoc
+if ($loganddatafolderPath) {
+    Write-Log "Log and Data folder '$loganddatafolderPath' was created successfully."
+}

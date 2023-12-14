@@ -64,6 +64,18 @@ Get-Command -Module PSWebCrawler
     PSWC -ShowCacheFolder
     ```
 
+## Default Log and Data Folder
+
+The PSWebCrawler module uses default folder for storing log files and data. If specific paths are not provided, the module uses `<User's document folder>/PSWebCrawler/` folder.
+
+User can override these default paths by providing custom paths using `outPath` parameters when using the module's functions. For example:
+
+```powershell
+PSWC -Url 'https://example.com' -Depth 2 -outPath 'C:\Crawl\LOGandDATA\'    
+```
+
+For more details on customizing log and data folder paths, refer to the module's documentation or help files.
+
 ## Versioning
 
 We use [SemVer](http://semver.org/) for versioning.
