@@ -1156,20 +1156,43 @@ function Get-PSWCSchemeAndDomain {
 }
 
 function New-PSWCoutPath {
+    <#
+    .SYNOPSIS
+    Gets the output path for PSWebCrawler.
+
+    .DESCRIPTION
+    The Get-PSWCoutPath function retrieves the output path for PSWebCrawler based on the specified folder name and type.
+
+    .PARAMETER FolderName
+    Specifies the name of the output folder.
+
+    .PARAMETER Type
+    Specifies the type of the output folder. Default value is "UserDoc".
+
+    .EXAMPLE
+    Get-PSWCoutPath -FolderName "OutputFolder" -Type "UserDoc"
+    Retrieves the output path for the "OutputFolder" under the user's documents folder.
+
+    .EXAMPLE
+    Get-PSWCoutPath -FolderName "TempFolder" -Type "UserTEMP"
+    Retrieves the output path for the "TempFolder" under the system's temporary folder.
+    #>
+
     param (
         [Parameter(Mandatory = $true)]
         [string]$FolderName,
         [ValidateSet("UserDoc", "UserTEMP")]
         [string]$Type = "UserDoc"
     )
-    if ($Type -eq "UserDoc" -or -not $type) {
+
+    if ($Type -eq "UserDoc") {
         $outPathFolder = Join-Path ([Environment]::GetFolderPath("MyDocuments")) $FolderName
     }
     elseif ($Type -eq "UserTEMP") {
         $outPathFolder = Join-Path ([System.IO.Path]::GetTempPath()) $FolderName
     }
 
-    if (-not (Test-Path -Path $outPathFolder)) {
+    if (-not (Get-PSWCoutPath -FolderName $FolderName -Type $type)) {
         try {
             [void](New-Item -Path $outPathFolder -ItemType Directory)
             Write-Verbose "Out log and data folder '$outPathFolder' was created successfully."
@@ -1183,20 +1206,53 @@ function New-PSWCoutPath {
     return $outPathFolder
 }
 
-function Get-PSWCCacheFolder {
-    param ()
+function Get-PSWCoutPath {
+    <#
+    .SYNOPSIS
+    Gets the output path for PSWebCrawler.
 
-    $tempfolder = [System.IO.Path]::GetTempPath()
-    $tempfolderFullName = Join-Path $tempfolder $script:ModuleName
+    .DESCRIPTION
+    The Get-PSWCoutPath function retrieves the output path for PSWebCrawler based on the specified folder name and type.
 
-    return $tempfolderFullName
+    .PARAMETER FolderName
+    Specifies the name of the output folder.
 
+    .PARAMETER Type
+    Specifies the type of the output folder. Default value is "UserDoc".
+
+    .EXAMPLE
+    Get-PSWCoutPath -FolderName "OutputFolder" -Type "UserDoc"
+    Retrieves the output path for the "OutputFolder" under the user's documents folder.
+
+    .EXAMPLE
+    Get-PSWCoutPath -FolderName "TempFolder" -Type "UserTEMP"
+    Retrieves the output path for the "TempFolder" under the system's temporary folder.
+    #>
+
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$FolderName,
+        [ValidateSet("UserDoc", "UserTEMP")]
+        [string]$Type = "UserDoc"
+    )
+
+    if ($Type -eq "UserDoc") {
+        $outPathFolder = Join-Path ([Environment]::GetFolderPath("MyDocuments")) $FolderName
+    }
+    elseif ($Type -eq "UserTEMP") {
+        $outPathFolder = Join-Path ([System.IO.Path]::GetTempPath()) $FolderName
+    }
+
+    if (Test-Path -Path $outPathFolder) {
+        return $outPathFolder
+    }
+    return $false
 }
-
 <# function Set-PSWCDataFolder {
     $userDocumentFolder = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::MyDocuments)
     $moduleName = $MyInvocation.MyCommand.Module.Name
     $dataFolder = Join-Path $userDocumentFolder $moduleName
+
     #Write-Verbose $dataFolder -Verbose
     if (-not (Test-Path -Path $dataFolder)) {
         New-Item -Path $dataFolder -ItemType Directory | Out-Null
@@ -1233,7 +1289,6 @@ function Set-PSWCSessionFolder {
         try {
             [void](New-Item -Path $sessionFolder -ItemType Directory)
             Write-Verbose "Session folder '$sessionFolder' was created successfully."
-            Write-Log "Session folder '$sessionFolder' was created successfully."
             return $sessionFolder
         }
         catch {
@@ -1327,7 +1382,7 @@ function Write-Log {
         # Create the log message with a timestamp
         $strToLog = "[{0}]: {1}" -f (Get-Date), $logstring
         # Append the log message to the log file
-        Add-Content -Path $logFile -Value $strToLog -Encoding utf8
+        Add-Content -Path $logFile -Value $strToLog -Encoding utf8 -Force
     }
     catch {
         Write-Error "Failed to write to the log file: $_"
@@ -1463,9 +1518,17 @@ function Start-PSWebCrawler {
     $UserAgent = get-RandomUserAgent
     #$UserAgent = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows CE; IEMobile 7.11) Sprint:PPC6800'
 
-    $date = Get-Date -Format "dd-MM-yyyy-HH-mm-ss"
-    $script:SessionFolder = Set-PSWCSessionFolder -FolderName $date -FolderPath $script:loganddatafolderPath
-
+    if ($($PSCmdlet.ParameterSetName) -ne "Default") {
+        $date = Get-Date -Format "dd-MM-yyyy-HH-mm-ss"
+        try {
+            $script:SessionFolder = Set-PSWCSessionFolder -FolderName $date -FolderPath $script:loganddatafolderPath
+            Write-Log "Session folder '$sessionFolder' was created successfully."
+        }
+        catch {
+            Write-Log "ERROR: Session folder '$sessionFolder' was NOT created."
+        }
+    }
+        
     switch ($PSCmdlet.ParameterSetName) {
         'WebCrawl' {
             $script:ArrayData = @()
@@ -1479,30 +1542,31 @@ function Start-PSWebCrawler {
                 Date      = (get-date)
             }
             Write-Log "insert to [ArrayData] depth: [$depth], url: [$url]"
-            if (-not $outputFolder) {
-                #    $outputFile = join-path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -url $url)
-
-            }
-            else {
-                $outputfoldertext = $outputFolder
-                Write-Log "[outputfoldertext] is set to [$outputfolder]"
-            }
+            $outputfoldertext = $loganddatafolderPath
+            Write-Log "[outputfoldertext] is set to [$loganddatafolderPath]"
 
             if (-not $verbose.IsPresent) {
                 $verbose = $false
             }
             
-            Write-Host "Settings:" -ForegroundColor Gray
+            Write-Host "Settings:" -ForegroundColor Gray 
             Write-Host "[+] Url: $Url" -ForegroundColor DarkGray
             Write-Host "[+] Depth: $depth" -ForegroundColor DarkGray
             write-host "[+] OnlyDomains: $onlydomains" -ForegroundColor DarkGray
             write-host "[+] Resolve: $resolve" -ForegroundColor DarkGray
             Write-Host "[+] Session folder path: $SessionFolder" -ForegroundColor DarkGray
             write-host "[+] Log output folder: $outputfoldertext" -ForegroundColor DarkGray
-            write-host "[+] Log: $(Join-Path $env:TEMP "$($script:ModuleName).log")" -ForegroundColor DarkGray
+            write-host "[+] Log:" (Join-Path $script:loganddatafolderPath "$($script:ModuleName).log") -ForegroundColor DarkGray
             Write-Host "[+] Used UserAgent: $UserAgent" -ForegroundColor DarkGray
             Write-Host ""
-
+            Add-Content -Path (Join-Path $SessionFolder "Settings.log") -Value "Settings:"
+            Add-Content -Path (Join-Path $SessionFolder "Settings.log") -Value "[+] Url: $Url"
+            Add-Content -Path (Join-Path $SessionFolder "Settings.log") -Value "[+] Depth: $depth" 
+            Add-Content -Path (Join-Path $SessionFolder "Settings.log") -Value "[+] OnlyDomains: $onlydomains"
+            Add-Content -Path (Join-Path $SessionFolder "Settings.log") -Value "[+] Resolve: $resolve"
+            Add-Content -Path (Join-Path $SessionFolder "Settings.log") -Value "[+] Session folder path: $SessionFolder"
+            Add-Content -Path (Join-Path $SessionFolder "Settings.log") -Value "[+] Log: $(Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")"
+            Add-Content -Path (Join-Path $SessionFolder "Settings.log") -Value "[+] Used UserAgent: $UserAgent"
             #$script:historydomains += (Get-PSWCSchemeAndDomain -url $url)
             Write-Host "[Start Crawling] with '$url', depth: $depth`n" -ForegroundColor White
             Write-Log "Start iteration for [$url] with depth: [$depth]"
@@ -1558,8 +1622,8 @@ function Start-PSWebCrawler {
             $ArrayData.href | Where-Object { $_ } | Select-Object -Unique | Out-File -FilePath $URLsFullname -Encoding utf8
             Write-Host "- URLs: $URLsFullname" -ForegroundColor Cyan
             #($ArrayData | Where-Object { $_.href } | Select-Object href -Unique | Sort-Object href).href -join "; "
-            Write-Host "- Other logs: $(Join-Path $env:TEMP "$($script:ModuleName).log")" -ForegroundColor Cyan
-            Write-Host "- Other logs: $outputfoldertext" -ForegroundColor Cyan
+            Write-Host "- Other logs: $(Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")" -ForegroundColor Cyan
+            Write-Host "- Other logs: $SessionFolder" -ForegroundColor Cyan
 
             break
 
@@ -1864,7 +1928,12 @@ Write-Host "Thank you for using PSWC ($($moduleVersion))." -ForegroundColor Yell
 #Write-Host "- You can filter the built-in snippets (category: 'Example') by setting 'ShowExampleSnippets' to '`$false' in config. Use: 'Save-PAFConfiguration -settingName ""ShowExampleSnippets"" -settingValue `$false'" -ForegroundColor Yellow
 
 # Set the default output folder path to the user's document folder under the 'PSWebCrawler' directory if 'outpath' is not provided
-$script:loganddatafolderPath = New-PSWCoutPath -FolderName $script:ModuleName -Type UserDoc
-if ($loganddatafolderPath) {
+if (-not (Get-PSWCoutPath -FolderName $ModuleName -Type UserDoc)) {
+    $script:loganddatafolderPath = New-PSWCoutPath -FolderName $ModuleName -Type UserDoc
     Write-Log "Log and Data folder '$loganddatafolderPath' was created successfully."
 }
+else {
+    $script:loganddatafolderPath = Get-PSWCoutPath -FolderName $ModuleName -Type UserDoc
+    Write-Verbose "Log and Data folder '$loganddatafolderPath' already exists."
+}
+
