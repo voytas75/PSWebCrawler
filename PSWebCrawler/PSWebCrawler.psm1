@@ -133,7 +133,7 @@ function Get-PSWCAllElements {
                         
                         #$hrefsUnique | Add-Content -Path (join-path $CurrentDomainSessionFolder $(Set-PSWCCleanWebsiteURL -url $url) )
 
-                        $UrlsFullName = Join-Path -Path $SessionFolder -ChildPath "UrlsUnique.txt"
+                        $UrlsFullName = Join-Path -Path $script:SessionFolder -ChildPath "UrlsUnique.txt"
                         $hrefsUnique | Out-File -FilePath $UrlsFullName -Encoding utf8
 
                         Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
@@ -143,11 +143,11 @@ function Get-PSWCAllElements {
                     "nohref" {
                         Write-Host "no Href elements: $($nonhrefsUnique.count)"   -ForegroundColor Yellow
                         #$nonhrefelements | Where-Object { $_ -notin ("", "/", "#") } | Select-Object -Unique | sort-object
-                        $noUrlsFullName = Join-Path -Path $SessionFolder -ChildPath "noHrefUnique.txt"
+                        $noUrlsFullName = Join-Path -Path $script:SessionFolder -ChildPath "noHrefUnique.txt"
                         $nonhrefsUnique | Out-File -FilePath $noUrlsFullName -Encoding utf8
 
                         Write-Host "no Href elements as absolute links: $($internalLinksUnique.count)"   -ForegroundColor Yellow
-                        $InternalLinksFullName = Join-Path -Path $SessionFolder -ChildPath "InternalLinksUnique.txt"
+                        $InternalLinksFullName = Join-Path -Path $script:SessionFolder -ChildPath "InternalLinksUnique.txt"
                         $internalLinksUnique | Out-File -FilePath $InternalLinksFullName -Encoding utf8
 
                         Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
@@ -158,7 +158,7 @@ function Get-PSWCAllElements {
                     "onlyDomains" {
                         Write-Host "Domains elements: $($domainsunique.count)"   -ForegroundColor Yellow
                         #$domains | Select-Object -Unique | sort-object
-                        $DomainsFullName = Join-Path -Path $SessionFolder -ChildPath "DomainsUnique.txt"
+                        $DomainsFullName = Join-Path -Path $script:SessionFolder -ChildPath "DomainsUnique.txt"
                         $domainsunique | Out-File -FilePath $DomainsFullName -Encoding utf8
 
                         Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
@@ -170,21 +170,21 @@ function Get-PSWCAllElements {
 
                         Write-Host "Href elements: $($hrefsUnique.count)" -ForegroundColor Yellow
                         #$hrefsUnique | Add-Content -Path (join-path $CurrentDomainSessionFolder $(Set-PSWCCleanWebsiteURL -url $url) )
-                        $UrlsFullName = Join-Path -Path $SessionFolder -ChildPath "UrlsUnique.txt"
+                        $UrlsFullName = Join-Path -Path $script:SessionFolder -ChildPath "UrlsUnique.txt"
                         $hrefsUnique | Out-File -FilePath $UrlsFullName -Encoding utf8
 
                         Write-Host "no Href elements: $($nonhrefsUnique.count)"   -ForegroundColor Yellow
                         #$nonhrefelements | Where-Object { $_ -notin ("", "/", "#") } | Select-Object -Unique | sort-object
-                        $noUrlsFullName = Join-Path -Path $SessionFolder -ChildPath "noHrefUnique.txt"
+                        $noUrlsFullName = Join-Path -Path $script:SessionFolder -ChildPath "noHrefUnique.txt"
                         $nonhrefsUnique | Out-File -FilePath $noUrlsFullName -Encoding utf8
 
                         Write-Host "no Href elements as absolute links: $($internalLinksUnique.count)"   -ForegroundColor Yellow
-                        $InternalLinksFullName = Join-Path -Path $SessionFolder -ChildPath "InternalLinksUnique.txt"
+                        $InternalLinksFullName = Join-Path -Path $script:SessionFolder -ChildPath "InternalLinksUnique.txt"
                         $internalLinksUnique | Out-File -FilePath $InternalLinksFullName -Encoding utf8
 
                         Write-Host "Domains elements: $($domainsunique.count)"   -ForegroundColor Yellow
                         #$domains | Select-Object -Unique | sort-object
-                        $DomainsFullName = Join-Path -Path $SessionFolder -ChildPath "DomainsUnique.txt"
+                        $DomainsFullName = Join-Path -Path $script:SessionFolder -ChildPath "DomainsUnique.txt"
                         $domainsunique | Out-File -FilePath $DomainsFullName -Encoding utf8
 
                         Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
@@ -196,7 +196,8 @@ function Get-PSWCAllElements {
                     }
                     Default {}
                 }
-    
+                Write-Host "- Setting log: $(Join-Path $script:SessionFolder "Settings.log")" -ForegroundColor Cyan
+
                 # Output the results to the log.
                 Write-Log "Hrefs (w/o domains) count: [$($hrefelements.count)], unique: $(($hrefsUnique).count)"
                 Write-Log "no-Hrefs (w/o domains) count: [$($nonhrefelements.count)], unique: $(($nonhrefsUnique).count)"
@@ -524,7 +525,7 @@ function Start-PSWCCrawl {
 
     $outputFile = ""
     if ($outputFolder) { 
-        $outputFile = join-path $outputFolder -ChildPath (Set-PSWCCleanWebsiteURL -url $url) 
+        $outputFile = join-path $script:SessionFolder -ChildPath (Set-PSWCCleanWebsiteURL -url $url) 
     }
     
     if (-not $script:visitedUrls) {
@@ -898,7 +899,7 @@ function Start-PSWCCrawl {
             }
             else {
                 # Handle non-successful HTTP responses here, e.g., log the error or take appropriate action
-                Write-Log "Response from [$url] wan not successful"
+                Write-Log "Response from [$url] was not successful"
                 Write-Host "HTTP request failed for URL: $url." -ForegroundColor DarkRed
                 if ($response.StatusCode) {
                     Write-Host "Status code: $($response.StatusCode)" -ForegroundColor DarkRed
@@ -1155,48 +1156,111 @@ function Get-PSWCSchemeAndDomain {
     return $schemeAndDomain
 }
 
-function New-PSWCCacheFolder {
-    param (
-        [string]$FolderName
-    )
-    $tempfolder = [System.IO.Path]::GetTempPath()
-    $tempfolderFullName = Join-Path $tempfolder $FolderName
+function New-PSWCoutPath {
+    <#
+    .SYNOPSIS
+    Gets the output path for PSWebCrawler.
 
-    if (-not (Test-Path -Path $tempfolderFullName)) {
+    .DESCRIPTION
+    The Get-PSWCoutPath function retrieves the output path for PSWebCrawler based on the specified folder name and type.
+
+    .PARAMETER FolderName
+    Specifies the name of the output folder.
+
+    .PARAMETER Type
+    Specifies the type of the output folder. Default value is "UserDoc".
+
+    .EXAMPLE
+    Get-PSWCoutPath -FolderName "OutputFolder" -Type "UserDoc"
+    Retrieves the output path for the "OutputFolder" under the user's documents folder.
+
+    .EXAMPLE
+    Get-PSWCoutPath -FolderName "TempFolder" -Type "UserTEMP"
+    Retrieves the output path for the "TempFolder" under the system's temporary folder.
+    #>
+
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$FolderName,
+        [ValidateSet("UserDoc", "UserTEMP")]
+        [string]$Type = "UserDoc"
+    )
+
+    if ($Type -eq "UserDoc") {
+        $outPathFolder = Join-Path ([Environment]::GetFolderPath("MyDocuments")) $FolderName
+    }
+    elseif ($Type -eq "UserTEMP") {
+        $outPathFolder = Join-Path ([System.IO.Path]::GetTempPath()) $FolderName
+    }
+
+    if (-not (Get-PSWCoutPath -FolderName $FolderName -Type $type)) {
         try {
-            [void](New-Item -Path $tempfolderFullName -ItemType Directory)
-            Write-Verbose "Temp '$tempfolderFullName' folder was created successfully."
-            Write-Log "Temp '$tempfolderFullName' folder was created successfully."
-            return $true
+            [void](New-Item -Path $outPathFolder -ItemType Directory)
+            Write-Verbose "Out log and data folder '$outPathFolder' was created successfully."
+            return $outPathFolder
         }
         catch {
             Write-Error "Error creating cache folder. [$($_.error.message)]"
             return $false
         }
     }
-    return $true
+    return $outPathFolder
 }
 
-function Get-PSWCCacheFolder {
-    param ()
+function Get-PSWCoutPath {
+    <#
+    .SYNOPSIS
+    Gets the output path for PSWebCrawler.
 
-    $tempfolder = [System.IO.Path]::GetTempPath()
-    $tempfolderFullName = Join-Path $tempfolder $script:ModuleName
+    .DESCRIPTION
+    The Get-PSWCoutPath function retrieves the output path for PSWebCrawler based on the specified folder name and type.
 
-    return $tempfolderFullName
+    .PARAMETER FolderName
+    Specifies the name of the output folder.
 
+    .PARAMETER Type
+    Specifies the type of the output folder. Default value is "UserDoc".
+
+    .EXAMPLE
+    Get-PSWCoutPath -FolderName "OutputFolder" -Type "UserDoc"
+    Retrieves the output path for the "OutputFolder" under the user's documents folder.
+
+    .EXAMPLE
+    Get-PSWCoutPath -FolderName "TempFolder" -Type "UserTEMP"
+    Retrieves the output path for the "TempFolder" under the system's temporary folder.
+    #>
+
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$FolderName,
+        [ValidateSet("UserDoc", "UserTEMP")]
+        [string]$Type = "UserDoc"
+    )
+
+    if ($Type -eq "UserDoc") {
+        $outPathFolder = Join-Path ([Environment]::GetFolderPath("MyDocuments")) $FolderName
+    }
+    elseif ($Type -eq "UserTEMP") {
+        $outPathFolder = Join-Path ([System.IO.Path]::GetTempPath()) $FolderName
+    }
+
+    if (Test-Path -Path $outPathFolder) {
+        return $outPathFolder
+    }
+    return $false
 }
-
-function Set-PSWCDataFolder {
+<# function Set-PSWCDataFolder {
     $userDocumentFolder = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::MyDocuments)
     $moduleName = $MyInvocation.MyCommand.Module.Name
     $dataFolder = Join-Path $userDocumentFolder $moduleName
+
     #Write-Verbose $dataFolder -Verbose
     if (-not (Test-Path -Path $dataFolder)) {
         New-Item -Path $dataFolder -ItemType Directory | Out-Null
     }
     return $dataFolder
 }
+ #>
 
 function Set-PSWCSessionFolder {
     <#
@@ -1221,20 +1285,19 @@ function Set-PSWCSessionFolder {
         [string]$FolderName,
         [string]$FolderPath
     )
-    $sessionFolder = Join-Path $FolderPath $FolderName
-    if (-not (Test-Path -Path $sessionFolder)) {
+    $script:SessionFolder = Join-Path $FolderPath $FolderName
+    if (-not (Test-Path -Path $script:SessionFolder)) {
         try {
-            [void](New-Item -Path $sessionFolder -ItemType Directory)
-            Write-Verbose "Session folder '$sessionFolder' was created successfully."
-            Write-Log "Session folder '$sessionFolder' was created successfully."
-            return $sessionFolder
+            [void](New-Item -Path $script:SessionFolder -ItemType Directory)
+            Write-Verbose "Session folder '$script:SessionFolder' was created successfully."
+            return $script:SessionFolder
         }
         catch {
             Write-Error "Error creating session folder. [$($_.error.message)]"
             return $false
         }
     }
-    return $sessionFolder
+    return $script:SessionFolder
 }
 
 
@@ -1256,9 +1319,9 @@ function Open-PSWCExplorerCache {
     param (
         [string]$FolderName
     )
-    $tempfolder = [System.IO.Path]::GetTempPath()
-    $tempfolderFullName = Join-Path $tempfolder $FolderName
-    $tempfolderFullName
+    $tempfolder = $script:loganddatafolderPath
+    #$tempfolderFullName = Join-Path $tempfolder $FolderName
+    $tempfolderFullName = $tempfolder
     if (test-path $tempfolderFullName) {
         try {
             Start-Process explorer.exe -ArgumentList $tempfolderFullName
@@ -1271,7 +1334,7 @@ function Open-PSWCExplorerCache {
         }
     }
     else {
-        New-PSWCCacheFolder -FolderName $FolderName
+        New-PSWCoutPath -FolderName $FolderName
         Open-PSWCExplorerCache -FolderName $FolderName
         #Write-Information -InformationAction Continue -MessageData "Cache folder does not exist."
     }
@@ -1310,7 +1373,7 @@ function Write-Log {
         [Parameter(Mandatory = $true, ValueFromPipeline = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
         [string]$logstring,
-        [string]$logFile = (Join-Path $env:TEMP "$($script:ModuleName).log")
+        [string]$logFile = (Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")
     )
 
     try {
@@ -1320,7 +1383,7 @@ function Write-Log {
         # Create the log message with a timestamp
         $strToLog = "[{0}]: {1}" -f (Get-Date), $logstring
         # Append the log message to the log file
-        Add-Content -Path $logFile -Value $strToLog -Encoding utf8
+        Add-Content -Path $logFile -Value $strToLog -Encoding utf8 -Force
     }
     catch {
         Write-Error "Failed to write to the log file: $_"
@@ -1333,27 +1396,31 @@ function Show-PSWCMenu {
     Write-Host "How to use, examples:" -ForegroundColor White
     Write-Host ""
     Write-Host "[1] Crawling two levels from the given URL, only domains with Hypertext Reference (HREF) are taken:"
-    Write-Host "    PSWC -Url "http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf" -Depth 2 -onlyDomains" -ForegroundColor Green
+    Write-host "    If the 'outPath' parameter is not provided, the default output log and data folder path is set to the user's document folder under the 'PSWebCrawler' directory:"
+    Write-Host "    PSWC -Url 'http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf' -Depth 2 -onlyDomains" -ForegroundColor Green
     Write-Host ""
     Write-Host "[2] Crawling two levels from the given URL, only resolved to address IP domains with Hypertext Reference (HREF) are taken"
     Write-Host "    PSWC -Url 'http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf' -Depth 2 -onlyDomains -Resolve" -ForegroundColor Green  
     Write-Host ""
-    Write-Host "[3] Show all href elements"
+    Write-Host "[3] Crawling two levels from the given URL, only domains with Hypertext Reference (HREF) are taken. Output log and data folder path is given:"
+    Write-Host "    PSWC -Url 'http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf' -Depth 2 -onlyDomains -outPath 'c:\temp\crawl\loganddata\'" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "[4] Show all href elements"
     Write-Host "    PSWC -ShowAllElements -Type All -Url 'https://www.w3schools.com/'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[4] Show all image urls"
+    Write-Host "[5] Show all image urls"
     Write-Host "    PSWC -GetImageUrls -url 'http://allafrica.com/tools/'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[5] Show HTML metadata elements"
+    Write-Host "[6] Show HTML metadata elements"
     Write-Host "    PSWC -GetHTMLMetadata -url 'http://allafrica.com/tools/headlines/rdf'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[6] Show HTML contact information elements"
+    Write-Host "[7] Show HTML contact information elements"
     Write-Host "    PSWC -GetContactInformation -Url 'https://games.com'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[7] Show all HTML header elements"
+    Write-Host "[8] Show all HTML header elements"
     Write-Host "    PSWC -GetHeadersAndValues -url 'http://allafrica.com'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[8] Open cache folder in Windows File Explorer"
+    Write-Host "[9] Open cache folder in Windows File Explorer"
     Write-Host "    PSWC -ShowCacheFolder" -ForegroundColor Green
     Write-Host ""
 }
@@ -1403,7 +1470,7 @@ function Start-PSWebCrawler {
         [switch]$onlyDomains,
 
         [Parameter(ParameterSetName = 'WebCrawl')]
-        [string]$outputFolder = (Get-PSWCCacheFolder),
+        [string]$outputFolder = $script:loganddatafolderPath,
 
         [Parameter(ParameterSetName = 'ShowCacheFolder', Mandatory = $true)]
         [switch]$ShowCacheFolder,
@@ -1432,7 +1499,7 @@ function Start-PSWebCrawler {
     # try {
     Get-PSWCBanner
     Write-Verbose "ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
-    Write-Log "ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
+    Write-Log "Start; ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
 
     if ($($PSCmdlet.ParameterSetName) -notin 'ShowCacheFolder', 'Default') {
         # Check if the URL is valid
@@ -1452,9 +1519,17 @@ function Start-PSWebCrawler {
     $UserAgent = get-RandomUserAgent
     #$UserAgent = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows CE; IEMobile 7.11) Sprint:PPC6800'
 
-    $date = Get-Date -Format "dd-MM-yyyy-HH-mm-ss"
-    $script:SessionFolder = Set-PSWCSessionFolder -FolderName $date -FolderPath $script:dataFolderPath
-
+    if ($($PSCmdlet.ParameterSetName) -ne "Default") {
+        $date = Get-Date -Format "dd-MM-yyyy-HH-mm-ss"
+        try {
+            $script:SessionFolder = Set-PSWCSessionFolder -FolderName $date -FolderPath $script:loganddatafolderPath
+            Write-Log "Session folder '$script:SessionFolder' was created successfully."
+        }
+        catch {
+            Write-Log "ERROR: Session folder '$script:SessionFolder' was NOT created."
+        }
+    }
+        
     switch ($PSCmdlet.ParameterSetName) {
         'WebCrawl' {
             $script:ArrayData = @()
@@ -1468,29 +1543,35 @@ function Start-PSWebCrawler {
                 Date      = (get-date)
             }
             Write-Log "insert to [ArrayData] depth: [$depth], url: [$url]"
-            if (-not $outputFolder) {
-                #    $outputFile = join-path $outputFolder -ChildPath $(Set-PSWCCleanWebsiteURL -url $url)
-                $outputfoldertext = "not set"
-            }
-            else {
-                $outputfoldertext = $outputFolder
-                Write-Log "[outputfoldertext] is set to [$outputfolder]"
-            }
+            $outputfoldertext = $script:loganddatafolderPath
+            Write-Log "[outputfoldertext] is set to [$script:loganddatafolderPath]"
 
             if (-not $verbose.IsPresent) {
                 $verbose = $false
             }
-            
-            Write-Host "Settings:" -ForegroundColor Gray
+                        
+            Write-Host "Settings:" -ForegroundColor Gray 
+            Write-Host "[+] Option: $($PSCmdlet.ParameterSetName)" -ForegroundColor DarkGray
             Write-Host "[+] Url: $Url" -ForegroundColor DarkGray
             Write-Host "[+] Depth: $depth" -ForegroundColor DarkGray
             write-host "[+] OnlyDomains: $onlydomains" -ForegroundColor DarkGray
             write-host "[+] Resolve: $resolve" -ForegroundColor DarkGray
-            Write-Host "[+] Session folder path: $SessionFolder" -ForegroundColor DarkGray
+            Write-Host "[+] Session folder path: $script:SessionFolder" -ForegroundColor DarkGray
             write-host "[+] Log output folder: $outputfoldertext" -ForegroundColor DarkGray
-            write-host "[+] Log: $(Join-Path $env:TEMP "$($script:ModuleName).log")" -ForegroundColor DarkGray
-            Write-Host "[+] Used UserAgent: $UserAgent" -ForegroundColor DarkGray
+            write-host "[+] Log:" (Join-Path $script:loganddatafolderPath "$($script:ModuleName).log") -ForegroundColor DarkGray
+            Write-Host "[+] Used UserAgent: '$UserAgent'" -ForegroundColor DarkGray
+            Write-Host "[+] Invoking cli: '$($MyInvocation.Line)'" -ForegroundColor DarkGray
             Write-Host ""
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "Settings:"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Option: $($PSCmdlet.ParameterSetName)"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Url: $Url"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Depth: $depth" 
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] OnlyDomains: $onlydomains"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Resolve: $resolve"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Session folder path: $script:SessionFolder"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Log: $(Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Used UserAgent: '$UserAgent'"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Invoking cli: '$($MyInvocation.Line)'"
 
             #$script:historydomains += (Get-PSWCSchemeAndDomain -url $url)
             Write-Host "[Start Crawling] with '$url', depth: $depth`n" -ForegroundColor White
@@ -1529,7 +1610,7 @@ function Start-PSWebCrawler {
             
             #Write-Host "`nLiczba sprawdzonych domen (var: historyDomains): " -NoNewline
             #($script:historyDomains | Select-Object -Unique | Measure-Object).count
-            $DomainsFullName = Join-Path -Path $SessionFolder -ChildPath "UniqueDomain.txt"
+            $DomainsFullName = Join-Path -Path $script:SessionFolder -ChildPath "UniqueDomain.txt"
             $ArrayData.domain | Where-Object { $_ } | Select-Object -Unique | Out-File -FilePath $DomainsFullName -Encoding utf8
             Write-Host "- Domains: $DomainsFullName" -ForegroundColor Cyan
             
@@ -1543,20 +1624,24 @@ function Start-PSWebCrawler {
             #Write-Host "`nsprawdzone domeny (po domain; var: historyDomains):"
             #$script:historyDomains | Select-Object -Unique  | Sort-Object
             #$ArrayData | Where-Object { $_.Domain } | Select-Object depth, url, domain | Sort-Object url, domain
-            $URLsFullname = Join-Path -Path $SessionFolder -ChildPath "UniqueURLs.txt"
+            $URLsFullname = Join-Path -Path $script:SessionFolder -ChildPath "UniqueURLs.txt"
             $ArrayData.href | Where-Object { $_ } | Select-Object -Unique | Out-File -FilePath $URLsFullname -Encoding utf8
             Write-Host "- URLs: $URLsFullname" -ForegroundColor Cyan
             #($ArrayData | Where-Object { $_.href } | Select-Object href -Unique | Sort-Object href).href -join "; "
-            Write-Host "- Other logs: $(Join-Path $env:TEMP "$($script:ModuleName).log")" -ForegroundColor Cyan
-            Write-Host "- Other logs: $outputfoldertext" -ForegroundColor Cyan
+            Write-Host "- Setting log: $(Join-Path $script:SessionFolder "Settings.log")" -ForegroundColor Cyan
+            Write-Host "- Other logs: $(Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")" -ForegroundColor Cyan
+            Write-Host "- Other logs: $script:SessionFolder" -ForegroundColor Cyan
+
+            Write-Log "End; ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
 
             break
 
         }
         'ShowCacheFolder' {
-            #New-PSWCCacheFolder -FolderName $script:WCtoolfolderFullName
-            Write-Host "Open cache folder in Windows File Explorer" -ForegroundColor Cyan
+            #New-PSWCoutPath -FolderName $script:WCtoolfolderFullName
+            Write-Host "Open log and data folder in Windows File Explorer" -ForegroundColor Cyan
             Open-PSWCExplorerCache -FolderName $script:ModuleName
+            Write-Log "End; ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
 
             break
 
@@ -1564,13 +1649,24 @@ function Start-PSWebCrawler {
         'ShowAllElements' {
 
             Write-Host "Settings:" -ForegroundColor Gray
+            Write-Host "[+] Option: $($PSCmdlet.ParameterSetName)" -ForegroundColor DarkGray
             Write-Host "[+] Url: $Url" -ForegroundColor DarkGray
             write-host "[+] Type: $Type" -ForegroundColor DarkGray
             write-host "[+] OnlyDomains: $onlyDomains" -ForegroundColor DarkGray
-            Write-Host "[+] Used UserAgent: $UserAgent" -ForegroundColor DarkGray
-            Write-Host "[+] Session folder path: $SessionFolder" -ForegroundColor DarkGray
-            write-host "[+] Log: $(Join-Path $env:TEMP "$($script:ModuleName).log")" -ForegroundColor DarkGray
+            Write-Host "[+] Used UserAgent: '$UserAgent'" -ForegroundColor DarkGray
+            Write-Host "[+] Session folder path: $script:SessionFolder" -ForegroundColor DarkGray
+            write-host "[+] Log: $(Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")" -ForegroundColor DarkGray
+            Write-Host "[+] Invoking cli: '$($MyInvocation.Line)'" -ForegroundColor DarkGray
             Write-Host ""
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "Settings:"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Option: $($PSCmdlet.ParameterSetName)"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Url: $Url"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Type: $Type"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] OnlyDomains: $onlydomains"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Session folder path: $script:SessionFolder"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Log: $(Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Used UserAgent: '$UserAgent'"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Invoking cli: '$($MyInvocation.Line)'"
 
             if ($VerbosePreference -eq "Continue") {
                 Write-Log "Verbose output is requested."
@@ -1584,24 +1680,35 @@ function Start-PSWebCrawler {
                     }
                 }
 
-                Get-PSWCAllElements -url $url -onlyDomains:$onlyDomains -Type $type -Verbose
+                Get-PSWCAllElements -url $url -onlyDomains:$onlyDomains -Type $type -userAgent $UserAgent -Verbose
                 # Your verbose output logic here
             }
             else {
-                Write-Log "Verbose output is not requested."
+                #Write-Log "Verbose output is not requested."
                 Get-PSWCAllElements -url $url -onlyDomains:$onlyDomains -Type $type -userAgent $UserAgent
             }
+
+            Write-Log "End; ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
 
             break
         }
         'GetImageUrls' {
 
             Write-Host "Settings:" -ForegroundColor Gray
+            Write-Host "[+] Option: $($PSCmdlet.ParameterSetName)" -ForegroundColor DarkGray
             Write-Host "[+] Url: $Url" -ForegroundColor DarkGray
-            Write-Host "[+] Used UserAgent: $UserAgent" -ForegroundColor DarkGray
-            Write-Host "[+] Session folder path: $SessionFolder" -ForegroundColor DarkGray
-            write-host "[+] Log: $(Join-Path $env:TEMP "$($script:ModuleName).log")" -ForegroundColor DarkGray
+            Write-Host "[+] Used UserAgent: '$UserAgent'" -ForegroundColor DarkGray
+            Write-Host "[+] Session folder path: $script:SessionFolder" -ForegroundColor DarkGray
+            write-host "[+] Log: $(Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")" -ForegroundColor DarkGray
+            Write-Host "[+] Invoking cli: '$($MyInvocation.Line)'" -ForegroundColor DarkGray
             Write-Host ""
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "Settings:"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Option: $($PSCmdlet.ParameterSetName)"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Url: $Url"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Session folder path: $script:SessionFolder"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Log: $(Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Used UserAgent: '$UserAgent'"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Invoking cli: '$($MyInvocation.Line)'"
 
             Write-Host "Images for '${url}':" -ForegroundColor Cyan
             $response = Get-PSWCHttpResponse -url $url -userAgent $UserAgent
@@ -1610,33 +1717,46 @@ function Start-PSWebCrawler {
                 $htmlContent = $response[1].Content.ReadAsStringAsync().Result
                 $ImageUrlsArray = Get-PSWCImageUrls -HtmlContent $htmlContent -url $Url
                 write-host "`nImages count: $($ImageUrlsArray.count)" -ForegroundColor white
-                $ImagesFullName = Join-Path -Path $SessionFolder -ChildPath "Images.txt"
+                $ImagesFullName = Join-Path -Path $script:SessionFolder -ChildPath "Images.txt"
                 $ImageUrlsArray | Out-File -FilePath $ImagesFullName -Encoding utf8
                 Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
                 Write-Host "- Images URLs: $ImagesFullName" -ForegroundColor Cyan
-
+                Write-Host "- Setting log: $(Join-Path $script:SessionFolder "Settings.log")" -ForegroundColor Cyan
             }
             else {
                 Write-Host "There was no data returned from the specified URL. Please check the URL and try again." -ForegroundColor Red
                 $LogMessage = "There was no data returned from the specified URL ($url). Please check the URL and try again."
                 Write-Log $LogMessage
                 Write-Host ""
-                $ImagesFullName = Join-Path -Path $SessionFolder -ChildPath "Header.json"
+                $ImagesFullName = Join-Path -Path $script:SessionFolder -ChildPath "Header.json"
                 Out-File -FilePath $ImagesFullName -Encoding utf8 -InputObject $LogMessage
                 Write-Host "Files Saved at:" -ForegroundColor Cyan
                 Write-Host "- Image URLs: $ImagesFullName" -ForegroundColor Cyan
+                Write-Host "- Setting log: $(Join-Path $script:SessionFolder "Settings.log")" -ForegroundColor Cyan
             }
+
+            Write-Log "End; ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
+
             break
 
         }
         'GetHTMLMetadata' {
 
             Write-Host "Settings:" -ForegroundColor Gray
+            Write-Host "[+] Option: $($PSCmdlet.ParameterSetName)" -ForegroundColor DarkGray
             Write-Host "[+] Url: $Url" -ForegroundColor DarkGray
-            Write-Host "[+] Used UserAgent: $UserAgent" -ForegroundColor DarkGray
-            Write-Host "[+] Session folder path: $SessionFolder" -ForegroundColor DarkGray
-            write-host "[+] Log: $(Join-Path $env:TEMP "$($script:ModuleName).log")" -ForegroundColor DarkGray
+            Write-Host "[+] Used UserAgent: '$UserAgent'" -ForegroundColor DarkGray
+            Write-Host "[+] Session folder path: $script:SessionFolder" -ForegroundColor DarkGray
+            write-host "[+] Log: $(Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")" -ForegroundColor DarkGray
+            Write-Host "[+] Invoking cli: '$($MyInvocation.Line)'" -ForegroundColor DarkGray
             Write-Host ""
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "Settings:"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Option: $($PSCmdlet.ParameterSetName)"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Url: $Url"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Session folder path: $script:SessionFolder"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Log: $(Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Used UserAgent: '$UserAgent'"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Invoking cli: '$($MyInvocation.Line)'"
 
             Write-Host "HTML header data for '${url}':" -ForegroundColor Cyan
             $response = Get-PSWCHttpResponse -url $url -userAgent $UserAgent
@@ -1645,33 +1765,46 @@ function Start-PSWebCrawler {
                 $htmlContent = $response[1].Content.ReadAsStringAsync().Result
                 $HTMLMetadata = Get-PSWCHTMLMetadata -htmlContent $htmlContent
                 $HTMLMetadata | convertto-json           
-                $HeaderFullName = Join-Path -Path $SessionFolder -ChildPath "Header.json"
+                $HeaderFullName = Join-Path -Path $script:SessionFolder -ChildPath "Header.json"
                 $HTMLMetadata | convertto-json | Out-File -FilePath $HeaderFullName -Encoding utf8
                 Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
                 Write-Host "- HTML header data: $HeaderFullName" -ForegroundColor Cyan
+                Write-Host "- Setting log: $(Join-Path $script:SessionFolder "Settings.log")" -ForegroundColor Cyan
             }
             else {
                 Write-Host "There was no data returned from the specified URL. Please check the URL and try again." -ForegroundColor Red
                 $LogMessage = "There was no data returned from the specified URL ($url). Please check the URL and try again."
                 Write-Log $LogMessage
                 Write-Host ""
-                $HeaderFullName = Join-Path -Path $SessionFolder -ChildPath "Header.json"
+                $HeaderFullName = Join-Path -Path $script:SessionFolder -ChildPath "Header.json"
                 Out-File -FilePath $HeaderFullName -Encoding utf8 -InputObject $LogMessage
                 Write-Host "Files Saved at:" -ForegroundColor Cyan
                 Write-Host "- HTML header data: $HeaderFullName" -ForegroundColor Cyan
+                Write-Host "- Setting log: $(Join-Path $script:SessionFolder "Settings.log")" -ForegroundColor Cyan
             }
             
+            Write-Log "End; ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
+
             break
 
         }
         'GetContactInformation' {
 
             Write-Host "Settings:" -ForegroundColor Gray
+            Write-Host "[+] Option: $($PSCmdlet.ParameterSetName)" -ForegroundColor DarkGray
             Write-Host "[+] Url: $Url" -ForegroundColor DarkGray
-            Write-Host "[+] Used UserAgent: $UserAgent" -ForegroundColor DarkGray
-            Write-Host "[+] Session folder path: $SessionFolder" -ForegroundColor DarkGray
-            write-host "[+] Log: $(Join-Path $env:TEMP "$($script:ModuleName).log")" -ForegroundColor DarkGray
+            Write-Host "[+] Used UserAgent: '$UserAgent'" -ForegroundColor DarkGray
+            Write-Host "[+] Session folder path: $script:SessionFolder" -ForegroundColor DarkGray
+            write-host "[+] Log: $(Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")" -ForegroundColor DarkGray
+            Write-Host "[+] Invoking cli: '$($MyInvocation.Line)'" -ForegroundColor DarkGray
             Write-Host ""
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "Settings:"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Option: $($PSCmdlet.ParameterSetName)"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Url: $Url"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Session folder path: $script:SessionFolder"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Log: $(Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Used UserAgent: '$UserAgent'"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Invoking cli: '$($MyInvocation.Line)'"
 
             Write-Host "Contact data for '${url}':" -ForegroundColor Cyan
             $response = Get-PSWCHttpResponse -url $url -userAgent $UserAgent
@@ -1679,21 +1812,25 @@ function Start-PSWebCrawler {
                 $htmlContent = $response[1].Content.ReadAsStringAsync().Result
                 $ContactData = Get-PSWCContactInformation -htmlContent $htmlContent
                 $ContactData | convertto-json
-                $ContactFullName = Join-Path -Path $SessionFolder -ChildPath "Contact.json"
+                $ContactFullName = Join-Path -Path $script:SessionFolder -ChildPath "Contact.json"
                 $ContactData | convertto-json | Out-File -FilePath $ContactFullName -Encoding utf8
                 Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
                 Write-Host "- Contact information: $ContactFullName" -ForegroundColor Cyan
+                Write-Host "- Setting log: $(Join-Path $script:SessionFolder "Settings.log")" -ForegroundColor Cyan
             }
             else {
                 Write-Host "There was no data returned from the specified URL. Please check the URL and try again." -ForegroundColor Red
                 $LogMessage = "There was no data returned from the specified URL ($url). Please check the URL and try again."
                 Write-Log $LogMessage
                 Write-Host ""
-                $ContactFullName = Join-Path -Path $SessionFolder -ChildPath "Contact.json"
+                $ContactFullName = Join-Path -Path $script:SessionFolder -ChildPath "Contact.json"
                 Out-File -FilePath $ContactFullName -Encoding utf8 -InputObject $LogMessage
                 Write-Host "Files Saved at:" -ForegroundColor Cyan
                 Write-Host "- Contact information: $ContactFullName" -ForegroundColor Cyan
+                Write-Host "- Setting log: $(Join-Path $script:SessionFolder "Settings.log")" -ForegroundColor Cyan
             }
+
+            Write-Log "End; ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
 
             break
 
@@ -1701,11 +1838,20 @@ function Start-PSWebCrawler {
         'GetHeadersAndValues' {
 
             Write-Host "Settings:" -ForegroundColor Gray
+            Write-Host "[+] Option: $($PSCmdlet.ParameterSetName)" -ForegroundColor DarkGray
             Write-Host "[+] Url: $Url" -ForegroundColor DarkGray
-            Write-Host "[+] Used UserAgent: $UserAgent" -ForegroundColor DarkGray
-            Write-Host "[+] Session folder path: $SessionFolder" -ForegroundColor DarkGray
-            write-host "[+] Log: $(Join-Path $env:TEMP "$($script:ModuleName).log")" -ForegroundColor DarkGray
+            Write-Host "[+] Used UserAgent: '$UserAgent'" -ForegroundColor DarkGray
+            Write-Host "[+] Session folder path: $script:SessionFolder" -ForegroundColor DarkGray
+            write-host "[+] Log: $(Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")" -ForegroundColor DarkGray
+            Write-Host "[+] Invoking cli: '$($MyInvocation.Line)'" -ForegroundColor DarkGray
             Write-Host ""
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "Settings:"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Option: $($PSCmdlet.ParameterSetName)"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Url: $Url"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Session folder path: $script:SessionFolder"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Log: $(Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Used UserAgent: '$UserAgent'"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Invoking cli: '$($MyInvocation.Line)'"
 
             Write-Host "HTML head data for '${url}':" -ForegroundColor Cyan
             $response = Get-PSWCHttpResponse -url $url -userAgent $UserAgent
@@ -1714,22 +1860,26 @@ function Start-PSWebCrawler {
                 $htmlContent = $response[1].Content.ReadAsStringAsync().Result
                 $HTMLheadData = Get-PSWCHeadersAndValues -htmlContent $htmlContent
                 $HTMLheadData | convertto-json
-                $HTMLheadFullName = Join-Path -Path $SessionFolder -ChildPath "HTMLhead.json"
+                $HTMLheadFullName = Join-Path -Path $script:SessionFolder -ChildPath "HTMLhead.json"
                 $HTMLheadData | convertto-json | Out-File -FilePath $HTMLheadFullName -Encoding utf8
                 Write-Host ""
                 Write-Host "Files Saved at:" -ForegroundColor Cyan
                 Write-Host "- HTML head data: $HTMLheadFullName" -ForegroundColor Cyan
+                Write-Host "- Setting log: $(Join-Path $script:SessionFolder "Settings.log")" -ForegroundColor Cyan
             }
             else {
                 Write-Host "There was no data returned from the specified URL. Please check the URL and try again." -ForegroundColor Red
                 $LogMessage = "There was no data returned from the specified URL ($url). Please check the URL and try again."
                 Write-Log $LogMessage
                 Write-Host ""
-                $HTMLheadFullName = Join-Path -Path $SessionFolder -ChildPath "HTMLhead.json"
+                $HTMLheadFullName = Join-Path -Path $script:SessionFolder -ChildPath "HTMLhead.json"
                 Out-File -FilePath $HTMLheadFullName -Encoding utf8 -InputObject $LogMessage
                 Write-Host "Files Saved at:" -ForegroundColor Cyan
                 Write-Host "- HTML head data: $HTMLheadFullName" -ForegroundColor Cyan
+                Write-Host "- Setting log: $(Join-Path $script:SessionFolder "Settings.log")" -ForegroundColor Cyan
             }           
+
+            Write-Log "End; ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
 
             break
 
@@ -1852,7 +2002,12 @@ Write-Host "Thank you for using PSWC ($($moduleVersion))." -ForegroundColor Yell
 #Write-Host "Some important changes and informations that may be of interest to you:" -ForegroundColor Yellow
 #Write-Host "- You can filter the built-in snippets (category: 'Example') by setting 'ShowExampleSnippets' to '`$false' in config. Use: 'Save-PAFConfiguration -settingName ""ShowExampleSnippets"" -settingValue `$false'" -ForegroundColor Yellow
 
-New-PSWCCacheFolder -FolderName $script:ModuleName
-$script:dataFolderPath = Set-PSWCDataFolder
-
-#Write-Host "Data folder path: $dataFolderPath"
+# Set the default output folder path to the user's document folder under the 'PSWebCrawler' directory if 'outpath' is not provided
+if (-not (Get-PSWCoutPath -FolderName $ModuleName -Type UserDoc)) {
+    $script:loganddatafolderPath = New-PSWCoutPath -FolderName $ModuleName -Type UserDoc
+    Write-Log "Log and Data folder '$script:loganddatafolderPath' was created successfully."
+}
+else {
+    $script:loganddatafolderPath = Get-PSWCoutPath -FolderName $ModuleName -Type UserDoc
+    Write-Verbose "Log and Data folder '$script:loganddatafolderPath' already exists."
+}
