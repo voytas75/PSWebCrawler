@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ### Changed
 
 - [#30](https://github.com/voytas75/PSWebCrawler/issues/30)
+- [#16](https://github.com/voytas75/PSWebCrawler/issues/16)
 
 ## [0.0.3] - 2023.12.12
 
