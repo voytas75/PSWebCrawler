@@ -19,4 +19,16 @@ if ([string]::IsNullOrEmpty($outputFolder)) {
             Write-Host "[+] Invoking cli: '$($MyInvocation.Line)'" -ForegroundColor DarkGray
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Invoking cli: '$($MyInvocation.Line)'"
 
+## Start-PSWCCrawl
+
+### Description
+The `Start-PSWCCrawl` function initiates a web crawling operation on the specified URL up to the specified depth. It is designed to retrieve information from web pages and their associated resources.
+
+### Parameters
+- **url**: Specifies the URL from which the crawling operation will start.
+- **depth**: Specifies the depth of the crawling operation, i.e., how many levels of links should be followed from the initial URL.
+
+### Example
+
+
 #>
