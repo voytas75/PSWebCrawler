@@ -66,35 +66,39 @@ Get-Command -Module PSWebCrawler
     PSWC -Url "https://example.com" -Depth 2 -onlyDomains
     ```
 
-- The `outputFolder` parameter is used to specify the path where the log and data folders will be created when the `Url` and `Depth` parameters are used. When initiating a web crawl with the Url and `Depth` parameters, the `outputFolder` parameter allows you to define the location where the log and data folders will be stored for the crawl. This can be useful for organizing and managing the output of the web crawling operation. If the `outputFolder` parameter is not provided the log and data folders will be stored in the default location. The default location is the user's document folder under the 'PSWebCrawler' directory.
+- The `outputFolder` parameter is used to specify the path where the log and data folders will be created when the `Url` and `Depth` parameters are used. When initiating a web crawl with the Url and `Depth` parameters, the `outputFolder` parameter allows you to define the location where the log and data folders will be stored for the crawl. This can be useful for organizing and managing the output of the web crawling operation. If the `outputFolder` parameter is not provided the log and data folders will be stored in the default location. The default location is the user's document folder under the 'PSWebCrawler' directory:
 
     ```powershell
     PSWC -Url "https://example.com" -Depth 2 -outputFolder "C:\temp\logs\"
     ```
 
-- The `resolve` parameter is used when initiating a web crawl with the `Url` and `Depth` parameters. When `resolve` switch is on, the web crawler will resolve the URLs to IP address:
+    More about log and data folder: [Default Log and Data Folder](#default-log-and-data-folder)
+
+- The `resolve` parameter is used when initiating a web crawl with the `Url` and `Depth` parameters. When `resolve` switch is on, the web crawler will resolve the domain name of current processed URL to IP address:
 
     ```powershell
     PSWC -Url "https://example.com" -Depth 2 -resolve
     ```
 
-- Display the cache folder:
+- The `ShowCacheFolder` option is used to open the default log and data folder (user's document folder under the 'PSWebCrawler' directory) in Windows File Explorer:
 
     ```powershell
     PSWC -ShowCacheFolder
     ```
 
+    More about log and data folder: [Default Log and Data Folder](#default-log-and-data-folder)
+
 ## Default Log and Data Folder
 
 The PSWebCrawler module uses default folder for storing log files and data. If specific paths are not provided, the module uses `<User's document folder>/PSWebCrawler/` folder.
 
-User can override these default paths by providing custom paths using `outPath` parameters when using the module's functions. For example:
+User can override these default paths by providing custom paths using `outputFolder` parameters when using the module's functions. For example:
 
 ```powershell
-PSWC -Url 'https://example.com' -Depth 2 -outPath 'C:\Crawl\LOGandDATA\'    
+PSWC -Url 'https://example.com' -Depth 2 -outputFolder 'C:\Crawl\LOGandDATA\'    
 ```
 
-For more details on customizing log and data folder paths, refer to the module's documentation or help files.
+*INFO*: In the PSWebCrawler PowerShell module, the default location for the log and data folder is the user's document folder. If the log and data folder does not exist, it will be created automatically when the module is imported.
 
 ## Versioning
 
