@@ -40,6 +40,8 @@ Get-Command -Module PSWebCrawler
 
 ## Usage
 
+### Crawl
+
 - `PSWC` (alias of `Start-PSWebCrawler`). When the `PSWC` command is run alone, it displays a menu with various options and examples for using the PSWebCrawler module. This menu provides examples of how to use the PSWC command with different parameters to initiate web crawling with various configurations, such as crawling web pages with specified depths, displaying cache folders, and extracting specific elements from web pages.
 
     Start module to display possible options and examples:
@@ -79,6 +81,8 @@ Get-Command -Module PSWebCrawler
     ```powershell
     PSWC -Url "https://example.com" -Depth 2 -resolve
     ```
+
+### ShowCacheFolder
 
 - The `ShowCacheFolder` option is used to open the default log and data folder (user's document folder under the 'PSWebCrawler' directory) in Windows File Explorer:
 
