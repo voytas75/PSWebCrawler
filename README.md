@@ -18,7 +18,7 @@ PSWebCrawler is a PowerShell script that provides web crawling and URL processin
 - Retrieval and storage of HTML head data
 - Cache folder creation and data folder setup
 
-## Installation and usage
+## Installation
 
 The module is available on [PowerShell Gallery](https://www.powershellgallery.com/packages/PSWebCrawler).
 
@@ -40,26 +40,42 @@ Get-Command -Module PSWebCrawler
 
 ## Usage
 
-- `Start-PSWebCrawler` cmdlet allows you to initiate web crawling with various parameters.
+- `PSWC` (alias of `Start-PSWebCrawler`).When the `PSWC`` command is run alone, it displays a menu with various options and examples for using the PSWebCrawler module. This menu provides examples of how to use the PSWC command with different parameters to initiate web crawling with various configurations, such as crawling web pages with specified depths, displaying cache folders, and extracting specific elements from web pages.
 
-    Start module to display possible options:
+    Start module to display possible options and examples:
 
     ```powershell
     PSWC
     ```
 
-    `PSWC` is alias of `Start-PSWebCrawler`.
+    or
 
-- Crawl a web page with a specified depth:
+    ```powershell
+    Start-PSWebCrawler
+    ```
+
+- When the `PSWC` command is used with the `url` and `depth` parameters, it initiates web crawling starting from the specified URL and crawling to the specified depth. This allows the user to extract various elements from the web pages, such as href elements, non-href elements, domains, and internal links, up to the specified depth. The command also logs and stores the extracted data in the default log folder (user' document folder), providing a record of the crawling process and the extracted elements for further analysis or reference:
 
     ```powershell
     PSWC -Url "https://example.com" -Depth 2
     ```
 
-- Crawl and filter by domains:
+- The `onlyDomains` parameter, when set to true, instructs the web crawler to only crawl to the domains found in the href elements of the web page being crawled. This means that the crawler will restrict its exploration to the domains referenced by the links on the page, rather than following links to external domains:
 
     ```powershell
     PSWC -Url "https://example.com" -Depth 2 -onlyDomains
+    ```
+
+- The `outputFolder` parameter is used to specify the path where the log and data folders will be created when the `Url` and `Depth` parameters are used. When initiating a web crawl with the Url and `Depth` parameters, the `outputFolder` parameter allows you to define the location where the log and data folders will be stored for the crawl. This can be useful for organizing and managing the output of the web crawling operation. If the `outputFolder` parameter is not provided the log and data folders will be stored in the default location. The default location is the user's document folder under the 'PSWebCrawler' directory.
+
+    ```powershell
+    PSWC -Url "https://example.com" -Depth 2 -outputFolder "C:\temp\logs\"
+    ```
+
+- The `resolve` parameter is used when initiating a web crawl with the `Url` and `Depth` parameters. When `resolve` switch is on, the web crawler will resolve the URLs to IP address:
+
+    ```powershell
+    PSWC -Url "https://example.com" -Depth 2 -resolve
     ```
 
 - Display the cache folder:
