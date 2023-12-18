@@ -139,6 +139,14 @@ Get-Command -Module PSWebCrawler
 
   The saved file path will be displayed in the console output.
 
+### GetHeadersAndValues
+
+- The `GetHeadersAndValues` option in the PSWebCrawler PowerShell module extracts headers and their corresponding values from the `<head>` section of an HTML document. To use this option, you need to provide the URL of the website you want to crawl using the `url` parameter. The extracted headers and values are returned as a hashtable. You can save the output to a file by specifying the output folder using the `outputFolder` parameter. Without `outputFolder` data are saved the extracted contact information to a file named *HTMLhead.json* in default place, the session folder.  To call the option, use the following command:
+
+  ```powershell
+  PSWC -GetHeadersAndValues -url "https://example.com"
+  ```
+
 ## Default Log and Data Folder
 
 The PSWebCrawler module uses default folder for storing log files and data. If specific paths are not provided, the module uses `<User's document folder>/PSWebCrawler/` folder.
