@@ -111,10 +111,20 @@ Get-Command -Module PSWebCrawler
 
 ### GetImageUrls
 
-- The `GetImageUrls` option in PSWC retrieves the URLs of all images in an HTML document. The retrieved URLs are saved in a text file named *Images.txt* in the session folder. To use this option, run the command:
+- The `GetImageUrls` option in `PSWC` retrieves the URLs of all images in an HTML document. The retrieved URLs are saved in a text file named *Images.txt* in the session folder. To use this option, run the command:
 
   ```powershell
   PSWC -GetImageUrls -url "https://example.com"
+  ```
+
+  The saved file path will be displayed in the console output.
+
+### GetHTMLMetadata
+
+- The `GetHTMLMetadata` option in the `PSWC` module retrieves metadata from the specified HTML content and displays it. The metadata includes the title, description, keywords, author, copyright, robots, viewport, and generator. Retrieved data are saved in a text file named *metadata.txt* in the session folder. To use this option, run the command:
+
+  ```powershell
+  PSWC -GetHTMLMetadata -url "https://example.com"
   ```
 
   The saved file path will be displayed in the console output.
