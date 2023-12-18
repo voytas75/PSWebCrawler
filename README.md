@@ -109,6 +109,16 @@ Get-Command -Module PSWebCrawler
 
     This example extracts all elements from the URL "https://www.example.com"
 
+### GetImageUrls
+
+- The `GetImageUrls` option in PSWC retrieves the URLs of all images in an HTML document. The retrieved URLs are saved in a text file named *Images.txt* in the session folder. To use this option, run the command:
+
+  ```powershell
+  PSWC -GetImageUrls -url "https://example.com"
+  ```
+
+  The saved file path will be displayed in the console output.
+
 ## Default Log and Data Folder
 
 The PSWebCrawler module uses default folder for storing log files and data. If specific paths are not provided, the module uses `<User's document folder>/PSWebCrawler/` folder.
