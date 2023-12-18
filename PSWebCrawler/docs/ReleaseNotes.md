@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - [#17](https://github.com/voytas75/PSWebCrawler/issues/17)
 - [#18](https://github.com/voytas75/PSWebCrawler/issues/18)
 - [#19](https://github.com/voytas75/PSWebCrawler/issues/19)
+- [#20](https://github.com/voytas75/PSWebCrawler/issues/20)
 
 ### Changed
 

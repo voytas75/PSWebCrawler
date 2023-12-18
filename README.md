@@ -129,6 +129,16 @@ Get-Command -Module PSWebCrawler
 
   The saved file path will be displayed in the console output.
 
+### GetContactInformation
+
+- The `GetContactInformation` option in the PSWebCrawler PowerShell module extracts contact information (emails, addresses, phone numbers) from an HTML document. Once the function is executed, it will return the extracted contact information in JSON format. Additionally, the option saves the extracted contact information to a file named *Contact.json* in the session folder. The session folder is created automatically and its path is logged in the "Settings.log" file. To call the option, use the following command:
+
+  ```powershell
+  PSWC -GetContactInformation -url "https://example.com"
+  ```
+
+  The saved file path will be displayed in the console output.
+
 ## Default Log and Data Folder
 
 The PSWebCrawler module uses default folder for storing log files and data. If specific paths are not provided, the module uses `<User's document folder>/PSWebCrawler/` folder.
