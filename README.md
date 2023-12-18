@@ -92,6 +92,23 @@ Get-Command -Module PSWebCrawler
 
     More about log and data folder: [Default Log and Data Folder](#default-log-and-data-folder)
 
+### ShowAllElements
+
+- The `PSWC` command with the `ShowAllElements` and `Type` options extracts all elements from the specified `URL`, including Href elements, non-Href elements, domains, and internal links. The `Type` parameter in the command specifies which type of elements to extract. It can be set to one of the following values:
+
+  - **Href**: extracts only elements with an href attribute.
+  - **noHref**: extracts only elements without an href attribute.
+  - **onlyDomains**: extracts only the domains from the href attributes.
+  - **All**: extracts all elements from the specified `URL`.
+
+  To use this option, you can run the following command:
+
+  ```powershell
+  PSWC -ShowAllElements -Type All -Url 'https://www.example.com'
+  ```
+
+    This example extracts all elements from the URL "https://www.example.com"
+
 ## Default Log and Data Folder
 
 The PSWebCrawler module uses default folder for storing log files and data. If specific paths are not provided, the module uses `<User's document folder>/PSWebCrawler/` folder.
