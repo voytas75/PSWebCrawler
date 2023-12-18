@@ -29,6 +29,6 @@ The `Start-PSWCCrawl` function initiates a web crawling operation on the specifi
 - **depth**: Specifies the depth of the crawling operation, i.e., how many levels of links should be followed from the initial URL.
 
 ### Example
-
+The PSWC command with the ShowAllElements option extracts all elements from the specified URL, including Href elements, non-Href elements, domains, and internal links. To use this option, you can run the following command: PSWC -ShowAllElements -Type All -Url 'https://www.example.com'. This example extracts all elements from the URL "https://www.example.com".
 
 #>
