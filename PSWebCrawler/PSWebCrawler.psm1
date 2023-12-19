@@ -1395,32 +1395,32 @@ function Show-PSWCMenu {
     )
     Write-Host "How to use, examples:" -ForegroundColor White
     Write-Host ""
-    Write-Host "[1] Crawling two levels from the given URL, only domains with Hypertext Reference (HREF) are taken:"
-    Write-host "    If the 'outPath' parameter is not provided, the default output log and data folder path is set to the user's document folder under the 'PSWebCrawler' directory:"
+    Write-Host "[1] Crawling two levels from the given URL, only domains from Hypertext Reference (HREF) are taken."
+    Write-host "    If the 'outputFolder' parameter is not provided, the default output log and data folder path is set to the user's document folder under the 'PSWebCrawler' directory:"
     Write-Host "    PSWC -Url 'http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf' -Depth 2 -onlyDomains" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[2] Crawling two levels from the given URL, only resolved to address IP domains with Hypertext Reference (HREF) are taken"
+    Write-Host "[2] Crawling two levels from the given URL, only domains from Hypertext Reference (HREF) are taken, and resolves the domain names to IP addresses:"
     Write-Host "    PSWC -Url 'http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf' -Depth 2 -onlyDomains -Resolve" -ForegroundColor Green  
     Write-Host ""
     Write-Host "[3] Crawling two levels from the given URL, only domains with Hypertext Reference (HREF) are taken. Output log and data folder path is given:"
-    Write-Host "    PSWC -Url 'http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf' -Depth 2 -onlyDomains -outPath 'c:\temp\crawl\loganddata\'" -ForegroundColor Green
+    Write-Host "    PSWC -Url 'http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf' -Depth 2 -onlyDomains -outputFolder 'c:\temp\crawl\loganddata\'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[4] Show all href elements"
+    Write-Host "[4] Retrieves all href elements from the URL:"
     Write-Host "    PSWC -ShowAllElements -Type All -Url 'https://www.w3schools.com/'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[5] Show all image urls"
+    Write-Host "[5] Retrieves the URLs of all images on the webpage:"
     Write-Host "    PSWC -GetImageUrls -url 'http://allafrica.com/tools/'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[6] Show HTML metadata elements"
+    Write-Host "[6] Shows metadata from an HTML document located at the specified URL:"
     Write-Host "    PSWC -GetHTMLMetadata -url 'http://allafrica.com/tools/headlines/rdf'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[7] Show HTML contact information elements"
+    Write-Host "[7] Shows contact information from an HTML document located at the specified URL:"
     Write-Host "    PSWC -GetContactInformation -Url 'https://games.com'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[8] Show all HTML header elements"
+    Write-Host "[8] Shows headers and their corresponding values from an HTML document located at the specified URL:"
     Write-Host "    PSWC -GetHeadersAndValues -url 'http://allafrica.com'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[9] Open cache folder in Windows File Explorer"
+    Write-Host "[9] Opens default log and data folder in Windows File Explorer:"
     Write-Host "    PSWC -ShowCacheFolder" -ForegroundColor Green
     Write-Host ""
 }
@@ -1997,8 +1997,9 @@ catch {
 Set-Alias -Name "PSWC" -Value Start-PSWebCrawler
 Set-Alias -Name "PSWebCrawler" -Value Start-PSWebCrawler
 
-Write-Host "Welcome to PSWebCrawler!" -ForegroundColor DarkYellow
-Write-Host "Thank you for using PSWC ($($moduleVersion))." -ForegroundColor Yellow
+Write-Host "Welcome to PSWebCrawler! ($($moduleVersion))" -ForegroundColor DarkYellow
+Write-Host "Start with command: " -ForegroundColor Yellow -NoNewline
+Write-Host "PSWC" -ForegroundColor DarkGreen
 #Write-Host "Some important changes and informations that may be of interest to you:" -ForegroundColor Yellow
 #Write-Host "- You can filter the built-in snippets (category: 'Example') by setting 'ShowExampleSnippets' to '`$false' in config. Use: 'Save-PAFConfiguration -settingName ""ShowExampleSnippets"" -settingValue `$false'" -ForegroundColor Yellow
 
