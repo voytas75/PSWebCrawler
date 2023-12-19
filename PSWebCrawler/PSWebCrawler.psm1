@@ -1522,7 +1522,7 @@ function Start-PSWebCrawler {
     if ($($PSCmdlet.ParameterSetName) -ne "Default") {
         $date = Get-Date -Format "dd-MM-yyyy-HH-mm-ss"
         try {
-            $script:SessionFolder = Set-PSWCSessionFolder -FolderName $date -FolderPath $script:loganddatafolderPath
+            $script:SessionFolder = Set-PSWCSessionFolder -FolderName $date -FolderPath $outputFolder
             Write-Log "Session folder '$script:SessionFolder' was created successfully."
         }
         catch {
