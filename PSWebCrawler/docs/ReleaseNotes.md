@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.0.4] - 2023.12.18
+## [0.0.4] - 2023.12.19
 
 ### Added
 
@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - [#19](https://github.com/voytas75/PSWebCrawler/issues/19)
 - [#20](https://github.com/voytas75/PSWebCrawler/issues/20)
 - [#21](https://github.com/voytas75/PSWebCrawler/issues/21)
+- [#44](https://github.com/voytas75/PSWebCrawler/issues/44)
 
 ### Changed
 
