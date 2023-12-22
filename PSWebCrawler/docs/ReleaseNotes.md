@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.0.5] - 2023.12.20
+## [0.0.5] - 2023.12.22
 
 ### Added
 
@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Changed
 
-- n/a
+- Moved functions to `Private`, `Public` folders for better organization and management.
 
 ## [0.0.4] - 2023.12.19
 

@@ -23,7 +23,13 @@
             "type": "PowerShell",
             "request": "launch",
             "script": "import-module D:/dane/voytas/Dokumenty/visual_studio_code/github/PSWebCrawler/PSWebCrawler/PSWebCrawler.psd1 -Force; pswc -Url \"http://gunb.gov.pl\" -depth 1 -onlyDomains:$false"
-            
-        }        
+        },
+        {
+            "name": "PowerShell: WebCrawler - GetImageUrls",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "import-module D:/dane/voytas/Dokumenty/visual_studio_code/github/PSWebCrawler/PSWebCrawler/PSWebCrawler.psd1 -Force; pswc -url 'https://udt.gov.pl' -GetImageUrls"
+        } 
+        
     ]
 }

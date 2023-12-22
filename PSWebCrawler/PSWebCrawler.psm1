@@ -224,66 +224,6 @@ function Get-PSWCAllElements {
     }
 }
 
-function Get-PSWCImageUrls {
-    <#
-    .SYNOPSIS
-        Retrieves the URLs of all images in an HTML document.
-    .DESCRIPTION
-        This function retrieves the URLs of all images in an HTML document using the HtmlAgilityPack library.
-    .PARAMETER HtmlContent
-        The HTML content to search for images.
-    .PARAMETER url
-        The base URL of the HTML content.
-    .PARAMETER SelectQuery
-        The XPath query to select the image nodes. Defaults to "//img".
-    .EXAMPLE
-        PS> Get-PSWCImageUrls -HtmlContent $html -url "https://example.com"
-        Retrieves the URLs of all images in the $html content.
-    #>
-
-    param (
-        [Parameter(Mandatory = $true, ValueFromPipeline)]
-        [string]$HtmlContent,
-
-        [string]
-        $url,
-
-        [Parameter(Mandatory = $false)]
-        [string]$SelectQuery = "//img"
-    )
-
-    try {
-        $doc = New-Object HtmlAgilityPack.HtmlDocument
-        $doc.LoadHtml($HtmlContent)
-
-        $imageUrls = @()
-
-        $selectedNodes = $doc.DocumentNode.SelectNodes($SelectQuery)
-        if ($selectedNodes) {
-            foreach ($node in $selectedNodes) {
-                $src = $node.GetAttributeValue("src", "")
-                if (![string]::IsNullOrWhiteSpace($src)) {
-                    if ($src -match "^https?://") {
-                        $imageUrls += $src                            <# Action to perform if the condition is true #>
-                    }
-                    elseif ($src -match "^/|^\.\./") {
-                        $internalUrl = [System.Uri]::new([System.Uri]::new($url), $src)
-                        $imageUrls += $internalUrl.AbsoluteUri
-                    }
-                    else {
-                        $imageUrls += $src
-                    }
-                }
-            }
-        }
-
-        $imageUrls
-    }
-    catch {
-        Write-Error "An error occurred: $_"
-    }
-}
-
 Function Get-PSWCHTMLMetadata {
     <#
     .SYNOPSIS
@@ -1715,8 +1655,20 @@ function Start-PSWebCrawler {
             if (-not [string]::IsNullOrEmpty($response[1])) {
 
                 $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+                                
+                #Write-Information ($ImageUrlsArray | ConvertTo-Json) -InformationAction Continue
+
+                # Call the Get-PSWCImageUrls function and store the result in $ImageUrlsArray
+                # The function is expected to return a list of image URLs, but it's also returning 'true' values for some reason
+                # This issue will be addressed in the next few lines of code
                 $ImageUrlsArray = Get-PSWCImageUrls -HtmlContent $htmlContent -url $Url
-                write-host "`nImages count: $($ImageUrlsArray.count)" -ForegroundColor white
+                
+                # For some reason, the Get-PSWCImageUrls function is returning a list with 'true' values. 
+                # We need to remove these 'true' values from the list.
+                # This issue has been resolved. It was caused by [System.Uri]::TryCreate returning 'true' when successful.
+                #$ImageUrlsArray = $ImageUrlsArray | Where-Object {$_ -ne 'true'}
+                
+                write-Host "`nImages count: $($ImageUrlsArray.count)" -ForegroundColor white
                 $ImagesFullName = Join-Path -Path $script:SessionFolder -ChildPath "Images.txt"
                 $ImageUrlsArray | Out-File -FilePath $ImagesFullName -Encoding utf8
                 Write-Host "`nFiles Saved at:" -ForegroundColor Cyan
