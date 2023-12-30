@@ -4,15 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.0.5] - 2023.12.22
+## [0.0.5] - 2023.12.30
 
 ### Added
 
-- n/a
+- Moved some functions to new `Private`, `Public` folders for better organization and management
 
 ### Changed
 
-- Moved functions to `Private`, `Public` folders for better organization and management.
+- [Html Agility Pack (HAP)](https://github.com/zzzprojects/html-agility-pack) new version (1.11.57)
 
 ## [0.0.4] - 2023.12.19
 
