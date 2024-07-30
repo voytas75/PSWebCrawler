@@ -2,6 +2,7 @@
 
 ![PowerShell Web Crawler](https://raw.githubusercontent.com/voytas75/PSWebCrawler/master/images/PSWC_github_logo.png "PowerShell Web Crawler")
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/b61f2da60f694759a03671203c65305a)](https://app.codacy.com/gh/voytas75/PSWebCrawler?utm_source=github.com&utm_medium=referral&utm_content=voytas75/PSWebCrawler&utm_campaign=Badge_Grade)
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/A0A6KYBUS)
 
 [![status](https://img.shields.io/badge/PROD-v0.0.5-green)](https://github.com/voytas75/PSWebCrawler/blob/master/PSWebCrawler/docs/ReleaseNotes.md) &nbsp; [![status](https://img.shields.io/badge/DEV-v0.1.0-red)](https://github.com/voytas75/PSWebCrawler/blob/master/PSWebCrawler/docs/ReleaseNotes.md) &nbsp; ![PowerShell version](https://img.shields.io/badge/PowerShell-v5.1-blue) &nbsp; [![PowerShell Gallery Version (including pre-releases)](https://img.shields.io/powershellgallery/v/PSWebCrawler)](https://www.powershellgallery.com/packages/PSWebCrawler) &nbsp; [![PowerShell Gallery](https://img.shields.io/powershellgallery/dt/PSWebCrawler)](https://www.powershellgallery.com/packages/PSWebCrawler)
