@@ -1436,10 +1436,23 @@ function Start-PSWebCrawler {
         $GetHeadersAndValues
         
     )
-    # try {
+    # Initialize legacy output only when an operation needs it, before logging.
+    if ($PSCmdlet.ParameterSetName -ne 'Default') {
+        if (-not $script:loganddatafolderPath) {
+            $script:loganddatafolderPath = Get-PSWCoutPath -FolderName $script:ModuleName -Type UserDoc
+            if (-not $script:loganddatafolderPath) {
+                $script:loganddatafolderPath = New-PSWCoutPath -FolderName $script:ModuleName -Type UserDoc
+            }
+        }
+        if (-not $PSBoundParameters.ContainsKey('outputFolder')) {
+            $outputFolder = $script:loganddatafolderPath
+        }
+    }
     Get-PSWCBanner
     Write-Verbose "ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
-    Write-Log "Start; ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
+    if ($PSCmdlet.ParameterSetName -ne 'Default') {
+        Write-Log "Start; ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
+    }
 
     if ($($PSCmdlet.ParameterSetName) -notin 'ShowCacheFolder', 'Default') {
         # Check if the URL is valid
@@ -1865,15 +1878,13 @@ function Get-RandomUserAgent {
     return (get-random (Get-Content $UserAgentFileFullName))
 }
 
-Clear-Host
 
 $Public = @( Get-ChildItem -Path $PSScriptRoot\Public\*.ps1 -ErrorAction SilentlyContinue -Recurse )
 $Private = @( Get-ChildItem -Path $PSScriptRoot\Private\*.ps1 -ErrorAction SilentlyContinue -Recurse )
 
 # Import the necessary .NET libraries
 if ($PSEdition -eq 'core') {
-    Write-Error "Module can not be run on core edition!"
-    exit
+    throw 'PSWebCrawler requires Windows PowerShell Desktop edition.'
 }
 elseif ($PSEdition -eq 'desktop') {
     $Assembly = @( Get-ChildItem -Path $PSScriptRoot\Lib\Net45\*.dll -ErrorAction SilentlyContinue )
@@ -1934,17 +1945,6 @@ $script:ModuleName = "PSWebCrawler"
 # Get the installed version of the module
 $ModuleVersion = [version]"0.1.0"
 
-# Find the latest version of the module in the PSGallery repository
-$LatestModule = Find-Module -Name $ModuleName -Repository PSGallery -ErrorAction SilentlyContinue
-
-try {
-    if ($ModuleVersion -lt $LatestModule.Version) {
-        Write-Host "An update is available for $($ModuleName). Installed version: $($ModuleVersion). Latest version: $($LatestModule.Version)." -ForegroundColor Red
-    } 
-}
-catch {
-    Write-Error "An error occurred while checking for updates: $_"
-}
 
 Set-Alias -Name "PSWC" -Value Start-PSWebCrawler
 Set-Alias -Name "PSWebCrawler" -Value Start-PSWebCrawler
@@ -1953,14 +1953,3 @@ Write-Host "Welcome to PSWebCrawler! ($($moduleVersion))" -ForegroundColor DarkY
 Write-Host "Start with command: " -ForegroundColor Yellow -NoNewline
 Write-Host "PSWC" -ForegroundColor DarkGreen
 #Write-Host "Some important changes and informations that may be of interest to you:" -ForegroundColor Yellow
-#Write-Host "- You can filter the built-in snippets (category: 'Example') by setting 'ShowExampleSnippets' to '`$false' in config. Use: 'Save-PAFConfiguration -settingName ""ShowExampleSnippets"" -settingValue `$false'" -ForegroundColor Yellow
-
-# Set the default output folder path to the user's document folder under the 'PSWebCrawler' directory if 'outpath' is not provided
-if (-not (Get-PSWCoutPath -FolderName $ModuleName -Type UserDoc)) {
-    $script:loganddatafolderPath = New-PSWCoutPath -FolderName $ModuleName -Type UserDoc
-    Write-Log "Log and Data folder '$script:loganddatafolderPath' was created successfully."
-}
-else {
-    $script:loganddatafolderPath = Get-PSWCoutPath -FolderName $ModuleName -Type UserDoc
-    Write-Verbose "Log and Data folder '$script:loganddatafolderPath' already exists."
-}
