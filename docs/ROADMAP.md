@@ -37,7 +37,7 @@ Existing legacy `-onlyDomains` is not qualification of new `-Mode Domains`.
 
 ## Publication boundary
 
-Current manifest remains 0.1.0; the existing planned target is 0.2.0, with manual
-publication owned by the user. This roadmap neither bumps a version nor creates a
+Current package metadata is prepared for 0.2.0, not published, with manual
+publication owned by the user. This roadmap does not create a
 tag, GitHub Release or Gallery package. Publish only the explicitly selected
 contracts/analysis scope, without advertising deferred modes or transport.

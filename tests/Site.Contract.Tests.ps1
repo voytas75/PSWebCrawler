@@ -69,7 +69,7 @@ InModuleScope PSWebCrawler {
             $t=$null;$e=$null;$ast=[Management.Automation.Language.Parser]::ParseFile($ExecutionContext.SessionState.Module.Path,[ref]$t,[ref]$e)
             @($ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Invoke-PSWebCrawler'},$false)).Count | Should Be 1
             ($data.FunctionsToExport -join ',') | Should Be 'Start-PSWebCrawler,Invoke-PSWebCrawler'
-            $data.ModuleVersion | Should Be '0.1.0';$data.PowerShellVersion | Should Be '5.1'
+            $data.ModuleVersion | Should Be '0.2.0';$data.PowerShellVersion | Should Be '5.1'
             $data.DotNetFrameworkVersion | Should Be '4.5';$data.CompatiblePSEditions | Should Be 'Desktop'
             ($data.RequiredModules -join ',') | Should Be 'PSparseHTML'
             foreach($alias in 'PSWC','PSWebCrawler'){(Get-Alias $alias).Definition | Should Be 'Start-PSWebCrawler'}

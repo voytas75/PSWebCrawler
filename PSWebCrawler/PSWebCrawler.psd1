@@ -12,7 +12,7 @@
 RootModule = 'PSWebCrawler'
 
 # Version number of this module.
-ModuleVersion = '0.1.0'
+ModuleVersion = '0.2.0'
 
 # Supported PSEditions
 CompatiblePSEditions = 'Desktop'
@@ -107,7 +107,7 @@ PrivateData = @{
         IconUri = 'https://raw.githubusercontent.com/voytas75/PSWebCrawler/master/PSWebCrawler/images/PSWC.png'
 
         # ReleaseNotes of this module
-        ReleaseNotes = 'https://raw.githubusercontent.com/voytas75/PSWebCrawler/master/PSWebCrawler/docs/ReleaseNotes.md'
+        ReleaseNotes = '0.2.0: New API contracts/analysis and offline-tested Site orchestration only; Site fails closed with CapabilityUnavailable, Domains with UnsupportedMode. Legacy network-capable commands retained. C2/B2 fetch integration, HTTPS/TLS and S7 Domains deferred. Full notes: https://raw.githubusercontent.com/voytas75/PSWebCrawler/master/PSWebCrawler/docs/ReleaseNotes.md'
 
         # Prerelease string of this module
         # Prerelease = ''
