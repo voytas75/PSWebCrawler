@@ -2,7 +2,7 @@
 
 ## Release status
 Package metadata is prepared for 0.2.0; not published or ready for Gallery installation yet. The earlier PSGallery inspection found latest published 0.0.5; the repository manifest is now 0.2.0, which this metadata-only preparation has not published. The publisher performs release publication. Commands below targeting 0.2.0 apply only after publication.
-Current owner-approved release scope supersedes the earlier both-modes requirement: contracts/analysis only, without enabled production fetching in the new API. `Invoke-PSWebCrawler` provides offline-testable Site contracts, analysis and orchestration; actual Site invocation fails closed with `CapabilityUnavailable`, and Domains with `UnsupportedMode`. Legacy `Start-PSWebCrawler` / `PSWC` / `PSWebCrawler` remain network-capable; this scope does not disable them. C2/B2 transport integration, HTTPS/TLS and S7 Domains are deferred to the [future roadmap](ROADMAP.md), not blockers for this release. The [manual Windows preproduction](WINDOWS-PREPRODUCTION.md) baseline passed 78/78; it does not qualify deferred features.
+Current owner-approved release scope supersedes the earlier both-modes requirement: contracts/analysis only, without enabled production fetching in the new API. The only public function is `Start-PSWebCrawler`, with aliases `PSWC` and `PSWebCrawler`. `Invoke-PSWebCrawler` is private implementation for offline-testable Site contracts, analysis and orchestration; internal Site invocation fails closed with `CapabilityUnavailable`, and Domains with `UnsupportedMode`. Legacy `Start-PSWebCrawler` / `PSWC` / `PSWebCrawler` remain network-capable; this scope does not disable them. C2/B2 transport integration, HTTPS/TLS and S7 Domains are deferred to the [future roadmap](ROADMAP.md), not blockers for this release. The [manual Windows preproduction](WINDOWS-PREPRODUCTION.md) baseline passed 78/78; it does not qualify deferred features.
 
 ## Future enabled-fetch transport prerequisite (not a current release gate)
 New API runtime contract: Windows PowerShell 5.1 Desktop with .NET Framework 4.8 or newer. This is the approved project requirement, not the minimum prerequisite of WMF 5.1. Scratch offline and local HTTP transport tests passed on the current .NET Framework 4.8 host; they do not establish production API or HTTPS acceptance. The previous 4.5.2 minimum-runtime target is superseded, not retrospectively passed. This decision does not change the legacy module manifest or imply PowerShell 7 support.
@@ -38,8 +38,8 @@ Get-Command -Module PSWebCrawler
 ```
 Do not change repository trust/security policy merely to complete installation. Resolve any installation conflict explicitly; do not default to Force/AllowClobber.
 
-## New API contracts now; fetching and Domains later
-New Invoke-PSWebCrawler requires explicit -Mode Site|Domains. It is not a rename-only replacement for legacy commands: Depth and output semantics differ.
+## Internal contracts now; public new API and fetching later
+Private `Invoke-PSWebCrawler` requires explicit -Mode Site|Domains in module-scope tests. It is not exported or supported for operator invocation, and is not a replacement for legacy commands: Depth and output semantics differ.
 - Start depth=0; Depth 0 analyzes start only; traversal is BFS.
 - Offline-tested Site orchestration is bounded to the start host; future Domains targets at most one discovered page per host. Neither is enabled production fetching now.
 - One structured result: Run, Pages[], Links[], Errors[]; Run.SchemaVersion='1.0'; explicit partial/failure outcomes.

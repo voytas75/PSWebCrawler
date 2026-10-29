@@ -22,6 +22,8 @@ foreach($entry in $manifest | Where-Object {$_.Path -match '\.(ps1|psm1|psd1)$'}
         foreach($case in $cases){foreach($element in $case.CommandElements){if($element -is [Management.Automation.Language.CommandParameterAst] -and $element.ParameterName -in @('Skip','Pending','TestCases')){throw 'Inactive or expanded matrix case.'}}}
     }
 }
+$data=Import-PowerShellDataFile (Join-Path $root 'PSWebCrawler\PSWebCrawler.psd1')
+if(($data.FunctionsToExport -join ',') -cne 'Start-PSWebCrawler' -or ($data.AliasesToExport -join ',') -cne 'PSWC,PSWebCrawler'){throw 'Public export contract changed.'}
 $tokens=$null;$errors=$null
 $module=[Management.Automation.Language.Parser]::ParseFile((Join-Path $root 'PSWebCrawler\PSWebCrawler.psm1'),[ref]$tokens,[ref]$errors)
 $functions=@($module.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst]},$true))

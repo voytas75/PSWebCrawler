@@ -142,7 +142,7 @@ InModuleScope PSWebCrawler {
             }
             $r=Invoke-PSWebCrawler -Url https://site.test/ -Mode Site;$r.Run.Parameters.Depth | Should Be 1;$r.Pages.Count | Should Be 3
             $path=[IO.Path]::ChangeExtension($ExecutionContext.SessionState.Module.Path,'psd1').Replace("'","''")
-            $code="`$ProgressPreference='SilentlyContinue';Import-Module '$path';try {Invoke-PSWebCrawler -Url https://site.test/ -Mode Site;exit 9} catch {[Console]::Out.Write(`$_.FullyQualifiedErrorId);exit 7}"
+            $code="`$ProgressPreference='SilentlyContinue';Import-Module '$path';try {& (Get-Module PSWebCrawler) {Invoke-PSWebCrawler -Url https://site.test/ -Mode Site};exit 9} catch {[Console]::Out.Write(`$_.FullyQualifiedErrorId);exit 7}"
             $i=New-Object Diagnostics.ProcessStartInfo;$i.FileName=Join-Path $PSHOME 'powershell.exe';$i.Arguments='-NoProfile -NonInteractive -EncodedCommand '+[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($code));$i.UseShellExecute=$false;$i.RedirectStandardOutput=$true;$i.RedirectStandardError=$true
             $p=New-Object Diagnostics.Process;$p.StartInfo=$i
             try {[void]$p.Start();$out=$p.StandardOutput.ReadToEndAsync();$err=$p.StandardError.ReadToEndAsync();if(-not $p.WaitForExit(20000)){$p.Kill();throw 'Child deadline'}

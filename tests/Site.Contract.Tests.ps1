@@ -68,7 +68,7 @@ InModuleScope PSWebCrawler {
             $path=[IO.Path]::ChangeExtension($ExecutionContext.SessionState.Module.Path,'psd1');$data=Import-PowerShellDataFile $path
             $t=$null;$e=$null;$ast=[Management.Automation.Language.Parser]::ParseFile($ExecutionContext.SessionState.Module.Path,[ref]$t,[ref]$e)
             @($ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Invoke-PSWebCrawler'},$false)).Count | Should Be 1
-            ($data.FunctionsToExport -join ',') | Should Be 'Start-PSWebCrawler,Invoke-PSWebCrawler'
+            ($data.FunctionsToExport -join ',') | Should Be 'Start-PSWebCrawler'
             $data.ModuleVersion | Should Be '0.2.0';$data.PowerShellVersion | Should Be '5.1'
             $data.DotNetFrameworkVersion | Should Be '4.5';$data.CompatiblePSEditions | Should Be 'Desktop'
             ($data.RequiredModules -join ',') | Should Be 'PSparseHTML'
@@ -84,18 +84,18 @@ InModuleScope PSWebCrawler {
             foreach($name in 'Json','OutputPath','Transport','AllowIntranet'){$command.Parameters.ContainsKey($name) | Should Be $false}
         }
         It '02 fresh real import exposes commands and survives' {
-            $c=Invoke-SiteChild "[pscustomobject]@{New=(Get-Command Invoke-PSWebCrawler -Module PSWebCrawler).Name;Legacy=(Get-Command Start-PSWebCrawler -Module PSWebCrawler).Name;Alias=(Get-Alias PSWC).Definition;Other=(Get-Alias PSWebCrawler).Definition;Release=(& (Get-Module PSWebCrawler) {Get-PSWCFrameworkRelease})}|ConvertTo-Json -Compress"
+            $c=Invoke-SiteChild "[pscustomobject]@{PublicInvoke=@(Get-Command Invoke-PSWebCrawler -Module PSWebCrawler -ErrorAction SilentlyContinue).Count;Functions=((Get-Module PSWebCrawler).ExportedFunctions.Keys -join ',');Private=(& (Get-Module PSWebCrawler) {(Get-Command Invoke-PSWebCrawler -ErrorAction Stop).Name});Legacy=(Get-Command Start-PSWebCrawler -Module PSWebCrawler).Name;Alias=(Get-Alias PSWC).Definition;Other=(Get-Alias PSWebCrawler).Definition;Release=(& (Get-Module PSWebCrawler) {Get-PSWCFrameworkRelease})}|ConvertTo-Json -Compress"
             $c.Exit | Should Be 0;$c.Gone | Should Be $true;$c.Err | Should Be '';$v=$c.Out | ConvertFrom-Json
-            $v.New | Should Be 'Invoke-PSWebCrawler';$v.Legacy | Should Be 'Start-PSWebCrawler'
+            $v.PublicInvoke | Should Be 0;$v.Functions | Should Be 'Start-PSWebCrawler';$v.Private | Should Be 'Invoke-PSWebCrawler';$v.Legacy | Should Be 'Start-PSWebCrawler'
             $v.Alias | Should Be 'Start-PSWebCrawler';$v.Other | Should Be 'Start-PSWebCrawler'
             ($v.Release -is [int] -and $v.Release -ge 528040) | Should Be $true
         }
         It '03 missing Mode fails without prompts or results in a child' {
-            $c=Invoke-SiteChild 'try {Invoke-PSWebCrawler -Url https://site.test/;exit 9} catch {[Console]::Out.Write($_.FullyQualifiedErrorId);exit 7}'
+            $c=Invoke-SiteChild 'try {& (Get-Module PSWebCrawler) {Invoke-PSWebCrawler -Url https://site.test/};exit 9} catch {[Console]::Out.Write($_.FullyQualifiedErrorId);exit 7}'
             $c.Exit | Should Be 7;$c.Gone | Should Be $true;$c.Err | Should Be '';$c.Out | Should Match '^InvalidArgument,Invoke-PSWebCrawler\s*$'
         }
         It '04 missing Url fails without prompts or results in a child' {
-            $c=Invoke-SiteChild 'try {Invoke-PSWebCrawler -Mode Site;exit 9} catch {[Console]::Out.Write($_.FullyQualifiedErrorId);exit 7}'
+            $c=Invoke-SiteChild 'try {& (Get-Module PSWebCrawler) {Invoke-PSWebCrawler -Mode Site};exit 9} catch {[Console]::Out.Write($_.FullyQualifiedErrorId);exit 7}'
             $c.Exit | Should Be 7;$c.Gone | Should Be $true;$c.Err | Should Be '';$c.Out | Should Match '^InvalidArgument,Invoke-PSWebCrawler\s*$'
         }
         It '05 Mode validates raw inputs and canonical casing' {
@@ -168,7 +168,7 @@ $m=Get-Module PSWebCrawler
     function script:Invoke-PSWCFetchPage {throw 'Fetch reached'}
     function script:New-PSWCResult {throw 'Run reached'}
 }
-try {Invoke-PSWebCrawler -Mode Site -Depth 0 -Url 'SCHEME://site.test/';exit 9}
+try {& $m {Invoke-PSWebCrawler -Mode Site -Depth 0 -Url 'SCHEME://site.test/'};exit 9}
 catch {[Console]::Out.Write($_.FullyQualifiedErrorId);exit 7}
 '@
                 $c=Invoke-SiteChild $body.Replace('SCHEME',$scheme)
@@ -338,7 +338,7 @@ $m=Get-Module PSWebCrawler
         [pscustomobject]@{RequestedUrl=$Uri.AbsoluteUri;FinalUrl=$Uri.AbsoluteUri;HttpStatus=200;ContentType='text/html';Content='<title>child</title>';FetchedAtUtc='2026-10-28T12:00:00.0000000Z';Error=$null}
     }
 }
-$output=@(Invoke-PSWebCrawler -Mode Site -Url https://site.test/ -Depth 0)
+$output=@(& $m {Invoke-PSWebCrawler -Mode Site -Url https://site.test/ -Depth 0})
 if($output.Count -ne 1){throw 'Expected one result'}
 & $m {if($script:childCapabilities -ne 1 -or $script:childPolicies -ne 1 -or $script:childFetches -ne 1){throw 'Boundary counts failed'}}
 $output[0] | ConvertTo-Json -Depth 20 -Compress

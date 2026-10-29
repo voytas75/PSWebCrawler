@@ -24,6 +24,9 @@ in a fresh child. The guard verifies every prepared file before running tests.
 The full manual command runs the existing S2 (32), S3 (14), S4 (16), baseline (7),
 dependency/import (5), and import-runtime (4) gates in fresh processes. These are
 78 expected test outcomes; no skip/pending or reduced case count is accepted.
+The public export gate requires only `Start-PSWebCrawler` and the two legacy
+aliases; fresh imports must not expose `Invoke-PSWebCrawler`. Contract tests
+access that retained private implementation in module scope.
 Fixtures substitute private policy/transport boundaries with counted page facts;
 legacy network routines are not intentionally exercised. This is not a network
 blocker, sandbox, production crawler acceptance, dependency binary safety proof,

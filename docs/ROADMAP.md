@@ -2,7 +2,9 @@
 
 ## Current release boundary
 
-The owner-approved current release is contracts/analysis only for the new API,
+The only public function is `Start-PSWebCrawler`, with aliases `PSWC` and
+`PSWebCrawler`; `Invoke-PSWebCrawler` remains private, not an operator API.
+The owner-approved current release is contracts/analysis only for that internal implementation,
 with no enabled production fetching. Site contracts, URI/extraction analysis and
 bounded orchestration have a 78/78 manual Windows baseline using counted private
 policy/transport fixtures. Site remains `CapabilityUnavailable`; Domains remains
