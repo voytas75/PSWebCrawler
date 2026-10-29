@@ -2,10 +2,10 @@
 
 ## Release status
 Target release: 0.2.0; not published or ready for installation yet. PSGallery inspection found latest published 0.0.5; repository baseline manifest is 0.1.0, not present in the inspected Gallery version list. The publisher performs release publication. Commands below targeting 0.2.0 apply only after publication.
-Release scope approved: 0.2.0 must ship both Site and Domains. Both require implementation and acceptance before publication; do not publish a Site-only build as this planned release. Do not advertise an unimplemented mode. Invoke-PSWebCrawler currently does not exist in the development implementation.
+Release scope approved: 0.2.0 must ship both Site and Domains. Both require implementation and acceptance before publication; do not publish a Site-only build as this planned release. Do not advertise an unimplemented mode. Invoke-PSWebCrawler exists as offline-testable Site orchestration in the development implementation; real transport remains unavailable and Domains is unsupported. See [manual Windows preproduction](WINDOWS-PREPRODUCTION.md) for the repository test package and its limits.
 
 ## New API transport prerequisite (selected design; qualification pending)
-New API runtime contract: Windows PowerShell 5.1 Desktop with .NET Framework 4.5.2 or newer, matching the official WMF 5.1 prerequisite (https://learn.microsoft.com/en-us/previous-versions/powershell/scripting/windows-powershell/wmf/setup/install-configure). Runtime acceptance on the minimum version remains unverified; tests on the current host do not prove minimum-version behavior. This correction does not change the legacy module manifest.
+New API runtime contract: Windows PowerShell 5.1 Desktop with .NET Framework 4.8 or newer. This is the approved project requirement, not the minimum prerequisite of WMF 5.1. Scratch offline and local HTTP transport tests passed on the current .NET Framework 4.8 host; they do not establish production API or HTTPS acceptance. The previous 4.5.2 minimum-runtime target is superseded, not retrospectively passed. This decision does not change the legacy module manifest or imply PowerShell 7 support.
 New API uses Windows PowerShell 5.1 with an explicit curl.exe adapter. Proposed minimum curl version: 8.20.0; final prerequisite follows transport acceptance. Existing host has 8.21.0, not a guarantee for other users. Legacy commands do not acquire this new prerequisite by design. Users opting into Invoke-PSWebCrawler must check curl availability/version; if absent or unsupported, new API must fail clearly without installation or weaker fallback. No data conversion required by this environment prerequisite. Adapter not implemented/qualified yet.
 
 ## Migration policy
@@ -15,7 +15,7 @@ Legacy commands Start-PSWebCrawler, PSWC and PSWebCrawler remain the compatibili
 ## Known behavior changes
 Import no longer checks PSGallery, clears the console or creates the output directory. Unsupported Core import raises an error instead of exiting the calling process. Legacy operations initialize output lazily before logging; menu-only invocation does not create output or log.
 If a script assumes the output directory exists immediately after Import-Module, update that script to create/validate its explicitly selected directory before its own writes. Do not use ShowCacheFolder as a setup workaround: it invokes Explorer. Exact output initialization/explicit-path compatibility remains a release gate.
-Import still prints welcome text and modifies TLS in the current development implementation; do not describe it as completely side-effect-free or ready for clean agent channels.
+Import no longer prints welcome text, but still modifies TLS in the current development implementation; do not describe it as completely side-effect-free.
 
 ## Before upgrading
 1. Record installed and loaded versions:

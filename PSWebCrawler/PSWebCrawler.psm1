@@ -1879,6 +1879,255 @@ function Get-RandomUserAgent {
 }
 
 
+# S2: shared result and offline-testable Site Depth 0. Real transport is unavailable.
+function Get-PSWCFrameworkRelease {
+    try { (Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' -Name Release -ErrorAction Stop).Release }
+    catch { return $null }
+}
+
+function Test-PSWCCapability { return $false }
+
+function Get-PSWCMonotonicSeconds { [Diagnostics.Stopwatch]::GetTimestamp() / [double][Diagnostics.Stopwatch]::Frequency }
+
+function Get-PSWCStartPolicy {
+    param([uri]$Uri,$Parameters)
+    # No production policy implementation or implicit admission in this slice.
+    [pscustomobject]@{Allowed=$false;Code='NetworkTargetDenied'}
+}
+
+function Invoke-PSWCFetchPage {
+    param([uri]$Uri,$Parameters)
+    throw [InvalidOperationException]::new('The page transport is unavailable.')
+}
+
+function Resolve-PSWCCanonicalUri {
+    param([string]$Url,[uri]$BaseUri)
+    if([string]::IsNullOrWhiteSpace($Url) -or $Url -match '[\p{Cc}\\]|%(?![0-9A-Fa-f]{2})'){return $null}
+    $uri=$null
+    try {
+        if($BaseUri){$valid=[uri]::TryCreate($BaseUri,$Url,[ref]$uri)}
+        else {$valid=[uri]::TryCreate($Url,[UriKind]::Absolute,[ref]$uri)}
+        if(-not $valid -or $uri.Scheme -notin @('http','https') -or -not $uri.Host -or $uri.UserInfo){return $null}
+        $builder=[UriBuilder]::new($uri);$builder.Host=$uri.IdnHost;$builder.Fragment=''
+        return $builder.Uri
+    }
+    catch { return $null }
+}
+
+function New-PSWCResult {
+    param($Run,[object[]]$Pages=@(),[object[]]$Links=@(),[object[]]$Errors=@())
+    [pscustomobject][ordered]@{Run=$Run;Pages=[object[]]@($Pages);Links=[object[]]@($Links);Errors=[object[]]@($Errors)}
+}
+
+function New-PSWCError {
+    param([string]$Stage,[string]$Url,[string]$Code)
+    $messages=@{
+        NetworkTargetDenied='The network target is not admitted.'
+        DnsFailure='The network target could not be resolved.'
+        RobotsDenied='The page is not admitted by robots policy.'
+        RobotsFetchFailed='The robots policy could not be retrieved.'
+        RobotsInvalid='The robots policy could not be interpreted.'
+        HttpError='The page request returned an unsuccessful HTTP status.'
+        Timeout='The page request exceeded its deadline.'
+        ResponseTooLarge='The page response exceeded the body limit.'
+        RedirectLimit='The page request exceeded the redirect limit.'
+        RedirectOutsideScope='The page redirect left the admitted scope.'
+        ParseError='The page content could not be analyzed.'
+        UnexpectedFailure='The crawl could not continue.'
+        UnsupportedContentEncoding='The page response uses an unsupported content encoding.'
+        HeaderLimitExceeded='The page response exceeded the header limit.'
+    }
+    if(-not $messages.ContainsKey($Code)){$Code='UnexpectedFailure'}
+    [pscustomobject][ordered]@{Stage=$Stage;Url=$Url;Code=$Code;Message=$messages[$Code]}
+}
+
+function Get-PSWCPageAnalysis {
+    param([string]$Content,[uri]$FinalUri,[uri]$StartUri,[int]$MaxLinks)
+    $document=New-Object HtmlAgilityPack.HtmlDocument
+    $document.LoadHtml($Content)
+    $source=$FinalUri.AbsoluteUri;$base=$FinalUri;$title=$null
+    $node=$document.DocumentNode.SelectSingleNode('//title')
+    if($node){$text=[HtmlAgilityPack.HtmlEntity]::DeEntitize($node.InnerText).Trim();if($text){$title=$text}}
+    foreach($node in $document.DocumentNode.SelectNodes('//base[@href]')){
+        $candidate=Resolve-PSWCCanonicalUri -Url ([HtmlAgilityPack.HtmlEntity]::DeEntitize($node.GetAttributeValue('href',''))) -BaseUri $FinalUri
+        if($candidate){$base=$candidate;break}
+    }
+    $metadata=New-Object Collections.ArrayList;$images=New-Object Collections.ArrayList
+    $contacts=New-Object Collections.ArrayList;$links=New-Object Collections.ArrayList
+    $imageSeen=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $contactSeen=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $linkSeen=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach($node in $document.DocumentNode.SelectNodes('//meta[@name]')){
+        $name=[HtmlAgilityPack.HtmlEntity]::DeEntitize($node.GetAttributeValue('name','')).Trim()
+        if(-not $name -or $null -eq $node.Attributes['content']){continue}
+        $value=[HtmlAgilityPack.HtmlEntity]::DeEntitize($node.Attributes['content'].Value).Trim()
+        [void]$metadata.Add([pscustomobject][ordered]@{Name=$name;Value=$value;SourceUrl=$source})
+    }
+    foreach($node in $document.DocumentNode.SelectNodes('//img[@src]')){
+        $target=Resolve-PSWCCanonicalUri -Url ([HtmlAgilityPack.HtmlEntity]::DeEntitize($node.GetAttributeValue('src',''))) -BaseUri $base
+        if($target -and $imageSeen.Add($target.AbsoluteUri)){[void]$images.Add($target.AbsoluteUri)}
+    }
+    $linkLimit=$false
+    foreach($node in $document.DocumentNode.SelectNodes('//a[@href]')){
+        $href=[HtmlAgilityPack.HtmlEntity]::DeEntitize($node.GetAttributeValue('href','')).Trim()
+        $kind=$null;$values=@()
+        if($href.StartsWith('mailto:',[StringComparison]::OrdinalIgnoreCase)){
+            $kind='Email';$address=($href.Substring(7) -split '\?',2)[0]
+            $values=[uri]::UnescapeDataString($address) -split ','
+        }
+        elseif($href.StartsWith('tel:',[StringComparison]::OrdinalIgnoreCase)){
+            $kind='Phone';$values=@([uri]::UnescapeDataString($href.Substring(4)))
+        }
+        if($kind){
+            foreach($value in $values){
+                $value=$value.Trim()
+                if($value -and $contactSeen.Add($kind+':'+$value)){[void]$contacts.Add([pscustomobject][ordered]@{Kind=$kind;Value=$value;SourceUrl=$source})}
+            }
+            continue
+        }
+        $target=Resolve-PSWCCanonicalUri -Url $href -BaseUri $base
+        if(-not $target -or -not $linkSeen.Add($target.AbsoluteUri)){continue}
+        if($links.Count -ge $MaxLinks){$linkLimit=$true;continue}
+        $relation='ExternalHost';$admission='OutsideScope'
+        if($target.IdnHost -eq $StartUri.IdnHost){$relation='SameHost';$admission='DepthLimit'}
+        [void]$links.Add([pscustomobject][ordered]@{SourceUrl=$source;TargetUrl=$target.AbsoluteUri;TargetHost=$target.IdnHost;Relation=$relation;Admission=$admission})
+    }
+    [pscustomobject]@{
+        Extraction=[pscustomobject][ordered]@{Title=$title;Metadata=[object[]]$metadata.ToArray();ImageUrls=[string[]]$images.ToArray();ContactCandidates=[object[]]$contacts.ToArray()}
+        Links=[object[]]$links.ToArray();LinkLimit=$linkLimit
+    }
+}
+
+function Invoke-PSWebCrawler {
+    [CmdletBinding(PositionalBinding=$false)]
+    param(
+        [object]$Url,[object]$Mode,[object]$Depth=1,[object]$MaxPages=50,[object]$MaxHosts=20,
+        [object]$MaxRunSeconds=300,[object]$TimeoutSeconds=15,[object]$MaxResponseBytes=5242880,
+        [object]$MinHostIntervalSeconds=1,[object]$MaxRedirects=5,[object]$MaxLinks=10000
+    )
+    $invalid=$false;$start=$null
+    if($Url -isnot [string] -or -not $Url -or $Url -ne $Url.Trim()){$invalid=$true}
+    else {$start=Resolve-PSWCCanonicalUri -Url $Url;if(-not $start){$invalid=$true}}
+    if($Mode -isnot [string] -or $Mode -notin @('Site','Domains')){$invalid=$true}
+    elseif($Mode -ieq 'Site'){$Mode='Site'}else{$Mode='Domains'}
+    $effective=[ordered]@{
+        Url=if($start){$start.AbsoluteUri}else{$null};Mode=$Mode;Depth=$Depth;MaxPages=$MaxPages;MaxHosts=$MaxHosts
+        MaxRunSeconds=$MaxRunSeconds;TimeoutSeconds=$TimeoutSeconds;MaxResponseBytes=$MaxResponseBytes
+        MinHostIntervalSeconds=$MinHostIntervalSeconds;MaxRedirects=$MaxRedirects;MaxLinks=$MaxLinks
+    }
+    foreach($name in @('Depth','MaxPages','MaxHosts','MaxRunSeconds','TimeoutSeconds','MaxResponseBytes','MinHostIntervalSeconds','MaxRedirects','MaxLinks')){
+        $value=$effective[$name];$minimum=1;if($name -eq 'Depth'){$minimum=0}
+        if($null -eq $value -or $value.GetType() -notin @([sbyte],[byte],[int16],[uint16],[int],[uint32],[long],[uint64])){$invalid=$true;continue}
+        if($value -lt $minimum -or $value -gt 2147483647){$invalid=$true;continue}
+        if($name -eq 'MaxResponseBytes'){$effective[$name]=[long]$value}else{$effective[$name]=[int]$value}
+    }
+    if($Mode -eq 'Site' -and $PSBoundParameters.ContainsKey('MaxHosts')){$invalid=$true}
+    if($invalid){
+        $PSCmdlet.ThrowTerminatingError([Management.Automation.ErrorRecord]::new([ArgumentException]::new('The crawl arguments are invalid.'),'InvalidArgument',[Management.Automation.ErrorCategory]::InvalidArgument,$null))
+    }
+    if($Mode -eq 'Domains'){
+        $PSCmdlet.ThrowTerminatingError([Management.Automation.ErrorRecord]::new([NotSupportedException]::new('The requested mode is unavailable.'),'UnsupportedMode',[Management.Automation.ErrorCategory]::NotImplemented,$null))
+    }
+    $release=$null;try {$release=Get-PSWCFrameworkRelease}catch {}
+    if($PSVersionTable.PSEdition -ne 'Desktop' -or $PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -ne 1 -or $release -isnot [int] -or $release -lt 528040){
+        $PSCmdlet.ThrowTerminatingError([Management.Automation.ErrorRecord]::new([NotSupportedException]::new('Windows PowerShell 5.1 Desktop and .NET Framework 4.8 or newer are required.'),'CapabilityUnavailable',[Management.Automation.ErrorCategory]::NotImplemented,$null))
+    }
+    if(-not (Test-PSWCCapability)){
+        $PSCmdlet.ThrowTerminatingError([Management.Automation.ErrorRecord]::new([NotSupportedException]::new('The requested crawl capability is unavailable.'),'CapabilityUnavailable',[Management.Automation.ErrorCategory]::NotImplemented,$null))
+    }
+    $effective.MaxHosts=$null
+    $run=[pscustomobject][ordered]@{
+        SchemaVersion='1.0';RunId=[guid]::NewGuid().ToString();Mode=$Mode;StartUrl=$start.AbsoluteUri
+        StartedAtUtc=[datetime]::UtcNow.ToString('o');FinishedAtUtc=$null;Parameters=[pscustomobject]$effective;Status='Completed';StopReason=$null
+    }
+    $result=New-PSWCResult -Run $run
+    $queue=[Collections.Generic.Queue[object]]::new()
+    $seen=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $relations=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $pages=New-Object Collections.ArrayList;$links=New-Object Collections.ArrayList;$errors=New-Object Collections.ArrayList
+    [void]$seen.Add($start.AbsoluteUri);$queue.Enqueue([pscustomobject]@{Uri=$start;Depth=0})
+    $deadline=(Get-PSWCMonotonicSeconds)+$effective.MaxRunSeconds
+    $timedOut=$false;$pageLimit=$false;$linkLimit=$false;$incomplete=$false;$startFailure=$null
+    while($queue.Count -gt 0){
+        if((Get-PSWCMonotonicSeconds) -ge $deadline){$timedOut=$true;break}
+        $item=$queue.Dequeue();$requested=$item.Uri.AbsoluteUri;$stage='Policy';$page=$null;$fault=$null
+        try {
+            $policy=Get-PSWCStartPolicy -Uri $item.Uri -Parameters $run.Parameters
+            if((Get-PSWCMonotonicSeconds) -ge $deadline){$timedOut=$true;break}
+            if($null -eq $policy -or $policy.Allowed -isnot [bool]){throw [InvalidOperationException]::new('Invalid policy reply.')}
+            if(-not $policy.Allowed){
+                $code=$policy.Code
+                if($code -notin @('NetworkTargetDenied','RobotsDenied','RobotsFetchFailed','RobotsInvalid')){$code='UnexpectedFailure'}
+                $fault=New-PSWCError -Stage Policy -Url $requested -Code $code
+                foreach($link in $links){if($link.TargetUrl -ceq $requested){$link.Admission='Blocked'}}
+            }
+            elseif($pages.Count -ge $effective.MaxPages){$pageLimit=$true;break}
+            else {
+                $stage='Fetch'
+                $page=[pscustomobject][ordered]@{RequestedUrl=$requested;FinalUrl=$null;Depth=$item.Depth;FetchedAtUtc=$null;HttpStatus=$null;ContentType=$null;Status='Failed';Extraction=$null}
+                [void]$pages.Add($page)
+                $reply=Invoke-PSWCFetchPage -Uri $item.Uri -Parameters $run.Parameters
+                if((Get-PSWCMonotonicSeconds) -ge $deadline){$timedOut=$true}
+                if($null -eq $reply){throw [InvalidOperationException]::new('Invalid fetch reply.')}
+                $final=Resolve-PSWCCanonicalUri -Url $reply.FinalUrl
+                if($final){$page.FinalUrl=$final.AbsoluteUri}
+                if($reply.HttpStatus -is [int] -and $reply.HttpStatus -ge 100 -and $reply.HttpStatus -le 599){$page.HttpStatus=$reply.HttpStatus}
+                if($reply.ContentType -is [string]){$token=($reply.ContentType -split ';',2)[0].Trim().ToLowerInvariant();if($token){$page.ContentType=$token}}
+                $stamp=[datetimeoffset]::MinValue
+                if($reply.FetchedAtUtc -is [string] -and $reply.FetchedAtUtc -match '^\d{4}-\d{2}-\d{2}T.*Z$' -and [datetimeoffset]::TryParse($reply.FetchedAtUtc,[ref]$stamp)){$page.FetchedAtUtc=$reply.FetchedAtUtc}
+                if($null -ne $reply.Error){
+                    $fault=New-PSWCError -Stage Fetch -Url $requested -Code $reply.Error.Code
+                    if($fault.Code -ne 'UnexpectedFailure' -and $reply.Error.Stage -in @('Resolve','Policy','Fetch','Parse')){$fault.Stage=$reply.Error.Stage}
+                }
+                elseif($null -eq $page.HttpStatus -or $page.HttpStatus -lt 200 -or $page.HttpStatus -ge 300){$fault=New-PSWCError -Stage Fetch -Url $requested -Code HttpError}
+                elseif($final -and $final.IdnHost -ne $start.IdnHost){$fault=New-PSWCError -Stage Policy -Url $requested -Code RedirectOutsideScope}
+                else {
+                    $stage='Parse'
+                    if(-not $final -or $page.ContentType -notin @('text/html','application/xhtml+xml') -or $reply.Content -isnot [string]){throw [FormatException]::new('The page is not analyzable HTML.')}
+                    # Analyzer keeps per-page discovery order; coordinator owns the global relation cap.
+                    $analysis=Get-PSWCPageAnalysis -Content $reply.Content -FinalUri $final -StartUri $start -MaxLinks ([int]::MaxValue)
+                    if((Get-PSWCMonotonicSeconds) -ge $deadline){$timedOut=$true}
+                    $page.Extraction=$analysis.Extraction;$page.Status='Fetched'
+                    foreach($link in $analysis.Links){
+                        if(-not $relations.Add($link.SourceUrl+"`n"+$link.TargetUrl)){continue}
+                        if($links.Count -ge $effective.MaxLinks){$linkLimit=$true;continue}
+                        if($link.Relation -eq 'SameHost'){
+                            if($item.Depth -lt $effective.Depth){
+                                $link.Admission='Eligible'
+                                if($seen.Add($link.TargetUrl)){$queue.Enqueue([pscustomobject]@{Uri=[uri]$link.TargetUrl;Depth=($item.Depth+1)})}
+                                elseif(@($errors | Where-Object {$_.Stage -eq 'Policy' -and $_.Url -ceq $link.TargetUrl -and $_.Code -in @('NetworkTargetDenied','RobotsDenied','RobotsFetchFailed','RobotsInvalid')}).Count){$link.Admission='Blocked'}
+                            }
+                            else {$link.Admission='DepthLimit'}
+                        }
+                        [void]$links.Add($link)
+                    }
+                }
+            }
+        }
+        catch {
+            $code='UnexpectedFailure';if($stage -eq 'Parse' -and $_.Exception -is [FormatException]){$code='ParseError'}
+            $fault=New-PSWCError -Stage $stage -Url $requested -Code $code
+            if($page){$page.Status='Failed';$page.Extraction=$null}
+        }
+        if((Get-PSWCMonotonicSeconds) -ge $deadline){$timedOut=$true}
+        if($fault){
+            [void]$errors.Add($fault)
+            if($item.Depth -eq 0){$startFailure=$fault.Code;break}
+            if($page -or $fault.Code -notin @('NetworkTargetDenied','RobotsDenied')){$incomplete=$true}
+        }
+        if($timedOut){break}
+    }
+    $useful=@($pages | Where-Object Status -eq 'Fetched').Count -gt 0
+    if($startFailure){$run.Status='Failed';$run.StopReason=$startFailure}
+    elseif($timedOut -or $pageLimit -or $linkLimit -or $incomplete){
+        $run.Status=if($useful){'Partial'}else{'Failed'}
+        $run.StopReason=if($timedOut){'TimeLimit'}elseif($pageLimit){'PageLimit'}elseif($linkLimit){'LinkLimit'}else{'Incomplete'}
+    }
+    $result.Pages=[object[]]$pages.ToArray();$result.Links=[object[]]$links.ToArray();$result.Errors=[object[]]$errors.ToArray()
+    $run.FinishedAtUtc=[datetime]::UtcNow.ToString('o')
+    return $result
+}
+
 $Public = @( Get-ChildItem -Path $PSScriptRoot\Public\*.ps1 -ErrorAction SilentlyContinue -Recurse )
 $Private = @( Get-ChildItem -Path $PSScriptRoot\Private\*.ps1 -ErrorAction SilentlyContinue -Recurse )
 
@@ -1949,7 +2198,4 @@ $ModuleVersion = [version]"0.1.0"
 Set-Alias -Name "PSWC" -Value Start-PSWebCrawler
 Set-Alias -Name "PSWebCrawler" -Value Start-PSWebCrawler
 
-Write-Host "Welcome to PSWebCrawler! ($($moduleVersion))" -ForegroundColor DarkYellow
-Write-Host "Start with command: " -ForegroundColor Yellow -NoNewline
-Write-Host "PSWC" -ForegroundColor DarkGreen
 #Write-Host "Some important changes and informations that may be of interest to you:" -ForegroundColor Yellow
