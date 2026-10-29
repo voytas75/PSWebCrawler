@@ -1,0 +1,9 @@
+# Exact-byte Doctor inventory: preserve committed LF on every platform.
+/PSWebCrawler/Data/useragents.txt text eol=lf
+/PSWebCrawler/docs/ReleaseNotes.md text eol=lf
+/PSWebCrawler/images/PSWCbanner.txt text eol=lf
+/PSWebCrawler/Private/Get-PSWCDoctor.ps1 text eol=lf
+/PSWebCrawler/Private/Get-PSWCImageUrls.ps1 text eol=lf
+/PSWebCrawler/Private/watch.ps1 text eol=lf
+/PSWebCrawler/PSWebCrawler.psd1 text eol=lf
+/PSWebCrawler/PSWebCrawler.psm1 text eol=lf

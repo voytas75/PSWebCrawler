@@ -44,6 +44,37 @@ signature validation or provenance**: an attacker who changes both files and
 inventory defeats it. Compare against a separately trusted package/revision.
 Doctor never rewrites the baseline or quarantines files.
 
+The root `.gitattributes` pins only the eight inventoried module text files to
+`text eol=lf`. Their committed LF bytes are the hash baseline; DLLs and PNG are
+not normalized. Native Git `core.autocrlf=true` otherwise converts those files
+to CRLF on checkout and produces a genuine byte-integrity FAIL despite a clean
+Git status. Do not change global Git settings or regenerate hashes to hide it.
+
+An existing clean Windows checkout may retain CRLF after pulling attributes.
+After authorized delivery, run native PowerShell from `D:\repos\PSWebCrawler`.
+These commands stop on local changes; never force checkout over user edits:
+
+```powershell
+$ErrorActionPreference = 'Stop'
+if (@(git status --porcelain).Count -or $LASTEXITCODE) { throw 'Stop: inspect local changes.' }
+git pull --ff-only
+if ($LASTEXITCODE) { throw 'Pull failed.' }
+if (@(git status --porcelain).Count -or $LASTEXITCODE) { throw 'Stop: inspect local changes.' }
+$paths = @(Get-Content .gitattributes | Where-Object { $_ -match '^/PSWebCrawler/.+ text eol=lf$' } | ForEach-Object { ($_ -split ' ')[0].Substring(1) })
+if ($paths.Count -ne 8) { throw 'Unexpected attribute scope; review before refreshing.' }
+# Re-materialize ONLY the eight clean, tracked text paths through Git attributes.
+git checkout-index --force -- $paths
+if ($LASTEXITCODE) { throw 'Checkout refresh failed.' }
+if (@(git status --porcelain).Count -or $LASTEXITCODE) { throw 'Unexpected checkout changes.' }
+git ls-files --eol -- $paths  # each must show i/lf w/lf and text eol=lf
+# Use a fresh native process for the actual post-sync health gate.
+powershell.exe -NoProfile -NonInteractive -Command 'Import-Module .\PSWebCrawler\PSWebCrawler.psd1 -Force -ErrorAction Stop; Start-PSWebCrawler -Doctor | ConvertTo-Json -Depth 6'
+```
+
+Require `PackageIntegrity=PASS` (11 files) and `HtmlSmoke=PASS`; known dependency
+HAP/legacy-version WARN remains distinct. A passing scratch candidate is not
+proof that the synchronized Windows checkout has been refreshed and verified.
+
 Maintainers only, after intentional reviewed package edits, use native Windows
 PowerShell `./tools/Update-PackageIntegrity.ps1`; it is offline and does not import
 the module. Review the resulting inventory, then qualify a fresh byte-matched
