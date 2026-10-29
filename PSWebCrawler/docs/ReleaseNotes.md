@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Current scope and acceptance
 
+- Added `Start-PSWebCrawler -Doctor`: separate offline diagnostic parameter set,
+  structured checks and shipped SHA256 integrity baseline; no repair or fetch.
+  See [Doctor](../../docs/DOCTOR.md). Legacy display-version mismatch is reported,
+  not silently corrected. Public exports and legacy crawl semantics unchanged.
+
 - Public export is `Start-PSWebCrawler` only, with aliases `PSWC` and `PSWebCrawler`. `Invoke-PSWebCrawler` is retained as private implementation, not a supported public API; internal contract tests remain.
 
 - Contracts/analysis only for the private new-API implementation: Site schema, URI/extraction analysis and bounded orchestration are qualified with counted private policy/transport fixtures, not enabled production fetching. Site fails closed with `CapabilityUnavailable`; Domains with `UnsupportedMode`.

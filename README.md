@@ -21,6 +21,12 @@ Module depends on the [HtmlAgilityPack (HAP)](https://github.com/zzzprojects/htm
 - Retrieval and storage of HTML head data
 - Cache folder creation and data folder setup
 
+## Offline diagnostics
+
+`Start-PSWebCrawler -Doctor` returns one structured offline health report; no URL,
+prompts or repair. Use `ConvertTo-Json -Depth 6`. See [Doctor](docs/DOCTOR.md)
+for PASS/WARN/FAIL semantics, import limitations and integrity boundaries.
+
 ## Installation
 
 The module is available on [PowerShell Gallery](https://www.powershellgallery.com/packages/PSWebCrawler).

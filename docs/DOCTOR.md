@@ -1,0 +1,54 @@
+# Offline Doctor (prepared 0.2.0)
+
+```powershell
+Import-Module .\PSWebCrawler\PSWebCrawler.psd1 -ErrorAction Stop
+$diagnostic = Start-PSWebCrawler -Doctor
+$diagnostic | ConvertTo-Json -Depth 6
+# PSWC -Doctor and PSWebCrawler -Doctor are equivalent.
+```
+
+Doctor is a separate parameter set: no URL is needed or accepted, and legacy
+crawl/extraction parameters cannot be combined with it. It returns exactly one
+object, without banner, prompts, log/output-directory creation, intentional
+DNS/HTTP, dependency installation, security changes, provider calls or repairs.
+It neither exits the process nor sets the caller's process exit code.
+
+`SchemaVersion='1.0'`, `Status=PASS|WARN|FAIL`, `Healthy` (no FAIL checks), and
+`Checks[]` are returned. Every check has `Name`, `Status`, `Expected`, `Actual`,
+`Message`, and `Hint`. FAIL wins over WARN; WARN is not a clean PASS.
+Facts include the manifest versus loaded module version/path, exact public
+function and alias targets, the known legacy display version mismatch, native
+PowerShell 5.1 Desktop, installed .NET release, available/loaded PSParseHTML,
+actual HAP assembly name/version/location, fixed in-memory title/href/entity
+parsing, and package integrity. PSParseHTML 3.0.6 is the tested dependency;
+other/multiple versions produce WARN, missing available/loaded dependency FAIL.
+HAP loaded first by PSParseHTML may differ from the bundled DLL: identity or
+location differences are WARN, not invented fatal incompatibility. Smoke behavior
+is checked separately. Unknown framework release is WARN; the new qualification
+uses .NET 4.8 release >=528040, distinct from the legacy manifest minimum 4.5.
+
+Doctor requires **successful module import**. It cannot diagnose a manifest,
+missing dependency/DLL, or private-script failure that prevents import; an
+external pre-import doctor is deferred. Existing import-time TLS initialization
+remains unchanged. Legacy crawling remains network-capable; only Doctor's path
+is offline. The current private Site/Domains unavailable guards remain unchanged.
+
+## Integrity baseline
+`PSWebCrawler/PackageIntegrity.json` commits deterministic relative module-file
+paths and SHA256 hashes, including manifest, module/private scripts, DLLs, data,
+images and packaged docs. The inventory itself is excluded (no circular digest).
+Repository-only docs/tests/tools and local evidence are outside this package
+inventory. Missing, changed, unsafe, duplicate, unreadable or empty entries FAIL.
+This detects differences against the shipped baseline, **not authenticity,
+signature validation or provenance**: an attacker who changes both files and
+inventory defeats it. Compare against a separately trusted package/revision.
+Doctor never rewrites the baseline or quarantines files.
+
+Maintainers only, after intentional reviewed package edits, use native Windows
+PowerShell `./tools/Update-PackageIntegrity.ps1`; it is offline and does not import
+the module. Review the resulting inventory, then qualify a fresh byte-matched
+candidate. Do not run regeneration as an automatic repair of a failing Doctor.
+
+Focused native Pester cases are in `tests/Doctor.Tests.ps1`; the established
+78-case preproduction gate remains unchanged. Doctor tests add a separate eight
+cases, not a replacement for baseline or future transport qualification.

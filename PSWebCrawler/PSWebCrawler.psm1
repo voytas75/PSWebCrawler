@@ -1373,6 +1373,11 @@ function Start-PSWebCrawler {
     .DESCRIPTION
     The 'WebCrawler' function allows you to process and web crawl.
 
+    .PARAMETER Doctor
+    Returns one offline diagnostic object without a URL, banner, prompt, logging or repair.
+    Includes PASS/WARN/FAIL checks and overall status; serialize with ConvertTo-Json -Depth 6.
+    Requires successful module import; legacy import TLS initialization is unchanged.
+
     .PARAMETER SavePath
     Specifies the path to save the feed data. This parameter is mandatory when 'AddFeed' is used.
 
@@ -1382,6 +1387,9 @@ function Start-PSWebCrawler {
 
     [CmdletBinding(DefaultParameterSetName = 'Default')]
     param (
+        [Parameter(ParameterSetName = 'Doctor', Mandatory = $true)]
+        [switch]$Doctor,
+
         [Parameter(ParameterSetName = 'WebCrawl', Mandatory = $true)]
         [Parameter(ParameterSetName = 'ShowAllElements', Mandatory = $true)]
         [Parameter(ParameterSetName = 'GetImageUrls', Mandatory = $true)]
@@ -1436,6 +1444,9 @@ function Start-PSWebCrawler {
         $GetHeadersAndValues
         
     )
+    if ($PSCmdlet.ParameterSetName -eq 'Doctor') {
+        return Get-PSWCDoctor
+    }
     # Initialize legacy output only when an operation needs it, before logging.
     if ($PSCmdlet.ParameterSetName -ne 'Default') {
         if (-not $script:loganddatafolderPath) {

@@ -24,6 +24,13 @@ in a fresh child. The guard verifies every prepared file before running tests.
 The full manual command runs the existing S2 (32), S3 (14), S4 (16), baseline (7),
 dependency/import (5), and import-runtime (4) gates in fresh processes. These are
 78 expected test outcomes; no skip/pending or reduced case count is accepted.
+Doctor adds a separate eight-case focused native Pester suite (`Doctor.Tests.ps1`),
+not included in or substituted for these unchanged 78 outcomes. From a fresh
+process: `Import-Module Pester -RequiredVersion 3.4.0; Invoke-Pester -Script
+./tests/Doctor.Tests.ps1 -PassThru`. Require 8 PASS and zero failed/pending/skipped;
+also preserve real `Start-PSWebCrawler -Doctor | ConvertTo-Json -Depth 6` output.
+See [Doctor](DOCTOR.md) for offline boundaries and integrity regeneration.
+
 The public export gate requires only `Start-PSWebCrawler` and the two legacy
 aliases; fresh imports must not expose `Invoke-PSWebCrawler`. Contract tests
 access that retained private implementation in module scope.

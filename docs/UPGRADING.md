@@ -17,6 +17,12 @@ Import no longer checks PSGallery, clears the console or creates the output dire
 If a script assumes the output directory exists immediately after Import-Module, update that script to create/validate its explicitly selected directory before its own writes. Do not use ShowCacheFolder as a setup workaround: it invokes Explorer. Exact output initialization/explicit-path compatibility remains a release gate.
 Import no longer prints welcome text, but still modifies TLS in the current development implementation; do not describe it as completely side-effect-free.
 
+## Offline diagnostics
+After successful import, run `Start-PSWebCrawler -Doctor | ConvertTo-Json -Depth 6`.
+See [Doctor](DOCTOR.md): this reports loaded version/path and dependency/package
+facts without repair. It cannot run if import fails and is not a provenance proof.
+The new separate Doctor parameter does not change legacy operation signatures.
+
 ## Before upgrading
 1. Record installed and loaded versions:
 ```powershell
