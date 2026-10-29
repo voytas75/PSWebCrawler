@@ -2,11 +2,11 @@
 
 ## Release status
 Target release: 0.2.0; not published or ready for installation yet. PSGallery inspection found latest published 0.0.5; repository baseline manifest is 0.1.0, not present in the inspected Gallery version list. The publisher performs release publication. Commands below targeting 0.2.0 apply only after publication.
-Release scope approved: 0.2.0 must ship both Site and Domains. Both require implementation and acceptance before publication; do not publish a Site-only build as this planned release. Do not advertise an unimplemented mode. Invoke-PSWebCrawler exists as offline-testable Site orchestration in the development implementation; real transport remains unavailable and Domains is unsupported. See [manual Windows preproduction](WINDOWS-PREPRODUCTION.md) for the repository test package and its limits.
+Current owner-approved release scope supersedes the earlier both-modes requirement: contracts/analysis only, without enabled production fetching in the new API. `Invoke-PSWebCrawler` provides offline-testable Site contracts, analysis and orchestration; actual Site invocation fails closed with `CapabilityUnavailable`, and Domains with `UnsupportedMode`. Legacy `Start-PSWebCrawler` / `PSWC` / `PSWebCrawler` remain network-capable; this scope does not disable them. C2/B2 transport integration, HTTPS/TLS and S7 Domains are deferred to the [future roadmap](ROADMAP.md), not blockers for this release. The [manual Windows preproduction](WINDOWS-PREPRODUCTION.md) baseline passed 78/78; it does not qualify deferred features.
 
-## New API transport prerequisite (selected design; qualification pending)
+## Future enabled-fetch transport prerequisite (not a current release gate)
 New API runtime contract: Windows PowerShell 5.1 Desktop with .NET Framework 4.8 or newer. This is the approved project requirement, not the minimum prerequisite of WMF 5.1. Scratch offline and local HTTP transport tests passed on the current .NET Framework 4.8 host; they do not establish production API or HTTPS acceptance. The previous 4.5.2 minimum-runtime target is superseded, not retrospectively passed. This decision does not change the legacy module manifest or imply PowerShell 7 support.
-New API uses Windows PowerShell 5.1 with an explicit curl.exe adapter. Proposed minimum curl version: 8.20.0; final prerequisite follows transport acceptance. Existing host has 8.21.0, not a guarantee for other users. Legacy commands do not acquire this new prerequisite by design. Users opting into Invoke-PSWebCrawler must check curl availability/version; if absent or unsupported, new API must fail clearly without installation or weaker fallback. No data conversion required by this environment prerequisite. Adapter not implemented/qualified yet.
+Future enabled fetching is designed to use Windows PowerShell 5.1 with an explicit curl.exe adapter. Proposed minimum curl version: 8.20.0; final prerequisite follows transport acceptance. Existing host has 8.21.0, not a guarantee for other users. Legacy commands do not acquire this new prerequisite by design. Users opting into future enabled fetching must check curl availability/version; if absent or unsupported, new API must fail clearly without installation or weaker fallback. No data conversion required by this environment prerequisite. Adapter not implemented/qualified yet.
 
 ## Migration policy
 No mandatory data conversion is planned. Keep historical TXT/JSON/logs unchanged; do not delete, overwrite or automatically convert them. Inspection of the 0.0.5 and development main module found no ConvertFrom-Json/Import-Clixml persisted-state ingestion. This is limited evidence, not a complete package/runtime migration audit.
@@ -38,10 +38,10 @@ Get-Command -Module PSWebCrawler
 ```
 Do not change repository trust/security policy merely to complete installation. Resolve any installation conflict explicitly; do not default to Force/AllowClobber.
 
-## Opting into new API (target, not yet available)
+## New API contracts now; fetching and Domains later
 New Invoke-PSWebCrawler requires explicit -Mode Site|Domains. It is not a rename-only replacement for legacy commands: Depth and output semantics differ.
 - Start depth=0; Depth 0 analyzes start only; traversal is BFS.
-- Site visits the start host only; Domains visits at most one discovered page per host.
+- Offline-tested Site orchestration is bounded to the start host; future Domains targets at most one discovered page per host. Neither is enabled production fetching now.
 - One structured result: Run, Pages[], Links[], Errors[]; Run.SchemaVersion='1.0'; explicit partial/failure outcomes.
 - New JSON is not interchangeable with historical files; adapt downstream consumers intentionally.
 Keep legacy scripts on legacy commands until new workflow acceptance passes. Never perform automatic command-name substitution.
@@ -58,4 +58,4 @@ Use the actual previous version if different. Rollback has not been exercised ag
 No wizard now: no confirmed required data transformation. If compatibility tests identify a necessary action, document it here and consider an opt-in diagnostic wizard: detect -> preview required actions -> explicit confirmation -> reversible apply -> readback. No automatic script rewriting or speculative conversion.
 
 ## Release gates
-Published 0.0.5 compatibility fixtures; real legacy output/filesystem paths; dependency policy; clean new API channels; actual target-mode acceptance; old/new examples; upgrade/rollback in fresh processes; explicit release-content decision. Current tests of repository baseline do not prove all these gates.
+Current contracts/analysis acceptance is the verified 78/78 manual Windows baseline, with its documented limits. C2/B2, HTTPS/TLS and S7 acceptance are deferred, not publication blockers for this scope. Published 0.0.5 full behavior/output compatibility, dependency portability and upgrade/rollback are not established by that baseline; do not advertise seamless migration. Before manual publication, select final version/package contents and retain accurate prerequisites and limitations; the manifest has not been bumped and no package has been published by this slice.

@@ -56,10 +56,14 @@ artifacts. The checked-in module retains unavailable transport/capability stubs;
 Domains is unsupported. S7, R1/R2, HTTPS and the broken historical B2 evidence
 chain remain unqualified. No historical receipts are repaired by this package.
 
-## Verified preparation
+## Verified manual acceptance
 
 Native Windows PowerShell parser/static-only execution is the preparation gate.
-Full product import/Pester execution must be performed manually by the owner
-with the second command. A static pass only proves prepared-source integrity,
+The owner subsequently performed the full command: run
+`7e555fedf1ba4b919b6bf6526c2e41c1` passed 78/78 (32/14/16/7/5/4), with zero
+failed/pending/skipped, exit 0, no timeout, empty stderr and completed readers.
+The parent verified all 19 snapshot-manifest hashes. This accepts the current
+contracts/analysis baseline, not C2/B2, HTTPS/TLS or S7; those are [future work](ROADMAP.md),
+not current release gates. A static pass alone only proves prepared-source integrity,
 syntax, ordered active S2/S3/S4 identities and current unavailable stubs; it does
 not prove the 78 behavioral outcomes or any C2 behavior.

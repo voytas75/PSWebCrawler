@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Current scope and acceptance
+
+- Contracts/analysis only for the new API: Site schema, URI/extraction analysis and bounded orchestration are qualified with counted private policy/transport fixtures, not enabled production fetching. Site fails closed with `CapabilityUnavailable`; Domains with `UnsupportedMode`.
+- Manual Windows PowerShell 5.1 Desktop acceptance passed all 78 existing outcomes: S2 32, S3 14, S4 16, baseline 7, dependency/import 5 and import-runtime 4; zero failed, pending or skipped. Real imports ran without enforced network isolation; this is not production transport or TLS qualification.
+- Legacy network-capable commands remain unchanged by this documentation scope decision. C2/B2 fetch integration, HTTPS/TLS and S7 Domains move to the [future roadmap](../../docs/ROADMAP.md), not gates for this contracts/analysis release.
+- This is an unreleased scope record, not a new package version or publication announcement. Manifest remains 0.1.0; the previously selected 0.2.0 target is not yet published.
+
 ## [0.1.0] - 2024.01.30
 
 ### Added
