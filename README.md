@@ -2,187 +2,100 @@
 
 ![PowerShell Web Crawler](https://raw.githubusercontent.com/voytas75/PSWebCrawler/master/images/PSWC_github_logo.png "PowerShell Web Crawler")
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/A0A6KYBUS)
+[![PowerShell version](https://img.shields.io/badge/PowerShell-v5.1-blue)](readme-dev.md) [![PowerShell Gallery](https://img.shields.io/powershellgallery/v/PSWebCrawler)](https://www.powershellgallery.com/packages/PSWebCrawler)
 
-[![status](https://img.shields.io/badge/PROD-v0.0.5-green)](https://github.com/voytas75/PSWebCrawler/blob/master/PSWebCrawler/docs/ReleaseNotes.md) &nbsp; [![status](https://img.shields.io/badge/PREPARED-v0.2.0-red)](https://github.com/voytas75/PSWebCrawler/blob/master/PSWebCrawler/docs/ReleaseNotes.md) &nbsp; ![PowerShell version](https://img.shields.io/badge/PowerShell-v5.1-blue) &nbsp; [![PowerShell Gallery Version (including pre-releases)](https://img.shields.io/powershellgallery/v/PSWebCrawler)](https://www.powershellgallery.com/packages/PSWebCrawler) &nbsp; [![PowerShell Gallery](https://img.shields.io/powershellgallery/dt/PSWebCrawler)](https://www.powershellgallery.com/packages/PSWebCrawler) &nbsp; [![Codacy Badge](https://app.codacy.com/project/badge/Grade/79c2ea8438ec45c68d03858459bcf816)](https://app.codacy.com/gh/voytas75/PSWebCrawler/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+## What it is
 
-## Overview
+PSWebCrawler is a Windows PowerShell module for legacy web crawling, HTML
+extraction and saving URL/contact/metadata results. It uses
+[HtmlAgilityPack](https://github.com/zzzprojects/html-agility-pack) and PSParseHTML.
+Its public command is **`Start-PSWebCrawler`**, with aliases **`PSWC`** and
+**`PSWebCrawler`**. The repository also provides an offline `-Doctor` report.
 
-PSWebCrawler is a PowerShell script that provides web crawling and URL processing functionality. It allows you to crawl web pages, extract information, and store data for analysis or further processing.
-Module depends on the [HtmlAgilityPack (HAP)](https://github.com/zzzprojects/html-agility-pack) library, a .NET library that provides an agile and easy way to manipulate HTML documents.
+Repository metadata is **0.2.0, prepared but not published**. The new internal
+implementation has offline-tested contracts, analysis and orchestration, **not
+production fetching**. Gallery installation and repository loading are separate
+paths; do not assume the published package includes the repository's Doctor.
 
-## PSWebCrawler module features
-> **Public API: `Start-PSWebCrawler` only**, with aliases `PSWC` and `PSWebCrawler`. `Invoke-PSWebCrawler` is private implementation, not a supported public command. **Current release scope: contracts/analysis only.** Its internal Site contracts, analysis and orchestration are offline-tested, not enabled production fetching: internal Site invocation terminates with `CapabilityUnavailable`; Domains with `UnsupportedMode`. Existing `Start-PSWebCrawler` / `PSWC` / `PSWebCrawler` legacy commands below remain present and can access the network; this is not a globally network-disabled module. C2/B2 integrated fetch, HTTPS/TLS qualification and S7 Domains are deferred, not current release gates. See [release notes](PSWebCrawler/docs/ReleaseNotes.md), [upgrade scope](docs/UPGRADING.md) and [future roadmap](docs/ROADMAP.md).
+## What it is not
 
+- Not a supported Linux or PowerShell 7/Core crawler: the target is Windows
+  PowerShell 5.1 Desktop.
+- Not an enabled public new Site/Domains API. `Invoke-PSWebCrawler` is private;
+  internal Site returns `CapabilityUnavailable`, Domains `UnsupportedMode`.
+- Not production transport or HTTPS/TLS qualification. Future fetch integration
+  and Domains are deferred; existing legacy commands remain network-capable.
+- Image URL extraction is not image downloading; JavaScript execution is not
+  part of the intended v1 scope.
 
-- Web crawling functionality to retrieve HTML content from specified URLs
-- Ability to extract and save images from web pages
-- Extraction and storage of contact information from web pages
-- Retrieval and storage of HTML head data
-- Cache folder creation and data folder setup
+## Requirements
 
-## Offline diagnostics
+Use **Windows PowerShell 5.1 Desktop**. The manifest declares .NET Framework
+**4.5** and required module **PSparseHTML**; the newer native qualification uses
+**.NET Framework 4.8+** and **PSParseHTML 3.0.6**. That qualification does not prove
+support on the older manifest minimum. Pester is for development tests, not a
+production requirement. See [developer setup](readme-dev.md).
 
-`Start-PSWebCrawler -Doctor` returns one structured offline health report; no URL,
-prompts or repair. Use `ConvertTo-Json -Depth 6`. See [Doctor](docs/DOCTOR.md)
-for PASS/WARN/FAIL semantics, import limitations and integrity boundaries.
+## Install or load
 
-## Installation
+### Published package
 
-The module is available on [PowerShell Gallery](https://www.powershellgallery.com/packages/PSWebCrawler).
+This installs the available published version, **not a promise of 0.2.0**:
 
 ```powershell
-Install-Module -Name PSWebCrawler
+Install-Module -Name PSWebCrawler -Scope CurrentUser
+Import-Module -Name PSWebCrawler -ErrorAction Stop
+Get-Module PSWebCrawler | Select-Object Name, Version, Path
 ```
 
-Import module:
+Review dependency prompts; do not change repository trust or security settings
+just to complete installation. Publication of 0.2.0 remains manual.
+
+### Current repository
+
+Clone or download the [source](https://github.com/voytas75/PSWebCrawler), then
+use a fresh Windows PowerShell process from its root. Install the tested
+required dependency first if it is missing (this is an explicit installation):
 
 ```powershell
-Import-Module -Module PSWebCrawler
+Install-Module -Name PSParseHTML -RequiredVersion 3.0.6 -Scope CurrentUser
+Import-Module .\PSWebCrawler\PSWebCrawler.psd1 -ErrorAction Stop
+Get-Module PSWebCrawler | Select-Object Name, Version, Path
 ```
 
-To get all commands in installed module including cmdlets, functions and aliases:
+## Run
+
+Display the legacy options/examples without starting a crawl:
 
 ```powershell
+Start-PSWebCrawler
+# Equivalent: PSWC or PSWebCrawler
 Get-Command -Module PSWebCrawler
 ```
 
-## Usage
-
-### Crawl
-
-- `PSWC` (alias of `Start-PSWebCrawler`). When the `PSWC` command is run alone, it displays a menu with various options and examples for using the PSWebCrawler module. This menu provides examples of how to use the PSWC command with different parameters to initiate web crawling with various configurations, such as crawling web pages with specified depths, displaying cache folders, and extracting specific elements from web pages.
-
-    Start module to display possible options and examples:
-
-    ```powershell
-    PSWC
-    ```
-
-    or
-
-    ```powershell
-    Start-PSWebCrawler
-    ```
-
-- When the `PSWC` command is used with the `url` and `depth` parameters, it initiates web crawling starting from the specified URL and crawling to the specified depth. This allows the user to extract various elements from the web pages, such as href elements, non-href elements, domains, and internal links, up to the specified depth. The command also logs and stores the extracted data in the default log folder (user' document folder), providing a record of the crawling process and the extracted elements for further analysis or reference:
-
-    ```powershell
-    PSWC -Url "https://example.com" -Depth 2
-    ```
-
-- The `onlyDomains` parameter, when set to true, instructs the web crawler to only crawl to the domains found in the href elements of the web page being crawled. This means that the crawler will restrict its exploration to the domains referenced by the links on the page, rather than following links to external domains:
-
-    ```powershell
-    PSWC -Url "https://example.com" -Depth 2 -onlyDomains
-    ```
-
-- The `outputFolder` parameter is used to specify the path where the log and data folders will be created when the `Url` and `Depth` parameters are used. When initiating a web crawl with the Url and `Depth` parameters, the `outputFolder` parameter allows you to define the location where the log and data folders will be stored for the crawl. This can be useful for organizing and managing the output of the web crawling operation. If the `outputFolder` parameter is not provided the log and data folders will be stored in the default location. The default location is the user's document folder under the 'PSWebCrawler' directory:
-
-    ```powershell
-    PSWC -Url "https://example.com" -Depth 2 -outputFolder "C:\temp\logs\"
-    ```
-
-    More about log and data folder: [Default Log and Data Folder](#default-log-and-data-folder)
-
-- The `resolve` parameter is used when initiating a web crawl with the `Url` and `Depth` parameters. When `resolve` switch is on, the web crawler will resolve the domain name of current processed URL to IP address:
-
-    ```powershell
-    PSWC -Url "https://example.com" -Depth 2 -resolve
-    ```
-
-### ShowCacheFolder
-
-- The `ShowCacheFolder` option is used to open the default log and data folder (user's document folder under the 'PSWebCrawler' directory) in Windows File Explorer:
-
-    ```powershell
-    PSWC -ShowCacheFolder
-    ```
-
-    More about log and data folder: [Default Log and Data Folder](#default-log-and-data-folder)
-
-### ShowAllElements
-
-- The `PSWC` command with the `ShowAllElements` and `Type` options extracts all elements from the specified `URL`, including Href elements, non-Href elements, domains, and internal links. The `Type` parameter in the command specifies which type of elements to extract. It can be set to one of the following values:
-
-  - **Href**: extracts only elements with an href attribute.
-  - **noHref**: extracts only elements without an href attribute.
-  - **onlyDomains**: extracts only the domains from the href attributes.
-  - **All**: extracts all elements from the specified `URL`.
-
-  To use this option, you can run the following command:
-
-  ```powershell
-  PSWC -ShowAllElements -Type All -Url 'https://www.example.com'
-  ```
-
-    This example extracts all elements from the URL "https://www.example.com"
-
-### GetImageUrls
-
-- The `GetImageUrls` option in `PSWC` retrieves the URLs of all images in an HTML document. The retrieved URLs are saved in a text file named *Images.txt* in the session folder. To use this option, run the command:
-
-  ```powershell
-  PSWC -GetImageUrls -url "https://example.com"
-  ```
-
-  The saved file path will be displayed in the console output.
-
-### GetHTMLMetadata
-
-- The `GetHTMLMetadata` option in the `PSWC` module retrieves metadata from the specified HTML content and displays it. The metadata includes the title, description, keywords, author, copyright, robots, viewport, and generator. Retrieved data are saved in a text file named *metadata.txt* in the session folder. To use this option, run the command:
-
-  ```powershell
-  PSWC -GetHTMLMetadata -url "https://example.com"
-  ```
-
-  The saved file path will be displayed in the console output.
-
-### GetContactInformation
-
-- The `GetContactInformation` option in the PSWebCrawler PowerShell module extracts contact information (emails, addresses, phone numbers) from an HTML document. Once the function is executed, it will return the extracted contact information in JSON format. Additionally, the option saves the extracted contact information to a file named *Contact.json* in the session folder. The session folder is created automatically and its path is logged in the "Settings.log" file. To call the option, use the following command:
-
-  ```powershell
-  PSWC -GetContactInformation -url "https://example.com"
-  ```
-
-  The saved file path will be displayed in the console output.
-
-### GetHeadersAndValues
-
-- The `GetHeadersAndValues` option in the PSWebCrawler PowerShell module extracts headers and their corresponding values from the `<head>` section of an HTML document. To use this option, you need to provide the URL of the website you want to crawl using the `url` parameter. The extracted headers and values are returned as a hashtable. You can save the output to a file by specifying the output folder using the `outputFolder` parameter. Without `outputFolder` data are saved the extracted contact information to a file named *HTMLhead.json* in default place, the session folder.  To call the option, use the following command:
-
-  ```powershell
-  PSWC -GetHeadersAndValues -url "https://example.com"
-  ```
-
-## Default Log and Data Folder
-
-The PSWebCrawler module uses default folder for storing log files and data. If specific paths are not provided, the module uses `<User's document folder>/PSWebCrawler/` folder.
-
-User can override these default paths by providing custom paths using `outputFolder` parameters when using the module's functions. For example:
+After loading the current repository module, run offline diagnostics:
 
 ```powershell
-PSWC -Url 'https://example.com' -Depth 2 -outputFolder 'C:\Crawl\LOGandDATA\'    
+Start-PSWebCrawler -Doctor | ConvertTo-Json -Depth 6
+# Equivalent: PSWC -Doctor or PSWebCrawler -Doctor
 ```
 
-*INFO*: In the PSWebCrawler PowerShell module, the default location for the log and data folder is the user's document folder. If the log and data folder does not exist, it will be created automatically when the module is imported.
+Doctor needs successful import and returns PASS/WARN/FAIL with hints; it does
+not install, repair or qualify networking. WARN may coexist with `Healthy=true`.
+Import itself still performs legacy TLS initialization. See [Doctor](docs/DOCTOR.md).
 
-## Versioning
+Legacy URL operations can fetch live pages and write files. Use only with
+permission to access the target; they are outside the offline acceptance proof.
+[Developer/reference notes](readme-dev.md) contain the legacy parameter examples,
+output behavior and known limitations.
 
-We use [SemVer](http://semver.org/) for versioning.
+## More information
 
-## Contributing
+- [Developer setup, legacy reference and verification](readme-dev.md)
+- [Release notes](PSWebCrawler/docs/ReleaseNotes.md)
+- [Upgrade guidance](docs/UPGRADING.md) · [Future roadmap](docs/ROADMAP.md)
+- [GitHub Issues](https://github.com/voytas75/PSWebCrawler/issues)
 
-We welcome contributions from the community! Feel free to submit pull requests, report issues, or suggest new features to make the framework even more powerful and user-friendly.
-
-**Clone the Repository:** Clone the PSWebCrawler repository to your local machine.
-
-### License
-
-The PSWebCrawler is released under the [MIT License](https://github.com/voytas75/PSWebCrawler/blob/master/LICENSE).
-
-**Contact:**
-If you have any questions or need assistance, please feel free to reach out to us via [GitHub Issues](https://github.com/voytas75/PSWebCrawler/issues).
-
-Join us on the journey to make PowerShell scripting a truly awesome experience!
+Released under the [MIT License](LICENSE). Author: Wojciech Napierala;
+project/vendor: Script Savvy Ninja.
+[Support the author on Ko-fi](https://ko-fi.com/A0A6KYBUS).
