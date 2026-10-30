@@ -78,6 +78,10 @@ After loading the current repository module, run offline diagnostics:
 ```powershell
 Start-PSWebCrawler -Doctor | ConvertTo-Json -Depth 6
 # Equivalent: PSWC -Doctor or PSWebCrawler -Doctor
+# Optional repository-only English presentation (not a module command):
+$report = Start-PSWebCrawler -Doctor
+$report | .\tools\Show-PSWCDoctor.ps1
+.\tools\Show-PSWCDoctor.ps1 -Report $report -View Detail -CheckName HapIdentity
 ```
 
 Doctor needs successful import and returns PASS/WARN/FAIL with hints; it does

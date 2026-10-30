@@ -43,6 +43,51 @@ external pre-import doctor is deferred. Existing import-time TLS initialization
 remains unchanged. Legacy crawling remains network-capable; only Doctor's path
 is offline. The current private Site/Domains unavailable guards remain unchanged.
 
+## Optional repository presentation
+
+`tools/Show-PSWCDoctor.ps1` is a repository utility, not a module export or a
+Gallery installation claim. Default `Start-PSWebCrawler -Doctor` still returns
+its unchanged structured object. The renderer never imports the product, runs
+Doctor, executes advice, contacts documentation links, repairs anything or exits
+the caller. Capture a live report separately after successful import:
+
+```powershell
+$report = Start-PSWebCrawler -Doctor
+.\tools\Show-PSWCDoctor.ps1 -Report $report -View Summary
+$report | .\tools\Show-PSWCDoctor.ps1 -View Detail -CheckName HapIdentity
+$report | ConvertTo-Json -Depth 6 | Set-Content .\doctor.json -Encoding UTF8
+.\tools\Show-PSWCDoctor.ps1 -JsonPath .\doctor.json -View Detail
+.\tools\Show-PSWCDoctor.ps1 -JsonPath .\doctor.json -View Machine
+.\tools\Show-PSWCDoctor.ps1 -Report $report -View Machine -RequireQualification
+```
+
+Choose exactly one input: `-Report` (also accepts pipeline objects) or explicit
+`-JsonPath`; there is no default snapshot path. All views label captured data:
+freshness and provenance remain caller-owned, so saved snapshots are not live
+health evidence. `Summary` shows severity, independent health/qualification gates,
+counts, FAIL before WARN and collapsed PASS. The representative ten-check,
+eight-PASS/two-WARN report is bounded to seven lines/1100 characters; arbitrary
+reports with more findings are not subject to that representative budget.
+Control characters and long messages are compacted only in Summary. `Detail`
+retains every top-level field and every selected check field, including full
+advice and future data properties; omit `-CheckName` for all checks. Unknown
+case-sensitive identifiers fail explicitly. `-CheckName` is Detail-only.
+
+`Machine` emits one raw JSON string per report, with `Decision` and the complete
+unchanged `Report`. Arrays of zero, one or many values are retained. Consumers
+parse JSON, not human text. `Decision.Policy` is `Health` by default; the optional
+Machine-only `-RequireQualification` selects `RequireQualification`. Rejection
+precedence is `StatusFAIL`, `Unhealthy`, then `QualificationRequired`; otherwise
+`AcceptedByHealthPolicy`. The renderer returns this decision without choosing
+an operating-system exit code. No human labels contaminate Machine output.
+
+The renderer checks schema 1.0, required fields/types, unique check names and
+plain data properties before rendering; malformed JSON/data fail rather than
+inventing a decision. Script properties and foreign objects are rejected. This
+is bounded presentation validation (supported nesting depth 18), not a general
+untrusted-JSON parser, authenticity check or terminal-security guarantee. Advice
+and diagnostic strings remain data, never evaluated.
+
 ## Integrity baseline
 `PSWebCrawler/PackageIntegrity.json` commits deterministic relative module-file
 paths and SHA256 hashes, including manifest, module/private scripts, DLLs, data,

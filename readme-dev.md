@@ -31,6 +31,7 @@ release/transport acceptance record.
 | `.gitattributes` | Exact inventoried text paths pinned to LF |
 | `tests/` | Fixtures, focused gates and fresh-process runners |
 | `tools/Update-PackageIntegrity.ps1` | Explicit maintainer-only baseline generation |
+| `tools/Show-PSWCDoctor.ps1` | Repository-only English renderer; private helpers in `tools/Doctor.Presentation.ps1` |
 
 A Core-related library directory does not establish PowerShell Core support.
 
@@ -65,6 +66,22 @@ Doctor reports that module-owned mismatch. It is not fixed by runtime installati
 Import no longer checks Gallery, clears the console, prints welcome text or
 creates output directories. It is not completely side-effect-free: TLS
 initialization remains. The menu-only path does not create output or logs.
+
+For optional human Summary/Detail and JSON machine policy, see
+[Doctor presentation](docs/DOCTOR.md#optional-repository-presentation). The utility
+and its private helpers are outside the shipped module and package inventory.
+Run its separate historical-fixture tests in a fresh native process, providing
+your explicit saved Doctor JSON (not a claim of live health):
+
+```powershell
+Import-Module Pester -RequiredVersion 3.4.0
+Invoke-Pester -Script @{ Path = '.\tests\Doctor.Presentation.Tests.ps1'; Parameters = @{ SnapshotPath = '.\doctor.json' } }
+```
+
+The representative snapshot suite expects ten checks (eight PASS/two WARN);
+actual live Doctor, focused Doctor tests and the existing preproduction runner
+are separate gates. No dependency installation or Windows checkout sync is
+performed by the renderer.
 
 ## Retained legacy command reference
 
