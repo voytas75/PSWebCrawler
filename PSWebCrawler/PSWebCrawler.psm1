@@ -64,8 +64,9 @@ function Get-PSWCAllElements {
 
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory = $true)]
         [string]$url,
+        [string]$HtmlPath,
+        [string]$BaseUrl,
         [string]$Node = "//a[@href]",
         [int]$timeoutSec = 10,
         [switch]$onlyDomains,
@@ -88,13 +89,21 @@ function Get-PSWCAllElements {
             $url = Get-PSWCSchemeAndDomain -Url $url
         }
         # Send an HTTP GET request to the URL
-        $response = Get-PSWCHttpResponse -url $url -userAgent $userAgent -timeout $timeoutSec
-        Write-Log "Got response from [$url]"
+        if ($HtmlPath) {
+            $htmlContent = [IO.File]::ReadAllText($HtmlPath)
+            $url = $BaseUrl
+        }
+        else {
+            $response = Get-PSWCHttpResponse -url $url -userAgent $userAgent -timeout $timeoutSec
+            Write-Log "Got response from [$url]"
+        }
 
-        # If the HTTP request is successful, extract the elements from the HTML content.
-        if ($response[1].IsSuccessStatusCode) {
-            Write-Log "Response [$($response[1].StatusCode)] succeded from [$url] "
-            $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+        # Local input uses the same anchor/category/output path without an HTTP response.
+        if ($HtmlPath -or $response[1].IsSuccessStatusCode) {
+            if (-not $HtmlPath) {
+                Write-Log "Response [$($response[1].StatusCode)] succeded from [$url] "
+                $htmlContent = $response[1].Content.ReadAsStringAsync().Result
+            }
             # Extract all anchor elements from the HTML document
             $anchorElements = Get-PSWCDocumentElements -htmlContent $htmlContent -Node $Node
 
@@ -114,7 +123,8 @@ function Get-PSWCAllElements {
                         }
                     }
                     else {
-                        if ($href -match "^/|^\.\./") {
+                        if (($HtmlPath -and $BaseUrl -and $href -notmatch '^[a-zA-Z][a-zA-Z0-9+.-]*:') -or
+                            (-not $HtmlPath -and $href -match "^/|^\.\./")) {
                             $internalLink = [System.Uri]::new([System.Uri]::new($url), $href)
                             $internalLinks += $internalLink.AbsoluteUri
                         }
@@ -218,6 +228,17 @@ function Get-PSWCAllElements {
         }
     }
     end {
+        if ($HtmlPath) {
+            [pscustomobject][ordered]@{
+                SourcePath = $HtmlPath
+                BaseUrl = $BaseUrl
+                Type = $Type
+                Hrefs = @($hrefElements | Select-Object -Unique | Sort-Object)
+                NonHrefs = @($nonhrefElements | Select-Object -Unique | Sort-Object)
+                Domains = @($domains | Select-Object -Unique | Sort-Object)
+                InternalLinks = @($internalLinks | Select-Object -Unique | Sort-Object)
+            }
+        }
         #if ($anchorElements[1].count -gt 0) {
 
         #}
@@ -1378,6 +1399,20 @@ function Start-PSWebCrawler {
     Preserves legacy session, logging and output files; linked pages are not crawled.
     No arguments display the menu. URL-only invalid input terminates without a prompt.
 
+    .PARAMETER HtmlPath
+    Extracts links from one readable literal local HTML file without HTTP or crawling.
+    Type selects legacy category files; returns SourcePath and category arrays.
+    Preserves session/log/file writes. Mutually exclusive with Url and other operations.
+
+    .PARAMETER BaseUrl
+    Optional local-only absolute HTTP(S) base for relative references; never fetched.
+    HTML base tags are ignored. Without this parameter relative links are retained.
+
+    .PARAMETER DryRun
+    Alias Preview. Returns one PSWebCrawler.Plan without requests, HTML parsing,
+    banner, prompts, logs, files or Explorer. No input plans HelpMenu. Excludes Doctor.
+    Does not predict results; import dependencies and process TLS initialization remain.
+
     .PARAMETER Doctor
     Returns one offline diagnostic object without a URL, banner, prompt, logging or repair.
     Includes PASS/WARN/FAIL checks and overall status; serialize with ConvertTo-Json -Depth 6.
@@ -1395,6 +1430,22 @@ function Start-PSWebCrawler {
         [Parameter(ParameterSetName = 'Doctor', Mandatory = $true)]
         [switch]$Doctor,
 
+        [Parameter(ParameterSetName = 'LocalHtml', Mandatory = $true)]
+        [string]$HtmlPath,
+        [Parameter(ParameterSetName = 'LocalHtml')]
+        [string]$BaseUrl,
+        [Parameter(ParameterSetName = 'Default')]
+        [Parameter(ParameterSetName = 'WebCrawl')]
+        [Parameter(ParameterSetName = 'ShowAllElements')]
+        [Parameter(ParameterSetName = 'GetImageUrls')]
+        [Parameter(ParameterSetName = 'GetHTMLMetadata')]
+        [Parameter(ParameterSetName = 'GetContactInformation')]
+        [Parameter(ParameterSetName = 'GetHeadersAndValues')]
+        [Parameter(ParameterSetName = 'ShowCacheFolder')]
+        [Parameter(ParameterSetName = 'LocalHtml')]
+        [Alias('Preview')]
+        [switch]$DryRun,
+
         [Parameter(ParameterSetName = 'Default')]
         [Parameter(ParameterSetName = 'WebCrawl', Mandatory = $true)]
         [Parameter(ParameterSetName = 'ShowAllElements', Mandatory = $true)]
@@ -1410,6 +1461,7 @@ function Start-PSWebCrawler {
         [switch]$ShowAllElements,
 
         [Parameter(ParameterSetName = 'ShowAllElements')]
+        [Parameter(ParameterSetName = 'LocalHtml')]
         [ValidateSet("Href", "noHref", "onlyDomains", "All")]
         [string]$Type = "All",
         
@@ -1424,6 +1476,7 @@ function Start-PSWebCrawler {
         [switch]$onlyDomains,
 
         [Parameter(ParameterSetName = 'WebCrawl')]
+        [Parameter(ParameterSetName = 'LocalHtml')]
         [string]$outputFolder = $script:loganddatafolderPath,
 
         [Parameter(ParameterSetName = 'ShowCacheFolder', Mandatory = $true)]
@@ -1464,6 +1517,80 @@ function Start-PSWebCrawler {
         }
         $operation = 'ShowAllElements'
     }
+    if ($operation -eq 'LocalHtml') {
+        try {
+            $item = Get-Item -LiteralPath $HtmlPath -ErrorAction Stop
+            if ($item.PSProvider.Name -ne 'FileSystem' -or $item.PSIsContainer) { throw 'Not a file' }
+            $HtmlPath = $item.FullName
+            $stream = [IO.File]::Open($HtmlPath, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
+            $stream.Dispose()
+        }
+        catch { throw 'HtmlPath must identify a readable local HTML file.' }
+        if ($PSBoundParameters.ContainsKey('BaseUrl')) {
+            $baseUri = $null
+            if (-not [uri]::TryCreate($BaseUrl, [UriKind]::Absolute, [ref]$baseUri) -or
+                $baseUri.Scheme -notin @('http','https') -or -not $baseUri.Host) {
+                throw 'BaseUrl must be a valid absolute HTTP or HTTPS URL.'
+            }
+            $BaseUrl = $baseUri.AbsoluteUri
+        }
+    }
+    if ($DryRun) {
+        if ($PSBoundParameters.ContainsKey('Url')) {
+            $planUri = $null
+            if ([string]::IsNullOrWhiteSpace($Url) -or -not [uri]::TryCreate($Url,[UriKind]::Absolute,[ref]$planUri) -or
+                $planUri.Scheme -notin @('http','https') -or -not $planUri.Host) {
+                throw 'Url must be a valid absolute HTTP or HTTPS URL.'
+            }
+        }
+        $planOperation = $operation
+        $inputKind = 'None'; $planInput = $null
+        if ($PSBoundParameters.ContainsKey('Url')) { $inputKind = 'Url'; $planInput = $Url }
+        if ($operation -eq 'LocalHtml') { $planOperation = 'LocalHtmlLinks'; $inputKind = 'LocalHtml'; $planInput = $HtmlPath }
+        if ($operation -eq 'Default') { $planOperation = 'HelpMenu' }
+        $effects = @()
+        if ($operation -ne 'Default') { $effects = @('Initialize output folder if required','Create timestamped session folder','Write legacy log and selected output files') }
+        if ($operation -in @('LocalHtml','ShowAllElements')) {
+            $selectedFiles = switch ($Type) {
+                'Href' { @('UrlsUnique.txt') }
+                'noHref' { @('noHrefUnique.txt','InternalLinksUnique.txt') }
+                'onlyDomains' { @('DomainsUnique.txt') }
+                'All' { @('UrlsUnique.txt','noHrefUnique.txt','InternalLinksUnique.txt','DomainsUnique.txt') }
+            }
+            $effects += 'Possible category files when anchors exist: ' + ($selectedFiles -join ', ')
+        }
+        elseif ($operation -eq 'GetImageUrls') { $effects += 'Possible files: Images.txt or Header.json (response-dependent)' }
+        elseif ($operation -eq 'GetHeadersAndValues') { $effects += 'Possible file: HTMLhead.json' }
+        elseif ($operation -eq 'GetContactInformation') { $effects += 'Possible file: Contact.json' }
+        elseif ($operation -eq 'GetHTMLMetadata') { $effects += 'Possible file: Header.json' }
+        elseif ($operation -eq 'WebCrawl') { $effects += 'Possible files: UniqueURLs.txt, UniqueDomain.txt and response-dependent page-derived files' }
+        if ($operation -eq 'ShowCacheFolder') { $effects += 'Open Windows File Explorer' }
+        $location = $null
+        if ($operation -ne 'Default') {
+            if ($PSBoundParameters.ContainsKey('outputFolder')) { $location = $outputFolder }
+            elseif ($script:loganddatafolderPath) { $location = $script:loganddatafolderPath }
+            else { $location = 'Unresolved: legacy UserDoc output-folder discovery/creation at execution' }
+        }
+        $plan = [pscustomobject][ordered]@{
+            SchemaVersion = '1.0'
+            Operation = $planOperation
+            InputKind = $inputKind
+            Input = $planInput
+            EffectiveOptions = [ordered]@{
+                Type = $(if ($operation -in @('ShowAllElements','LocalHtml')) { $Type } else { $null })
+                Depth = $(if ($operation -eq 'WebCrawl') { $Depth } else { $null })
+                Resolve = $(if ($operation -eq 'WebCrawl') { [bool]$Resolve } else { $null })
+                OnlyDomains = $(if ($operation -in @('WebCrawl','ShowAllElements')) { [bool]$onlyDomains } else { $null })
+                BaseUrl = $(if ($operation -eq 'LocalHtml' -and $PSBoundParameters.ContainsKey('BaseUrl')) { $BaseUrl } else { $null })
+            }
+            NetworkRequired = ($inputKind -eq 'Url')
+            PlannedOutputLocation = $location
+            Effects = $effects
+            Limitations = @('Plan only: no results or connectivity prediction','Session timestamp and selected output contents unresolved','No HTTP, DNS, HTML parsing, output writes or Explorer during preview','Module import dependencies and process TLS initialization are unchanged')
+        }
+        $plan.PSObject.TypeNames.Insert(0,'PSWebCrawler.Plan')
+        return $plan
+    }
     # Initialize legacy output only when an operation needs it, before logging.
     if ($operation -ne 'Default') {
         if (-not $script:loganddatafolderPath) {
@@ -1475,6 +1602,12 @@ function Start-PSWebCrawler {
         if (-not $PSBoundParameters.ContainsKey('outputFolder')) {
             $outputFolder = $script:loganddatafolderPath
         }
+    }
+    if ($operation -eq 'LocalHtml') {
+        $script:SessionFolder = Set-PSWCSessionFolder -FolderName (Get-Date -Format 'dd-MM-yyyy-HH-mm-ss') -FolderPath $outputFolder
+        Write-Log "Local HTML source: [$HtmlPath]; explicit base: [$BaseUrl]"
+        Add-Content -Path (Join-Path $script:SessionFolder 'Settings.log') -Value "HtmlPath: $HtmlPath; BaseUrl: $BaseUrl; Type: $Type"
+        return Get-PSWCAllElements -HtmlPath $HtmlPath -BaseUrl $BaseUrl -Type $Type
     }
     Get-PSWCBanner
     Write-Verbose "ParameterSetName: [$($operation)]"

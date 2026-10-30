@@ -63,6 +63,21 @@ Import-Module .\PSWebCrawler\PSWebCrawler.psd1 -ErrorAction Stop
 Get-Module PSWebCrawler | Select-Object Name, Version, Path
 ```
 
+## Local HTML and preview (unpublished repository candidate)
+
+```powershell
+PSWC -HtmlPath 'C:\fixtures\saved page.html' -outputFolder 'C:\PSWC-results'
+PSWC -Url 'https://example.test/page' -DryRun | ConvertTo-Json -Depth 6
+# -Preview is an alias of -DryRun, not a read-only network request.
+```
+
+Local input extracts links without HTTP or crawling, but retains session/log/file
+writes. Relative links remain relative unless explicit `-BaseUrl` is supplied.
+Preview returns one execution plan without requests, HTML parsing or output
+initialization; it does not predict results. See the canonical
+[input and preview guide](docs/INPUT-PREVIEW.md) for supported options and limits.
+Import dependencies and process TLS initialization remain unchanged.
+
 ## Run
 
 Display the legacy options/examples without starting a crawl:

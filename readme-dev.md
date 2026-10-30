@@ -5,6 +5,10 @@ This guide covers development, retained legacy options and verification limits.
 
 ## Documentation owners
 
+- [Local input and preview](docs/INPUT-PREVIEW.md): bounded HtmlPath/BaseUrl,
+  Type categories, DryRun/Preview plan schema and native focused tests. Repository
+  candidate only; local parsing remains write-capable, preview is plan-only.
+
 - [Release notes](PSWebCrawler/docs/ReleaseNotes.md): canonical version history;
   0.2.0 is prepared, not a Gallery publication announcement.
 - [Doctor](docs/DOCTOR.md): diagnostic schema, checks and package-integrity rules.
