@@ -101,8 +101,17 @@ Ordinary Doctor use remains diagnostic only; no download or repair is authorized
 paths and SHA256 hashes, including manifest, module/private scripts, DLLs, data,
 images and packaged docs. The inventory itself is excluded (no circular digest).
 Repository-only docs/tests/tools and local evidence are outside this package
-inventory. Missing, changed, unsafe, duplicate, unreadable or empty entries FAIL.
-This detects differences against the shipped baseline, **not authenticity,
+inventory. Missing, unsafe, duplicate, unreadable or empty entries FAIL. SHA256
+syntax remains required for every entry. Doctor hashes all inventoried files except
+exactly `lib/Net45/HtmlAgilityPack.dll` and `lib/core/HtmlAgilityPack.dll`: these
+code-owned paths require file presence only. Inventory mode fields cannot exempt
+other DLLs/files. Their recorded hashes remain maintainer byte-binding metadata,
+not runtime comparisons. DLL swaps no longer cause hash FAIL; missing DLLs FAIL.
+`Actual.Checked` remains the entry count; additive `HashedChecked` and
+`PresenceChecked` distinguish actual coverage (currently 9 hashed, 2 presence).
+HapIdentity and HtmlSmoke remain separate; smoke checks the loaded assembly, not
+both bundled variants. PASS does not certify DLL bytes or replacement compatibility.
+This detects non-HAP differences against the shipped baseline, **not authenticity,
 signature validation or provenance**: an attacker who changes both files and
 inventory defeats it. Compare against a separately trusted package/revision.
 Doctor never rewrites the baseline or quarantines files.
@@ -144,5 +153,5 @@ the module. Review the resulting inventory, then qualify a fresh byte-matched
 candidate. Do not run regeneration as an automatic repair of a failing Doctor.
 
 Focused native Pester cases are in `tests/Doctor.Tests.ps1`; the established
-78-case preproduction gate remains unchanged. Doctor tests add a separate eleven
-cases (D01-D11), not a replacement for baseline or future transport qualification.
+78-case preproduction gate remains unchanged. Doctor tests add a separate fourteen
+cases (D01-D14), not a replacement for baseline or future transport qualification.

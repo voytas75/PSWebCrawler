@@ -1,4 +1,6 @@
 # Explicit packaging operation, not a Doctor repair. Offline; does not import the module.
+# Retain SHA256 byte bindings for every asset as maintainer metadata. Doctor validates
+# this schema but checks the two code-owned bundled HAP DLL paths for presence only.
 [CmdletBinding()]
 param()
 $ErrorActionPreference='Stop'

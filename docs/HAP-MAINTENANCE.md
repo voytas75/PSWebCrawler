@@ -2,6 +2,14 @@
 
 ## Scope and verified baseline
 
+Current Doctor policy checks only the exact bundled Net45/core HAP DLL paths for
+presence, not SHA256 equality. Missing assets still FAIL; metadata identity and
+loaded-parser smoke remain separate checks. The inventory generator retains DLL
+SHA256 as maintainer byte bindings, so the explicit comparisons below still matter
+for candidate qualification. A Doctor PASS no longer detects swapped DLL bytes
+and does not qualify a new bundled version when PSParseHTML uses another assembly.
+The baseline below is historical, not qualification of owner-replaced assets.
+
 This repository-only guide describes a **separately approved** maintenance
 procedure, not an instruction for ordinary users to repair a Doctor warning.
 Creation of this guide does not approve downloads, dependency installation,

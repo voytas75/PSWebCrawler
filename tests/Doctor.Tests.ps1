@@ -84,6 +84,55 @@ Describe 'Offline Doctor' {
             }
         }
     }
+    It 'D12 checks only known bundled HAP paths for presence and retains other hashes' {
+        InModuleScope PSWebCrawler {
+            $dir=Join-Path $TestDrive 'hap-presence'
+            [void][IO.Directory]::CreateDirectory((Join-Path $dir 'lib/Net45'))
+            [void][IO.Directory]::CreateDirectory((Join-Path $dir 'lib/core'))
+            $paths=@('lib/Net45/HtmlAgilityPack.dll','lib/core/HtmlAgilityPack.dll','other.dll')
+            $entries=@(foreach($path in $paths){
+                Set-Content (Join-Path $dir $path) 'original'
+                @{Path=$path;Sha256=(Get-FileHash (Join-Path $dir $path)).Hash;Verification='Exists'}
+            })
+            @{SchemaVersion='1.0';Files=$entries} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $dir 'PackageIntegrity.json')
+            foreach($path in $paths[0..1]){Set-Content (Join-Path $dir $path) 'changed bytes'}
+            $r=Test-PSWCPackageIntegrity $dir
+            $r.Status | Should Be 'PASS'
+            $r.Actual.Checked | Should Be 3
+            $r.Actual.HashedChecked | Should Be 1
+            $r.Actual.PresenceChecked | Should Be 2
+            $r.Message | Should Match 'presence only'
+            Set-Content (Join-Path $dir 'other.dll') 'changed bytes'
+            (Test-PSWCPackageIntegrity $dir).Status | Should Be 'FAIL'
+            Set-Content (Join-Path $dir 'other.dll') 'original'
+            foreach($path in $paths[0..1]){
+                Remove-Item (Join-Path $dir $path)
+                $r=Test-PSWCPackageIntegrity $dir
+                $r.Status | Should Be 'FAIL'
+                ($r.Actual.Problems -contains ('Missing: '+$path)) | Should Be $true
+                Set-Content (Join-Path $dir $path) 'replacement'
+            }
+            foreach($files in @(@(@{Path='lib/Net45/HtmlAgilityPack.dll';Sha256='bad'}),@($entries[0],$entries[0]),@(@{Path='lib/Net45/../HtmlAgilityPack.dll';Sha256=('A'*64);Verification='Exists'}))){
+                @{SchemaVersion='1.0';Files=$files} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $dir 'PackageIntegrity.json')
+                (Test-PSWCPackageIntegrity $dir).Status | Should Be 'FAIL'
+            }
+        }
+    }
+    It 'D13 invalid bundled metadata fails identity even when presence passes' {
+        InModuleScope PSWebCrawler {
+            $dir=Join-Path $TestDrive 'invalid-hap'
+            [void][IO.Directory]::CreateDirectory((Join-Path $dir 'lib/Net45'))
+            $bundled=Join-Path $dir 'lib/Net45/HtmlAgilityPack.dll'
+            [IO.File]::WriteAllText($bundled,'Not an assembly')
+            @{SchemaVersion='1.0';Files=@(@{Path='lib/Net45/HtmlAgilityPack.dll';Sha256=('A'*64)})} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $dir 'PackageIntegrity.json')
+            (Test-PSWCPackageIntegrity $dir).Status | Should Be 'PASS'
+            {[Reflection.AssemblyName]::GetAssemblyName($bundled)} | Should Throw
+            # Doctor uses this same passive metadata call and catches its failure.
+            $doctorSource=[IO.File]::ReadAllText((Join-Path (Get-Module PSWebCrawler).ModuleBase 'Private/Get-PSWCDoctor.ps1'))
+            $doctorSource | Should Match "catch.*New-PSWCDoctorCheck 'HapIdentity' 'FAIL'"
+            ((Start-PSWebCrawler -Doctor).Checks | Where-Object Name -eq HtmlSmoke).Status | Should Be 'PASS'
+        }
+    }
     It 'D07 severity aggregation does not terminate unhealthy sessions' {
         InModuleScope PSWebCrawler {
             (Get-PSWCDoctorStatus @(@{Status='PASS'},@{Status='WARN'})) | Should Be 'WARN'
@@ -110,6 +159,17 @@ Describe 'Offline Doctor' {
 }
 # Pester 3 module mocks survive within Describe; isolate prohibited write hooks.
 Describe 'Offline Doctor prohibited hooks' {
+    It 'D14 never hashes either known bundled HAP DLL at runtime' {
+        InModuleScope PSWebCrawler {
+            Mock Get-FileHash {throw 'Bundled DLL hash forbidden'} -ParameterFilter {$LiteralPath -match 'lib[\\/]((Net45)|(core))[\\/]HtmlAgilityPack\.dll$'}
+            $r=Start-PSWebCrawler -Doctor
+            $c=$r.Checks | Where-Object Name -eq PackageIntegrity
+            $c.Status | Should Be 'PASS'
+            $c.Actual.HashedChecked | Should Be 9
+            $c.Actual.PresenceChecked | Should Be 2
+            Assert-MockCalled Get-FileHash -Times 0 -Exactly -ParameterFilter {$LiteralPath -match 'lib[\\/]((Net45)|(core))[\\/]HtmlAgilityPack\.dll$'}
+        }
+    }
     It 'D11 Doctor never invokes network installation repair or process launch hooks' {
         InModuleScope PSWebCrawler {
             Mock Invoke-WebRequest {throw 'Network forbidden'}

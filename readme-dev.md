@@ -12,6 +12,9 @@ This guide covers development, retained legacy options and verification limits.
 - [Release notes](PSWebCrawler/docs/ReleaseNotes.md): canonical version history;
   0.2.0 is prepared, not a Gallery publication announcement.
 - [Doctor](docs/DOCTOR.md): diagnostic schema, checks and package-integrity rules.
+  Known bundled Net45/core HAP DLLs are presence-only at runtime; all other
+  inventoried files retain SHA256 verification. DLL hashes remain maintainer
+  metadata, not proof of replacement compatibility or actual loaded ownership.
 - [Upgrading](docs/UPGRADING.md): compatibility, prerequisites and rollback limits.
 - [Roadmap](docs/ROADMAP.md): deferred C2/B2 fetch, HTTPS/TLS and S7 Domains work.
 - [Windows preproduction](docs/WINDOWS-PREPRODUCTION.md): runner and evidence contract.

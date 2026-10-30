@@ -27,7 +27,7 @@
                   },
                   {
                       "Path":  "Private/Get-PSWCDoctor.ps1",
-                      "Sha256":  "A7B0F383D00D4C99E5C29E2214364C1E3A38C0FE99716DE94F123647791730E6"
+                      "Sha256":  "33D401E48873100CF25A45FA4C9A58E0120C835B8A96258FB1033CB24D6F3E7F"
                   },
                   {
                       "Path":  "Private/Get-PSWCImageUrls.ps1",
