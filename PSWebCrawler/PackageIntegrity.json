@@ -1,49 +1,38 @@
 ﻿{
-    "SchemaVersion":  "1.0",
+    "SchemaVersion":  "2.0",
     "Files":  [
                   {
-                      "Path":  "Data/useragents.txt",
-                      "Sha256":  "5992ADEA01EA755CC9A8163767EA9BF200BE18E56F505AAB88ACC53F49E2D6D1"
+                      "Path":  "Data/useragents.txt"
                   },
                   {
-                      "Path":  "docs/ReleaseNotes.md",
-                      "Sha256":  "68FDC82D8059E21529A1A4B5CE145227F43138D72E72716EFA889FFBDAB34FC3"
+                      "Path":  "docs/ReleaseNotes.md"
                   },
                   {
-                      "Path":  "images/PSWC.png",
-                      "Sha256":  "ACF6FD99E51954CA6B4E41170C3D36773AF1C309FA41E5AA918E1DC0D99BB0F5"
+                      "Path":  "images/PSWC.png"
                   },
                   {
-                      "Path":  "images/PSWCbanner.txt",
-                      "Sha256":  "2D2A50FE8D81C7B5DFAF03734650A06A2C89D3E317B19836400C2228C5343E4D"
+                      "Path":  "images/PSWCbanner.txt"
                   },
                   {
-                      "Path":  "lib/core/HtmlAgilityPack.dll",
-                      "Sha256":  "EA1931D02C0188E0B92D157C55975859BC18FFCA0A3450B05F9CE57E6AC384CE"
+                      "Path":  "lib/core/HtmlAgilityPack.dll"
                   },
                   {
-                      "Path":  "lib/Net45/HtmlAgilityPack.dll",
-                      "Sha256":  "18B266A72E6A8D5E493D8B2D80C6AD8BF333CBE3253DF52EA2023EB886716862"
+                      "Path":  "lib/Net45/HtmlAgilityPack.dll"
                   },
                   {
-                      "Path":  "Private/Get-PSWCDoctor.ps1",
-                      "Sha256":  "33D401E48873100CF25A45FA4C9A58E0120C835B8A96258FB1033CB24D6F3E7F"
+                      "Path":  "Private/Get-PSWCDoctor.ps1"
                   },
                   {
-                      "Path":  "Private/Get-PSWCImageUrls.ps1",
-                      "Sha256":  "67FC87D56F18F8F0DEC970ED14B9113588F93F07F8815C520A3A33F632DD173E"
+                      "Path":  "Private/Get-PSWCImageUrls.ps1"
                   },
                   {
-                      "Path":  "Private/watch.ps1",
-                      "Sha256":  "00ABB19DFEBA2748D83C983242C7575625E6E46A60543BAABDC6C2CD5182528D"
+                      "Path":  "Private/watch.ps1"
                   },
                   {
-                      "Path":  "PSWebCrawler.psd1",
-                      "Sha256":  "0B0ABF97A73E25A94FD655A268BB437BA8B908993A3B2B378B8927C80C4E1461"
+                      "Path":  "PSWebCrawler.psd1"
                   },
                   {
-                      "Path":  "PSWebCrawler.psm1",
-                      "Sha256":  "430A97DF9CBD8B3136CA972385004DACCC3BC400010FC8E10F6DC5EFCBF818D4"
+                      "Path":  "PSWebCrawler.psm1"
                   }
               ]
 }

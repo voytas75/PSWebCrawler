@@ -9,9 +9,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ### Current scope and acceptance
 
 - Added `Start-PSWebCrawler -Doctor`: separate offline diagnostic parameter set,
-  structured checks and shipped SHA256 integrity baseline; no repair or fetch.
-  See [Doctor](https://github.com/voytas75/PSWebCrawler/blob/master/docs/DOCTOR.md). Legacy display-version mismatch is reported,
-  not silently corrected. Public exports and legacy crawl semantics unchanged.
+  required-file presence inventory; paths only, no runtime byte comparison.
+  Checks package paths only; changed-present file content is deliberately outside its contract.
 
 - Public export is `Start-PSWebCrawler` only, with aliases `PSWC` and `PSWebCrawler`. `Invoke-PSWebCrawler` is retained as private implementation, not a supported public API; internal contract tests remain.
 

@@ -20,17 +20,14 @@ fetch, HTTPS or dependency compatibility qualification. Every check has `Name`,
 `VerificationCommand`, and `DocumentationUrls[]` (preserved at JSON depth 6).
 Advice is a static offline catalog for all ten checks and PASS/WARN/FAIL;
 commands and official documentation/package links are never executed or fetched.
-Actions require manual review and separate authorization: integrity drift means
-compare with the same trusted package version, never regenerate to hide it;
-dependency-selected HAP plus passing smoke does not establish incompatibility,
-and the latest downloadable HAP is not necessarily qualified. Missing import
+Actions require manual review and separate authorization: missing required files or malformed inventory fail presence acceptance. Changed-present bytes are not detected; do not treat PASS as byte integrity, authenticity or compatibility. Dependency-selected HAP plus passing smoke does not establish incompatibility, and the latest downloadable HAP is not necessarily qualified.
 prerequisites cannot be diagnosed from inside an unimportable module. FAIL wins
 over WARN; WARN is not a clean PASS.
 Facts include the manifest versus loaded module version/path, exact public
 function and alias targets, the known legacy display version mismatch, native
 PowerShell 5.1 Desktop, installed .NET release, available/loaded PSParseHTML,
 actual HAP assembly name/version/location, fixed in-memory title/href/entity
-parsing, and package integrity. PSParseHTML 3.0.6 is the tested dependency;
+parsing, checks package-path presence only. Missing required paths fail; changed-present bytes are not detected. PSParseHTML 3.0.6 is the tested dependency;
 other/multiple versions produce WARN, missing available/loaded dependency FAIL.
 HAP loaded first by PSParseHTML may differ from the bundled DLL: identity or
 location differences are WARN, not invented fatal incompatibility. Smoke behavior
@@ -96,62 +93,26 @@ For separately approved library maintenance, see
 ownership, exact-version/source selection, rollback and fresh native gates.
 Ordinary Doctor use remains diagnostic only; no download or repair is authorized.
 
-## Integrity baseline
-`PSWebCrawler/PackageIntegrity.json` commits deterministic relative module-file
-paths and SHA256 hashes, including manifest, module/private scripts, DLLs, data,
-images and packaged docs. The inventory itself is excluded (no circular digest).
-Repository-only docs/tests/tools and local evidence are outside this package
-inventory. Missing, unsafe, duplicate, unreadable or empty entries FAIL. SHA256
-syntax remains required for every entry. Doctor hashes all inventoried files except
-exactly `lib/Net45/HtmlAgilityPack.dll` and `lib/core/HtmlAgilityPack.dll`: these
-code-owned paths require file presence only. Inventory mode fields cannot exempt
-other DLLs/files. Their recorded hashes remain maintainer byte-binding metadata,
-not runtime comparisons. DLL swaps no longer cause hash FAIL; missing DLLs FAIL.
-`Actual.Checked` remains the entry count; additive `HashedChecked` and
-`PresenceChecked` distinguish actual coverage (currently 9 hashed, 2 presence).
-HapIdentity and HtmlSmoke remain separate; smoke checks the loaded assembly, not
-both bundled variants. PASS does not certify DLL bytes or replacement compatibility.
-This detects non-HAP differences against the shipped baseline, **not authenticity,
-signature validation or provenance**: an attacker who changes both files and
-inventory defeats it. Compare against a separately trusted package/revision.
-Doctor never rewrites the baseline or quarantines files.
+## Required-file inventory (presence only)
 
-The root `.gitattributes` pins only the eight inventoried module text files to
-`text eol=lf`. Their committed LF bytes are the hash baseline; DLLs and PNG are
-not normalized. Native Git `core.autocrlf=true` otherwise converts those files
-to CRLF on checkout and produces a genuine byte-integrity FAIL despite a clean
-Git status. Do not change global Git settings or regenerate hashes to hide it.
+`PSWebCrawler/PackageIntegrity.json` retains its established filename for package-layout compatibility, but schema `2.0` records only required relative `Path` values. The generator excludes the inventory itself. Doctor rejects missing/unreadable/malformed inventory, unknown or legacy schemas, empty lists, unknown entry fields, duplicate or unsafe paths, and reparse points. The eleven established package paths are code-owned and checked for presence; removing them from the inventory does not suppress missing-file checks.
 
-An existing clean Windows checkout may retain CRLF after pulling attributes.
-After authorized delivery, run native PowerShell from `D:\repos\PSWebCrawler`.
-These commands stop on local changes; never force checkout over user edits:
+Doctor checks presence only. It does **not** hash files, so changed-present content (including DLL replacements), authenticity, provenance and compatibility are not detected or certified. `Actual.Checked` and `Actual.PresenceChecked` count inventory entries; `Actual.Verification` is `PresenceOnly`. Doctor has no `HashedChecked` field and makes no byte-integrity claim. HAP identity and parser smoke remain separate diagnostics.
+
+The inventory is an editable list, not a trusted authority or signature. Compare the package with a separately trusted source when byte identity matters. Hashes in historical tests, receipts, candidate bindings, archives, and maintainer download-verification procedures are separate evidence, not runtime Doctor checks; historical evidence is outside this change.
+
+Maintainers run the existing explicit packaging command after reviewed package edits:
 
 ```powershell
-$ErrorActionPreference = 'Stop'
-if (@(git status --porcelain).Count -or $LASTEXITCODE) { throw 'Stop: inspect local changes.' }
-git pull --ff-only
-if ($LASTEXITCODE) { throw 'Pull failed.' }
-if (@(git status --porcelain).Count -or $LASTEXITCODE) { throw 'Stop: inspect local changes.' }
-$paths = @(Get-Content .gitattributes | Where-Object { $_ -match '^/PSWebCrawler/.+ text eol=lf$' } | ForEach-Object { ($_ -split ' ')[0].Substring(1) })
-if ($paths.Count -ne 8) { throw 'Unexpected attribute scope; review before refreshing.' }
-# Re-materialize ONLY the eight clean, tracked text paths through Git attributes.
-git checkout-index --force -- $paths
-if ($LASTEXITCODE) { throw 'Checkout refresh failed.' }
-if (@(git status --porcelain).Count -or $LASTEXITCODE) { throw 'Unexpected checkout changes.' }
-git ls-files --eol -- $paths  # each must show i/lf w/lf and text eol=lf
-# Use a fresh native process for the actual post-sync health gate.
-powershell.exe -NoProfile -NonInteractive -Command 'Import-Module .\PSWebCrawler\PSWebCrawler.psd1 -Force -ErrorAction Stop; Start-PSWebCrawler -Doctor | ConvertTo-Json -Depth 6'
+.\tools\Update-PackageIntegrity.ps1
 ```
 
-Require `PackageIntegrity=PASS` (11 files) and `HtmlSmoke=PASS`; known dependency
-HAP/legacy-version WARN remains distinct. A passing scratch candidate is not
-proof that the synchronized Windows checkout has been refreshed and verified.
+It writes the deterministic path inventory; it performs no hashing and does not import the module. Review the path delta and verify the generated file set. Repository-only docs/tests/tools are outside the shipped inventory. This check is not authenticity, signature validation, provenance, or byte-integrity verification.
 
-Maintainers only, after intentional reviewed package edits, use native Windows
-PowerShell `./tools/Update-PackageIntegrity.ps1`; it is offline and does not import
-the module. Review the resulting inventory, then qualify a fresh byte-matched
-candidate. Do not run regeneration as an automatic repair of a failing Doctor.
+The root `.gitattributes` pins inventoried text files for checkout EOL only; Doctor
+no longer checks their bytes. Do not change global Git settings under this policy.
 
 Focused native Pester cases are in `tests/Doctor.Tests.ps1`; the established
-78-case preproduction gate remains unchanged. Doctor tests add a separate fourteen
-cases (D01-D14), not a replacement for baseline or future transport qualification.
+78-case preproduction gate remains unchanged. Doctor tests contain sixteen cases
+(D01-D17 with two cases consolidated), not a replacement for baseline or future
+transport qualification.

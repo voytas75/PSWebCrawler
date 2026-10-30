@@ -60,50 +60,60 @@ Describe 'Offline Doctor' {
         ($r.Checks | Where-Object Name -eq 'HtmlSmoke').Status | Should Be 'PASS'
         ($r.Checks | Where-Object Name -eq 'HtmlSmoke').Actual | Should Be 'Doctor & ready|/offline?a=1&b=2'
     }
-    It 'D05 detects immutable baseline missing and changed owned fixtures' {
+    It 'D05 checks presence without detecting changed bytes and rejects missing files' {
         InModuleScope PSWebCrawler {
             $dir=Join-Path $TestDrive 'integrity'
             [void](New-Item -ItemType Directory -Path $dir)
+            $paths=@('Data/useragents.txt','docs/ReleaseNotes.md','images/PSWC.png','images/PSWCbanner.txt','lib/core/HtmlAgilityPack.dll','lib/Net45/HtmlAgilityPack.dll','Private/Get-PSWCDoctor.ps1','Private/Get-PSWCImageUrls.ps1','Private/watch.ps1','PSWebCrawler.psd1','PSWebCrawler.psm1')
+            $entries=@(foreach($path in $paths){$full=Join-Path $dir $path;[void][IO.Directory]::CreateDirectory((Split-Path $full -Parent));[IO.File]::WriteAllText($full,'fixture');@{Path=$path}})
             Set-Content (Join-Path $dir 'owned.txt') 'original'
-            $h=(Get-FileHash (Join-Path $dir 'owned.txt')).Hash
-            [pscustomobject]@{SchemaVersion='1.0';Files=@([pscustomobject]@{Path='owned.txt';Sha256=$h})} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $dir 'PackageIntegrity.json')
+            @{SchemaVersion='2.0';Files=@($entries)+@([pscustomobject]@{Path='owned.txt'})} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $dir 'PackageIntegrity.json')
             (Test-PSWCPackageIntegrity $dir).Status | Should Be 'PASS'
             Set-Content (Join-Path $dir 'owned.txt') 'changed'
-            (Test-PSWCPackageIntegrity $dir).Status | Should Be 'FAIL'
+            (Test-PSWCPackageIntegrity $dir).Status | Should Be 'PASS'
             Remove-Item (Join-Path $dir 'owned.txt')
             (Test-PSWCPackageIntegrity $dir).Status | Should Be 'FAIL'
         }
     }
-    It 'D06 rejects malformed unsafe duplicate and empty integrity entries' {
+    It 'D06 rejects malformed unsafe duplicate and empty presence entries' {
         InModuleScope PSWebCrawler {
             $dir=Join-Path $TestDrive 'invalid'
             [void](New-Item -ItemType Directory -Path $dir)
-            foreach($files in @(@(),@(@{Path='../escape';Sha256=('A'*64)}),@(@{Path='x';Sha256='bad'}),@(@{Path='x';Sha256=('A'*64)},@{Path='x';Sha256=('A'*64)}))){
-                @{SchemaVersion='1.0';Files=$files} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $dir 'PackageIntegrity.json')
+            foreach($json in @('{"SchemaVersion":2.0,"Files":[{"Path":"x"}]}','{"SchemaVersion":"2.0","Files":{"Path":"x"}}','{"SchemaVersion":"2.0","Files":[{"Path":1}]}','{"SchemaVersion":"2.0","Files":["x"]}','{"SchemaVersion":"2.0","Files":[{"Path":"x","Sha256":"legacy"}]}','{"schemaVersion":"2.0","Files":[{"Path":"x"}]}')){
+                Set-Content (Join-Path $dir 'PackageIntegrity.json') $json
                 (Test-PSWCPackageIntegrity $dir).Status | Should Be 'FAIL'
             }
+            foreach($files in @(@(),@(@{Path='../escape'}),@(@{Path='x'},@{Path='x'}))){
+                @{SchemaVersion='2.0';Files=$files} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $dir 'PackageIntegrity.json')
+                (Test-PSWCPackageIntegrity $dir).Status | Should Be 'FAIL'
+            }
+            @{SchemaVersion='1.0';Files=@(@{Path='x'})} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $dir 'PackageIntegrity.json')
+            (Test-PSWCPackageIntegrity $dir).Status | Should Be 'FAIL'
         }
     }
-    It 'D12 checks only known bundled HAP paths for presence and retains other hashes' {
+    It 'D12 checks only known bundled HAP paths for presence and retains no hash fields' {
         InModuleScope PSWebCrawler {
             $dir=Join-Path $TestDrive 'hap-presence'
             [void][IO.Directory]::CreateDirectory((Join-Path $dir 'lib/Net45'))
             [void][IO.Directory]::CreateDirectory((Join-Path $dir 'lib/core'))
-            $paths=@('lib/Net45/HtmlAgilityPack.dll','lib/core/HtmlAgilityPack.dll','other.dll')
+            $paths=@('Data/useragents.txt','docs/ReleaseNotes.md','images/PSWC.png','images/PSWCbanner.txt','lib/core/HtmlAgilityPack.dll','lib/Net45/HtmlAgilityPack.dll','Private/Get-PSWCDoctor.ps1','Private/Get-PSWCImageUrls.ps1','Private/watch.ps1','PSWebCrawler.psd1','PSWebCrawler.psm1')
+            $entries=@(foreach($path in $paths){$full=Join-Path $dir $path;[void][IO.Directory]::CreateDirectory((Split-Path $full -Parent));[IO.File]::WriteAllText($full,'fixture');@{Path=$path}})
+            $paths+= 'other.dll'
             $entries=@(foreach($path in $paths){
                 Set-Content (Join-Path $dir $path) 'original'
-                @{Path=$path;Sha256=(Get-FileHash (Join-Path $dir $path)).Hash;Verification='Exists'}
+                @{Path=$path}
             })
-            @{SchemaVersion='1.0';Files=$entries} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $dir 'PackageIntegrity.json')
+            @{SchemaVersion='2.0';Files=$entries} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $dir 'PackageIntegrity.json')
             foreach($path in $paths[0..1]){Set-Content (Join-Path $dir $path) 'changed bytes'}
             $r=Test-PSWCPackageIntegrity $dir
             $r.Status | Should Be 'PASS'
-            $r.Actual.Checked | Should Be 3
-            $r.Actual.HashedChecked | Should Be 1
-            $r.Actual.PresenceChecked | Should Be 2
+            $r.Actual.Checked | Should Be 12
+            $r.Actual.PresenceChecked | Should Be 12
+            $r.Actual.Verification | Should Be 'PresenceOnly'
+            $r.Actual.ContainsKey('HashedChecked') | Should Be $false
             $r.Message | Should Match 'presence only'
             Set-Content (Join-Path $dir 'other.dll') 'changed bytes'
-            (Test-PSWCPackageIntegrity $dir).Status | Should Be 'FAIL'
+            (Test-PSWCPackageIntegrity $dir).Status | Should Be 'PASS'
             Set-Content (Join-Path $dir 'other.dll') 'original'
             foreach($path in $paths[0..1]){
                 Remove-Item (Join-Path $dir $path)
@@ -112,10 +122,20 @@ Describe 'Offline Doctor' {
                 ($r.Actual.Problems -contains ('Missing: '+$path)) | Should Be $true
                 Set-Content (Join-Path $dir $path) 'replacement'
             }
-            foreach($files in @(@(@{Path='lib/Net45/HtmlAgilityPack.dll';Sha256='bad'}),@($entries[0],$entries[0]),@(@{Path='lib/Net45/../HtmlAgilityPack.dll';Sha256=('A'*64);Verification='Exists'}))){
-                @{SchemaVersion='1.0';Files=$files} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $dir 'PackageIntegrity.json')
+            foreach($files in @(@(@{Path='lib/Net45/HtmlAgilityPack.dll';Verification='Exists'}),@($entries[0],$entries[0]),@(@{Path='lib/Net45/../HtmlAgilityPack.dll'}))){
+                @{SchemaVersion='2.0';Files=$files} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $dir 'PackageIntegrity.json')
                 (Test-PSWCPackageIntegrity $dir).Status | Should Be 'FAIL'
             }
+            @{SchemaVersion='2.0';Files=@(@{Path='other.dll'})} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $dir 'PackageIntegrity.json')
+            (Test-PSWCPackageIntegrity $dir).Status | Should Be 'FAIL'
+            @{SchemaVersion='2.0';Files=@(@{Path='x';Note='ignored'})} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $dir 'PackageIntegrity.json')
+            (Test-PSWCPackageIntegrity $dir).Status | Should Be 'FAIL'
+            @{SchemaVersion='2.0';Files=@(@{Path='x'});Extra='ignored'} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $dir 'PackageIntegrity.json')
+            (Test-PSWCPackageIntegrity $dir).Status | Should Be 'FAIL'
+            $reparse=Join-Path $dir 'linked'
+            New-Item -ItemType Junction -Path $reparse -Target (Join-Path $dir 'lib') | Out-Null
+            @{SchemaVersion='2.0';Files=@(@{Path='linked/Net45/HtmlAgilityPack.dll'})} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $dir 'PackageIntegrity.json')
+            (Test-PSWCPackageIntegrity $dir).Status | Should Be 'FAIL'
         }
     }
     It 'D13 invalid bundled metadata fails identity even when presence passes' {
@@ -123,8 +143,10 @@ Describe 'Offline Doctor' {
             $dir=Join-Path $TestDrive 'invalid-hap'
             [void][IO.Directory]::CreateDirectory((Join-Path $dir 'lib/Net45'))
             $bundled=Join-Path $dir 'lib/Net45/HtmlAgilityPack.dll'
+            $paths=@('Data/useragents.txt','docs/ReleaseNotes.md','images/PSWC.png','images/PSWCbanner.txt','lib/core/HtmlAgilityPack.dll','lib/Net45/HtmlAgilityPack.dll','Private/Get-PSWCDoctor.ps1','Private/Get-PSWCImageUrls.ps1','Private/watch.ps1','PSWebCrawler.psd1','PSWebCrawler.psm1')
+            $entries=@(foreach($path in $paths){$full=Join-Path $dir $path;[void][IO.Directory]::CreateDirectory((Split-Path $full -Parent));[IO.File]::WriteAllText($full,'fixture');@{Path=$path}})
             [IO.File]::WriteAllText($bundled,'Not an assembly')
-            @{SchemaVersion='1.0';Files=@(@{Path='lib/Net45/HtmlAgilityPack.dll';Sha256=('A'*64)})} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $dir 'PackageIntegrity.json')
+            @{SchemaVersion='2.0';Files=$entries} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $dir 'PackageIntegrity.json')
             (Test-PSWCPackageIntegrity $dir).Status | Should Be 'PASS'
             {[Reflection.AssemblyName]::GetAssemblyName($bundled)} | Should Throw
             # Doctor uses this same passive metadata call and catches its failure.
@@ -159,15 +181,49 @@ Describe 'Offline Doctor' {
 }
 # Pester 3 module mocks survive within Describe; isolate prohibited write hooks.
 Describe 'Offline Doctor prohibited hooks' {
-    It 'D14 never hashes either known bundled HAP DLL at runtime' {
+    It 'D14 verifies presence policy without hashing any packaged file' {
         InModuleScope PSWebCrawler {
-            Mock Get-FileHash {throw 'Bundled DLL hash forbidden'} -ParameterFilter {$LiteralPath -match 'lib[\\/]((Net45)|(core))[\\/]HtmlAgilityPack\.dll$'}
+            Mock Get-FileHash {throw 'Runtime hash forbidden'}
             $r=Start-PSWebCrawler -Doctor
             $c=$r.Checks | Where-Object Name -eq PackageIntegrity
             $c.Status | Should Be 'PASS'
-            $c.Actual.HashedChecked | Should Be 9
-            $c.Actual.PresenceChecked | Should Be 2
-            Assert-MockCalled Get-FileHash -Times 0 -Exactly -ParameterFilter {$LiteralPath -match 'lib[\\/]((Net45)|(core))[\\/]HtmlAgilityPack\.dll$'}
+            $c.Actual.Checked | Should Be 11
+            $c.Actual.PresenceChecked | Should Be 11
+            $c.Actual.Verification | Should Be 'PresenceOnly'
+            $c.Actual.ContainsKey('HashedChecked') | Should Be $false
+            Assert-MockCalled Get-FileHash -Times 0 -Exactly
+        }
+    }
+    It 'D15 omitted required inventory membership fails even when all files exist' {
+        InModuleScope PSWebCrawler {
+            $dir=Join-Path $TestDrive 'omitted'
+            $paths=@('Data/useragents.txt','docs/ReleaseNotes.md','images/PSWC.png','images/PSWCbanner.txt','lib/core/HtmlAgilityPack.dll','lib/Net45/HtmlAgilityPack.dll','Private/Get-PSWCDoctor.ps1','Private/Get-PSWCImageUrls.ps1','Private/watch.ps1','PSWebCrawler.psd1','PSWebCrawler.psm1')
+            $entries=@(foreach($path in $paths){$full=Join-Path $dir $path;[void][IO.Directory]::CreateDirectory((Split-Path $full -Parent));[IO.File]::WriteAllText($full,'fixture');@{Path=$path}})
+            foreach($path in $paths){
+                @{SchemaVersion='2.0';Files=@($entries|Where-Object Path -ne $path)}|ConvertTo-Json -Depth 6|Set-Content (Join-Path $dir 'PackageIntegrity.json')
+                $r=Test-PSWCPackageIntegrity $dir
+                $r.Status|Should Be 'FAIL'
+                ($r.Actual.Problems -contains ('Inventory omits required packaged file: '+$path))|Should Be $true
+            }
+        }
+    }
+    It 'D17 every required missing path fails and changed-present content passes' {
+        InModuleScope PSWebCrawler {
+            $dir=Join-Path $TestDrive 'required'
+            $paths=@('Data/useragents.txt','docs/ReleaseNotes.md','images/PSWC.png','images/PSWCbanner.txt','lib/core/HtmlAgilityPack.dll','lib/Net45/HtmlAgilityPack.dll','Private/Get-PSWCDoctor.ps1','Private/Get-PSWCImageUrls.ps1','Private/watch.ps1','PSWebCrawler.psd1','PSWebCrawler.psm1')
+            $entries=@(foreach($path in $paths){$full=Join-Path $dir $path;[void][IO.Directory]::CreateDirectory((Split-Path $full -Parent));[IO.File]::WriteAllText($full,'fixture');@{Path=$path}})
+            @{SchemaVersion='2.0';Files=$entries}|ConvertTo-Json -Depth 6|Set-Content (Join-Path $dir 'PackageIntegrity.json')
+            foreach($path in $paths){
+                $full=Join-Path $dir $path
+                [IO.File]::WriteAllText($full,'changed-present')
+                (Test-PSWCPackageIntegrity $dir).Status|Should Be 'PASS'
+                try {
+                    Remove-Item -LiteralPath $full
+                    $r=Test-PSWCPackageIntegrity $dir
+                    $r.Status|Should Be 'FAIL'
+                    ($r.Actual.Problems -contains ('Missing required packaged file: '+$path))|Should Be $true
+                } finally {[IO.File]::WriteAllText($full,'restored fixture')}
+            }
         }
     }
     It 'D11 Doctor never invokes network installation repair or process launch hooks' {

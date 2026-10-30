@@ -2,13 +2,13 @@
 
 ## Scope and verified baseline
 
-Current Doctor policy checks only the exact bundled Net45/core HAP DLL paths for
-presence, not SHA256 equality. Missing assets still FAIL; metadata identity and
-loaded-parser smoke remain separate checks. The inventory generator retains DLL
-SHA256 as maintainer byte bindings, so the explicit comparisons below still matter
-for candidate qualification. A Doctor PASS no longer detects swapped DLL bytes
-and does not qualify a new bundled version when PSParseHTML uses another assembly.
-The baseline below is historical, not qualification of owner-replaced assets.
+Current Doctor policy uses a package-root required-path inventory (schema 2.0),
+not SHA256 equality. It requires all eleven code-owned package paths as well as
+inventory entries; missing assets fail. The inventory generator records only paths.
+Maintainers may separately bind exact bytes with trusted operator evidence for
+candidate qualification; those hashes do not come from or feed the Doctor check.
+Doctor PASS does not detect swapped DLL bytes or qualify a new bundled version when
+PSParseHTML uses another assembly. The baseline below is historical evidence only.
 
 This repository-only guide describes a **separately approved** maintenance
 procedure, not an instruction for ordinary users to repair a Doctor warning.
@@ -70,10 +70,14 @@ foreach ($relative in 'lib\Net45\HtmlAgilityPack.dll','lib\core\HtmlAgilityPack.
 Get-Module -ListAvailable PSParseHTML | Select-Object Name,Version,Path
 Get-Module PSParseHTML | Select-Object Name,Version,Path
 $inventory = Get-Content -LiteralPath (Join-Path $moduleRoot 'PackageIntegrity.json') -Raw | ConvertFrom-Json
+if ($inventory.SchemaVersion -isnot [string] -or $inventory.SchemaVersion -cne '2.0') { throw 'Expected presence inventory schema 2.0.' }
 foreach ($entry in $inventory.Files) {
-    $observed = (Get-FileHash -LiteralPath (Join-Path $moduleRoot $entry.Path) -Algorithm SHA256).Hash
-    if ($observed -ne $entry.Sha256) { throw ('Original baseline mismatch: ' + $entry.Path) }
+    if (-not (Test-Path -LiteralPath (Join-Path $moduleRoot $entry.Path) -PathType Leaf)) {
+        throw ('Missing inventoried file: ' + $entry.Path)
+    }
 }
+# Path presence is not byte identity. Retain independent operator hashes above;
+# compare them only against separately trusted provenance/rollback receipts.
 ```
 
 `AssemblyName.GetAssemblyName` reads identity without executing the DLL.
@@ -208,7 +212,10 @@ real crawling, HTTPS/TLS correctness or the unqualified .NET 4.5 floor.
 
 ## Integrity, packaging and post-delivery proof
 
-After the **final included edit**, and only for an approved actual package update:
+After the **final included edit**, and only for an approved actual package update,
+run the generator to update the path inventory. It writes no digests; review the
+file set and independently bind approved candidate bytes using trusted evidence.
+Doctor presence PASS is not a byte-integrity or compatibility gate.
 
 ```powershell
 # FUTURE APPROVED WRITE: legitimate packaging, never Doctor repair.
@@ -216,23 +223,23 @@ After the **final included edit**, and only for an approved actual package updat
 ```
 
 The existing parameterless tool inventories module-root files except the inventory
-itself, offline without product import. Review old/new entries: only approved DLL
-paths should change for a binary-only slice; metadata, module or packaged-doc hash
-deltas require explicit inclusion/approval. Added/removed entries need review.
+itself, offline without product import or hashing. Schema 2.0 entries contain Path
+only; unchanged file paths yield no inventory delta even when DLL bytes change.
+Review added/removed paths. Independently bind approved changed bytes to trusted
+operator receipts; those hashes are outside the runtime presence inventory.
 This repository-only guide/backlinks do not change shipped module bytes, so do
 **not** regenerate `PackageIntegrity.json` for this documentation slice.
 
-Materialize a fresh candidate from final bytes, bind every included file's size
-and SHA256, create/extract a fresh ZIP and compare extracted bytes with source.
-Retain ZIP SHA256, candidate binding, raw native receipts and test inventory in a
-unique scratch root; never overwrite sealed historical evidence. A ZIP roundtrip
-is not Gallery publication or a NuGet publication artifact.
+Create/extract a fresh ZIP and compare extracted bytes with source; retain
+independent byte bindings and native receipts as trusted candidate evidence. These
+are separate from Doctor's path inventory and package-presence result.
 
 Commit/push, Windows synchronization and publication each require separate owner
 approval. After authorized delivery/sync, verify the exact Windows checkout/package
-revision and package SHA256, fresh actual loaded identity/location/hash, Doctor
-integrity and in-memory smoke. Scratch candidate success is not deployed-host
-success, and Git sync does not replace functions/DLLs in an open PowerShell process.
+revision and independently trusted candidate evidence, then inspect actual loaded
+identity and in-memory smoke. Doctor reports path presence only. Scratch candidate
+success is not deployed-host success, and Git sync does not replace functions/DLLs
+in an open PowerShell process.
 
 ## Verdict and STOP conditions
 

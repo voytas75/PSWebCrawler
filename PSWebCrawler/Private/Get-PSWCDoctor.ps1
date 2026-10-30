@@ -15,7 +15,7 @@ function New-PSWCDoctorCheck($Name,$Status,$Expected,$Actual,$Message,$Hint) {
         PSParseHTML {$impact='Dependency selection affects the assembly actually used; missing prerequisites can prevent import before Doctor runs.'; $action='Inspect available and loaded versions in a fresh process; manually review dependency ownership against tested PSParseHTML 3.0.6 before any separately authorized change.'; $verify='Get-Module -ListAvailable PSParseHTML; Get-Module PSParseHTML'; $docs='https://www.powershellgallery.com/packages/PSParseHTML/3.0.6'}
         HapIdentity {$impact='A dependency can load a different HAP assembly before the bundled DLL.'; $action='Review dependency ownership and actual parser behavior: passing smoke is not evidence of incompatibility. Do not automatically replace or downgrade HAP; the latest version is not necessarily qualified.'; $verify='[HtmlAgilityPack.HtmlDocument].Assembly | Format-List FullName,Location'; $docs='https://www.nuget.org/packages/HtmlAgilityPack'}
         HtmlSmoke {$impact='This fixed in-memory parser check does not qualify fetching, DNS, HTTPS or transport.'; $action='If smoke fails, review loaded HAP identity and dependency/import errors; if it passes, retain that limited behavioral evidence without claiming transport qualification.'; $verify='Start-PSWebCrawler -Doctor | Select-Object -ExpandProperty Checks | Where-Object Name -eq HtmlSmoke'; $docs='https://github.com/zzzprojects/html-agility-pack'}
-        PackageIntegrity {$impact='Non-HAP byte mismatches indicate baseline drift; the two known bundled HAP DLLs are presence-only, so DLL swaps are not hash failures. Neither result establishes authenticity or DLL compatibility.'; $action='Compare with or manually reinstall the same trusted package version after review; never regenerate the baseline to hide a mismatch.'; $verify='Start-PSWebCrawler -Doctor | Select-Object -ExpandProperty Checks | Where-Object Name -eq PackageIntegrity'; $docs='https://learn.microsoft.com/powershell/module/microsoft.powershell.utility/get-filehash'}
+        PackageIntegrity {$impact='Missing required files or invalid inventory prevent package-presence acceptance. Changed-present bytes are not detected; presence establishes neither integrity, authenticity nor compatibility.'; $action='Compare with or manually reinstall the same trusted package version after review; never regenerate the inventory to hide missing required files.'; $verify='Start-PSWebCrawler -Doctor | Select-Object -ExpandProperty Checks | Where-Object Name -eq PackageIntegrity'; $docs='https://learn.microsoft.com/powershell/module/microsoft.powershell.management/test-path'}
     }
     [pscustomobject][ordered]@{Name=$Name;Status=$Status;Expected=$Expected;Actual=$Actual;Message=$Message;Hint=$Hint;Impact=$impact;RecommendedAction=$action;VerificationCommand=$verify;DocumentationUrls=@($docs)}
 }
@@ -25,16 +25,19 @@ function Get-PSWCDoctorStatus($Checks) {
     return 'PASS'
 }
 function Test-PSWCPackageIntegrity([string]$Root) {
-    $bad=@();$count=0;$hashed=0;$presence=0
-    # Closed code-owned exemption; inventory fields cannot choose verification policy.
-    $presenceOnly=@('lib/Net45/HtmlAgilityPack.dll','lib/core/HtmlAgilityPack.dll')
+    $bad=@();$count=0
+    $required=@('Data/useragents.txt','docs/ReleaseNotes.md','images/PSWC.png','images/PSWCbanner.txt','lib/core/HtmlAgilityPack.dll','lib/Net45/HtmlAgilityPack.dll','Private/Get-PSWCDoctor.ps1','Private/Get-PSWCImageUrls.ps1','Private/watch.ps1','PSWebCrawler.psd1','PSWebCrawler.psm1')
     try {
         $inventory=Get-Content -LiteralPath (Join-Path $Root 'PackageIntegrity.json') -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
-        if($inventory.SchemaVersion -ne '1.0' -or @($inventory.Files).Count -eq 0){throw 'Invalid inventory schema or empty inventory.'}
+        $names=@($inventory.PSObject.Properties.Name)
+        if($inventory -isnot [pscustomobject] -or $names.Count -ne 2 -or $names -cnotcontains 'SchemaVersion' -or $names -cnotcontains 'Files'){throw 'Inventory must contain SchemaVersion and Files only.'}
+        if($inventory.SchemaVersion -isnot [string] -or $inventory.SchemaVersion -cne '2.0' -or $inventory.Files -isnot [array] -or $inventory.Files.Count -eq 0){throw 'Invalid inventory schema or empty inventory.'}
         $seen=New-Object 'Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
         foreach($entry in $inventory.Files){
-            $path=[string]$entry.Path
-            if($path -notmatch '^[A-Za-z0-9_][A-Za-z0-9_./-]*$' -or $path.Split('/') -contains '..' -or $path.Split('/') -contains '.' -or $path.Contains('//') -or $path -eq 'PackageIntegrity.json' -or $entry.Sha256 -notmatch '^[A-Fa-f0-9]{64}$' -or -not $seen.Add($path)){throw 'Invalid or duplicate inventory entry.'}
+            $names=@($entry.PSObject.Properties.Name)
+            if($entry -isnot [pscustomobject] -or $names.Count -ne 1 -or $names -cnotcontains 'Path' -or $entry.Path -isnot [string]){throw 'Inventory entries must contain a string Path only.'}
+            $path=$entry.Path
+            if($path -notmatch '^[A-Za-z0-9_][A-Za-z0-9_./-]*$' -or $path.Split('/') -contains '..' -or $path.Split('/') -contains '.' -or $path.Contains('//') -or $path -eq 'PackageIntegrity.json' -or -not $seen.Add($path)){throw 'Invalid or duplicate inventory entry.'}
             $full=Join-Path $Root $path
             $current=$full
             while($current -and $current.Length -ge $Root.Length){
@@ -42,17 +45,15 @@ function Test-PSWCPackageIntegrity([string]$Root) {
                 $current=Split-Path $current -Parent
             }
             if(-not(Test-Path -LiteralPath $full -PathType Leaf)){$bad+='Missing: '+$path}
-            elseif($presenceOnly -ccontains $path){$presence++}
-            else {
-                $hash=(Get-FileHash -LiteralPath $full -Algorithm SHA256 -ErrorAction Stop).Hash
-                $hashed++
-                if($hash -ne $entry.Sha256){$bad+='Changed: '+$path}
-            }
             $count++
+        }
+        foreach($path in $required){
+            if(-not $seen.Contains($path)){$bad+='Inventory omits required packaged file: '+$path}
+            if(-not(Test-Path -LiteralPath (Join-Path $Root $path) -PathType Leaf)){$bad+='Missing required packaged file: '+$path}
         }
     } catch {$bad+='Unreadable/invalid inventory: '+$_.Exception.Message}
     $status=if($bad.Count){'FAIL'}else{'PASS'}
-    New-PSWCDoctorCheck 'PackageIntegrity' $status 'Inventoried non-HAP hashes match; two known bundled HAP DLL paths require presence only' (@{Checked=$count;HashedChecked=$hashed;PresenceChecked=$presence;Problems=@($bad)}) 'Checks non-HAP packaged bytes against the baseline and known bundled HAP DLLs for presence only; not DLL byte integrity, authenticity or compatibility.' 'Compare with a trusted clean package; do not regenerate the baseline to hide changes.'
+    New-PSWCDoctorCheck 'PackageIntegrity' $status 'All inventoried required packaged files are present' (@{Checked=$count;PresenceChecked=$count;Verification='PresenceOnly';Problems=@($bad)}) 'Checks required packaged-file presence only; does not detect changed bytes, certify authenticity or establish compatibility.' 'Compare the package contents with a separately trusted copy; this check cannot detect changed-present files.'
 }
 function Get-PSWCDoctor {
     $root=Split-Path $PSScriptRoot -Parent

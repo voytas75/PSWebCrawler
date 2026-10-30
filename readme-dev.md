@@ -11,10 +11,7 @@ This guide covers development, retained legacy options and verification limits.
 
 - [Release notes](PSWebCrawler/docs/ReleaseNotes.md): canonical version history;
   0.2.0 is prepared, not a Gallery publication announcement.
-- [Doctor](docs/DOCTOR.md): diagnostic schema, checks and package-integrity rules.
-  Known bundled Net45/core HAP DLLs are presence-only at runtime; all other
-  inventoried files retain SHA256 verification. DLL hashes remain maintainer
-  metadata, not proof of replacement compatibility or actual loaded ownership.
+- [Doctor](docs/DOCTOR.md): diagnostic schema, checks and package required-file presence rules. Its inventory records paths only; Doctor does not compare file bytes. It cannot detect changed-present files or establish authenticity/provenance.
 - [Upgrading](docs/UPGRADING.md): compatibility, prerequisites and rollback limits.
 - [Roadmap](docs/ROADMAP.md): deferred C2/B2 fetch, HTTPS/TLS and S7 Domains work.
 - [Windows preproduction](docs/WINDOWS-PREPRODUCTION.md): runner and evidence contract.
@@ -52,10 +49,10 @@ its HTML fixture is not evidence of live crawling or transport security.
 | `PSWebCrawler/Private/` | Image extraction, timing and offline Doctor helpers |
 | `PSWebCrawler/lib/Net45/` | Bundled Desktop HTML parser assembly |
 | `PSWebCrawler/Data/useragents.txt` | Legacy User-Agent data |
-| `PSWebCrawler/PackageIntegrity.json` | Shipped relative-file SHA256 inventory |
+| `PSWebCrawler/PackageIntegrity.json` | Shipped relative required-file presence inventory (paths only) |
 | `.gitattributes` | Exact inventoried text paths pinned to LF |
 | `tests/` | Fixtures, focused gates and fresh-process runners |
-| `tools/Update-PackageIntegrity.ps1` | Explicit maintainer-only baseline generation |
+| `tools/Update-PackageIntegrity.ps1` | Explicit maintainer-only presence inventory generator |
 | `tools/Show-PSWCDoctor.ps1` | Repository-only English renderer; private helpers in `tools/Doctor.Presentation.ps1` |
 
 A Core-related library directory does not establish PowerShell Core support.
@@ -269,29 +266,18 @@ For separately approved parser-library work, use the maintainer-only
 bundled assets from the dependency-owned loaded assembly and defines provenance,
 rollback and fresh-process gates. It is not an automatic Doctor repair recipe.
 
-The shipped inventory measures exact bytes against its relative-file SHA256
-baseline, **not authenticity, signature validation or provenance**. Repository
-README/developer docs/tests/tools are outside that package inventory; this split
-does not require regenerating it. The inventory cannot defend against replacement
-of both package files and the baseline.
+The shipped inventory lists required relative paths only; Doctor checks presence and no longer compares hashes or detects changed-present bytes. Repository-only docs/tests/tools and local evidence remain outside the inventory. The inventory is not an authenticity or provenance mechanism. Doctor also guards the eleven established required package paths in code and fails when one is omitted from the inventory.
 
-Eight inventoried text paths are pinned to `text eol=lf` by `.gitattributes`;
-DLLs/PNG remain byte-exact. A clean Git status alone does not prove package bytes.
-For existing Windows CRLF checkout problems, follow the guarded clean-checkout
-procedure and byte verification in [Doctor](docs/DOCTOR.md); never force over
-local edits, change global Git settings, normalize hashes or regenerate a failing
-baseline merely to make diagnostics pass.
+Eight inventoried text paths remain pinned to `text eol=lf` by `.gitattributes` as a checkout convention. DLLs/PNG are unchanged by this policy. Never change global Git settings or regenerate hashes to hide a mismatch; Doctor no longer performs byte mismatch checks.
 
-Only after legitimate, intentional, reviewed package edits, maintainers run:
+Only after legitimate, intentional, reviewed package-file changes, maintainers run the existing generator:
 
 ```powershell
-# Native Windows PowerShell; offline, no product import.
+# Native Windows PowerShell; offline, no product import or file hashing.
 .\tools\Update-PackageIntegrity.ps1
 ```
 
-Review the inventory diff and qualify a fresh byte-matched candidate afterward.
-Doctor never automatically regenerates hashes, installs dependencies or repairs
-files. Publication remains manual and owner-controlled; no tag, release or
+Review the required-path inventory and verify that its entries match the intended package file set. Doctor never automatically regenerates the inventory, installs dependencies or repairs files. Publication remains manual and owner-controlled; no tag, release or
 Gallery package is implied by version metadata or these commands. Follow the
 canonical [release notes](PSWebCrawler/docs/ReleaseNotes.md) and
 [upgrade guidance](docs/UPGRADING.md), including unresolved compatibility and
