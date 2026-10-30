@@ -96,11 +96,14 @@ Describe 'Offline Doctor' {
         }
         'alive' | Should Be 'alive'
     }
-    It 'D08 reports loaded version path legacy mismatch dependency and HAP facts' {
+    It 'D08 reports loaded version path aligned display version dependency and HAP facts' {
         $r=Start-PSWebCrawler -Doctor
         ($r.Checks | Where-Object Name -eq 'ModuleVersion').Status | Should Be 'PASS'
         ($r.Checks | Where-Object Name -eq 'ModulePath').Status | Should Be 'PASS'
-        ($r.Checks | Where-Object Name -eq 'LegacyDisplayVersion').Status | Should Be 'WARN'
+        $display = $r.Checks | Where-Object Name -eq 'LegacyDisplayVersion'
+        $display.Status | Should Be 'PASS'
+        $display.Expected | Should Be '0.2.0'
+        $display.Actual | Should Be '0.2.0'
         ($r.Checks | Where-Object Name -eq 'PSParseHTML').Actual | Should Match '3.0.6'
         ($r.Checks | Where-Object Name -eq 'HapIdentity').Actual.FullName | Should Match 'HtmlAgilityPack'
     }
