@@ -89,7 +89,18 @@ not install, repair or qualify networking. WARN may coexist with `Healthy=true`.
 Import itself still performs legacy TLS initialization. See [Doctor](docs/DOCTOR.md).
 
 Legacy URL operations can fetch live pages and write files. Use only with
-permission to access the target; they are outside the offline acceptance proof.
+permission to access the target. In the current repository candidate, URL alone
+extracts links from one page (equivalent to `-ShowAllElements -Type All`), without
+following linked pages:
+
+```powershell
+PSWC -Url 'https://udt.gov.pl'
+```
+
+This preserves legacy console output, session/logging and link-result files;
+it is not a write-free call or a new combined result schema. Explicit extraction
+selectors and `-Depth`, `-Resolve`, `-outputFolder` crawl selection remain unchanged.
+Offline mocked acceptance does not qualify live target access.
 [Developer/reference notes](readme-dev.md) contain the legacy parameter examples,
 output behavior and known limitations.
 

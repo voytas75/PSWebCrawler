@@ -18,6 +18,24 @@ This guide covers development, retained legacy options and verification limits.
 Those documents remain authoritative; this guide is not a second changelog or
 release/transport acceptance record.
 
+## URL-only entry (repository candidate)
+
+`PSWC -Url 'https://udt.gov.pl'` selects the retained single-page
+`ShowAllElements` / `Type All` branch. One page response supplies its anchor
+analysis; linked targets are not fetched. Existing console output and files
+`UrlsUnique.txt`, `noHrefUnique.txt`, `InternalLinksUnique.txt`, `DomainsUnique.txt`
+(when anchors exist), `Settings.log` and legacy logging/session initialization
+are preserved. No combined new-API schema is introduced.
+No arguments retain the nine-example menu, with offline Doctor last.
+URL-only invalid/non-HTTP absolute input terminates before initialization or
+prompting; null/empty input may be rejected by native parameter binding.
+Other explicitly selected legacy operations keep their existing validation.
+URL plus shared `-onlyDomains` can still be ambiguous; this bounded change does
+not claim to repair every combination. `-Type` selects extraction;
+`-Depth`, `-Resolve` and `-outputFolder` retain recursive crawl selection.
+Native offline `tests/UrlEntry.Tests.ps1` intercepts transport/output seams;
+its HTML fixture is not evidence of live crawling or transport security.
+
 ## Repository map
 
 | Path | Responsibility |

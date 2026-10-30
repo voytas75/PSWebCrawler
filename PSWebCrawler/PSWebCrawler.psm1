@@ -1339,29 +1339,29 @@ function Show-PSWCMenu {
     Write-host "    If the 'outputFolder' parameter is not provided, the default output log and data folder path is set to the user's document folder under the 'PSWebCrawler' directory:"
     Write-Host "    PSWC -Url 'http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf' -Depth 2 -onlyDomains" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[2] Crawling two levels from the given URL, only domains from Hypertext Reference (HREF) are taken, and resolves the domain names to IP addresses:"
-    Write-Host "    PSWC -Url 'http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf' -Depth 2 -onlyDomains -Resolve" -ForegroundColor Green  
-    Write-Host ""
-    Write-Host "[3] Crawling two levels from the given URL, only domains with Hypertext Reference (HREF) are taken. Output log and data folder path is given:"
+    Write-Host "[2] Crawling two levels from the given URL, only domains with Hypertext Reference (HREF) are taken. Output log and data folder path is given:"
     Write-Host "    PSWC -Url 'http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf' -Depth 2 -onlyDomains -outputFolder 'c:\temp\crawl\loganddata\'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[4] Retrieves all href elements from the URL:"
+    Write-Host "[3] Retrieves all href elements from the URL:"
     Write-Host "    PSWC -ShowAllElements -Type All -Url 'https://www.w3schools.com/'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[5] Retrieves the URLs of all images on the webpage:"
+    Write-Host "[4] Retrieves the URLs of all images on the webpage:"
     Write-Host "    PSWC -GetImageUrls -url 'http://allafrica.com/tools/'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[6] Shows metadata from an HTML document located at the specified URL:"
+    Write-Host "[5] Shows metadata from an HTML document located at the specified URL:"
     Write-Host "    PSWC -GetHTMLMetadata -url 'http://allafrica.com/tools/headlines/rdf'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[7] Shows contact information from an HTML document located at the specified URL:"
+    Write-Host "[6] Shows contact information from an HTML document located at the specified URL:"
     Write-Host "    PSWC -GetContactInformation -Url 'https://games.com'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[8] Shows headers and their corresponding values from an HTML document located at the specified URL:"
+    Write-Host "[7] Shows headers and their corresponding values from an HTML document located at the specified URL:"
     Write-Host "    PSWC -GetHeadersAndValues -url 'http://allafrica.com'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[9] Opens default log and data folder in Windows File Explorer:"
+    Write-Host "[8] Opens default log and data folder in Windows File Explorer:"
     Write-Host "    PSWC -ShowCacheFolder" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "[9] Returns offline diagnostics without crawling, installation or repair:"
+    Write-Host "    PSWC -Doctor | ConvertTo-Json -Depth 6" -ForegroundColor Green
     Write-Host ""
 }
 
@@ -1372,6 +1372,11 @@ function Start-PSWebCrawler {
 
     .DESCRIPTION
     The 'WebCrawler' function allows you to process and web crawl.
+
+    .PARAMETER Url
+    URL alone extracts links from one page using ShowAllElements with Type All.
+    Preserves legacy session, logging and output files; linked pages are not crawled.
+    No arguments display the menu. URL-only invalid input terminates without a prompt.
 
     .PARAMETER Doctor
     Returns one offline diagnostic object without a URL, banner, prompt, logging or repair.
@@ -1390,6 +1395,7 @@ function Start-PSWebCrawler {
         [Parameter(ParameterSetName = 'Doctor', Mandatory = $true)]
         [switch]$Doctor,
 
+        [Parameter(ParameterSetName = 'Default')]
         [Parameter(ParameterSetName = 'WebCrawl', Mandatory = $true)]
         [Parameter(ParameterSetName = 'ShowAllElements', Mandatory = $true)]
         [Parameter(ParameterSetName = 'GetImageUrls', Mandatory = $true)]
@@ -1447,8 +1453,19 @@ function Start-PSWebCrawler {
     if ($PSCmdlet.ParameterSetName -eq 'Doctor') {
         return Get-PSWCDoctor
     }
+    # URL-only entry uses the existing single-page All extraction, not recursive crawling.
+    $operation = $PSCmdlet.ParameterSetName
+    if ($operation -eq 'Default' -and $PSBoundParameters.ContainsKey('Url')) {
+        $uri = $null
+        if ([string]::IsNullOrWhiteSpace($Url) -or
+            -not [uri]::TryCreate($Url, [UriKind]::Absolute, [ref]$uri) -or
+            $uri.Scheme -notin @('http', 'https') -or -not $uri.Host) {
+            throw 'Url must be a valid absolute HTTP or HTTPS URL.'
+        }
+        $operation = 'ShowAllElements'
+    }
     # Initialize legacy output only when an operation needs it, before logging.
-    if ($PSCmdlet.ParameterSetName -ne 'Default') {
+    if ($operation -ne 'Default') {
         if (-not $script:loganddatafolderPath) {
             $script:loganddatafolderPath = Get-PSWCoutPath -FolderName $script:ModuleName -Type UserDoc
             if (-not $script:loganddatafolderPath) {
@@ -1460,12 +1477,12 @@ function Start-PSWebCrawler {
         }
     }
     Get-PSWCBanner
-    Write-Verbose "ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
-    if ($PSCmdlet.ParameterSetName -ne 'Default') {
-        Write-Log "Start; ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
+    Write-Verbose "ParameterSetName: [$($operation)]"
+    if ($operation -ne 'Default') {
+        Write-Log "Start; ParameterSetName: [$($operation)]"
     }
 
-    if ($($PSCmdlet.ParameterSetName) -notin 'ShowCacheFolder', 'Default') {
+    if ($($operation) -notin 'ShowCacheFolder', 'Default') {
         # Check if the URL is valid
         # The regex '^https?://[^/].*' checks if the URL starts with 'http://' or 'https://' and has at least one character after the domain name
         while ((-not ($Url -match '^https?://[^/].*')) -or [string]::IsNullOrEmpty($url)) {
@@ -1483,7 +1500,7 @@ function Start-PSWebCrawler {
     $UserAgent = get-RandomUserAgent
     #$UserAgent = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows CE; IEMobile 7.11) Sprint:PPC6800'
 
-    if ($($PSCmdlet.ParameterSetName) -ne "Default") {
+    if ($($operation) -ne "Default") {
         $date = Get-Date -Format "dd-MM-yyyy-HH-mm-ss"
         try {
             $script:SessionFolder = Set-PSWCSessionFolder -FolderName $date -FolderPath $outputFolder
@@ -1494,7 +1511,7 @@ function Start-PSWebCrawler {
         }
     }
         
-    switch ($PSCmdlet.ParameterSetName) {
+    switch ($operation) {
         'WebCrawl' {
             $script:ArrayData = @()
             Write-Log "Initializing array [ArrayData]"
@@ -1515,7 +1532,7 @@ function Start-PSWebCrawler {
             }
                         
             Write-Host "Settings:" -ForegroundColor Gray 
-            Write-Host "[+] Option: $($PSCmdlet.ParameterSetName)" -ForegroundColor DarkGray
+            Write-Host "[+] Option: $($operation)" -ForegroundColor DarkGray
             Write-Host "[+] Url: $Url" -ForegroundColor DarkGray
             Write-Host "[+] Depth: $depth" -ForegroundColor DarkGray
             write-host "[+] OnlyDomains: $onlydomains" -ForegroundColor DarkGray
@@ -1527,7 +1544,7 @@ function Start-PSWebCrawler {
             Write-Host "[+] Invoking cli: '$($MyInvocation.Line)'" -ForegroundColor DarkGray
             Write-Host ""
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "Settings:"
-            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Option: $($PSCmdlet.ParameterSetName)"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Option: $($operation)"
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Url: $Url"
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Depth: $depth" 
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] OnlyDomains: $onlydomains"
@@ -1596,7 +1613,7 @@ function Start-PSWebCrawler {
             Write-Host "- Other logs: $(Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")" -ForegroundColor Cyan
             Write-Host "- Other logs: $script:SessionFolder" -ForegroundColor Cyan
 
-            Write-Log "End; ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
+            Write-Log "End; ParameterSetName: [$($operation)]"
 
             break
 
@@ -1605,7 +1622,7 @@ function Start-PSWebCrawler {
             #New-PSWCoutPath -FolderName $script:WCtoolfolderFullName
             Write-Host "Open log and data folder in Windows File Explorer" -ForegroundColor Cyan
             Open-PSWCExplorerCache -FolderName $script:ModuleName
-            Write-Log "End; ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
+            Write-Log "End; ParameterSetName: [$($operation)]"
 
             break
 
@@ -1613,7 +1630,7 @@ function Start-PSWebCrawler {
         'ShowAllElements' {
 
             Write-Host "Settings:" -ForegroundColor Gray
-            Write-Host "[+] Option: $($PSCmdlet.ParameterSetName)" -ForegroundColor DarkGray
+            Write-Host "[+] Option: $($operation)" -ForegroundColor DarkGray
             Write-Host "[+] Url: $Url" -ForegroundColor DarkGray
             write-host "[+] Type: $Type" -ForegroundColor DarkGray
             write-host "[+] OnlyDomains: $onlyDomains" -ForegroundColor DarkGray
@@ -1623,7 +1640,7 @@ function Start-PSWebCrawler {
             Write-Host "[+] Invoking cli: '$($MyInvocation.Line)'" -ForegroundColor DarkGray
             Write-Host ""
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "Settings:"
-            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Option: $($PSCmdlet.ParameterSetName)"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Option: $($operation)"
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Url: $Url"
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Type: $Type"
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] OnlyDomains: $onlydomains"
@@ -1652,14 +1669,14 @@ function Start-PSWebCrawler {
                 Get-PSWCAllElements -url $url -onlyDomains:$onlyDomains -Type $type -userAgent $UserAgent
             }
 
-            Write-Log "End; ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
+            Write-Log "End; ParameterSetName: [$($operation)]"
 
             break
         }
         'GetImageUrls' {
 
             Write-Host "Settings:" -ForegroundColor Gray
-            Write-Host "[+] Option: $($PSCmdlet.ParameterSetName)" -ForegroundColor DarkGray
+            Write-Host "[+] Option: $($operation)" -ForegroundColor DarkGray
             Write-Host "[+] Url: $Url" -ForegroundColor DarkGray
             Write-Host "[+] Used UserAgent: '$UserAgent'" -ForegroundColor DarkGray
             Write-Host "[+] Session folder path: $script:SessionFolder" -ForegroundColor DarkGray
@@ -1667,7 +1684,7 @@ function Start-PSWebCrawler {
             Write-Host "[+] Invoking cli: '$($MyInvocation.Line)'" -ForegroundColor DarkGray
             Write-Host ""
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "Settings:"
-            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Option: $($PSCmdlet.ParameterSetName)"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Option: $($operation)"
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Url: $Url"
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Session folder path: $script:SessionFolder"
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Log: $(Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")"
@@ -1711,7 +1728,7 @@ function Start-PSWebCrawler {
                 Write-Host "- Setting log: $(Join-Path $script:SessionFolder "Settings.log")" -ForegroundColor Cyan
             }
 
-            Write-Log "End; ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
+            Write-Log "End; ParameterSetName: [$($operation)]"
 
             break
 
@@ -1719,7 +1736,7 @@ function Start-PSWebCrawler {
         'GetHTMLMetadata' {
 
             Write-Host "Settings:" -ForegroundColor Gray
-            Write-Host "[+] Option: $($PSCmdlet.ParameterSetName)" -ForegroundColor DarkGray
+            Write-Host "[+] Option: $($operation)" -ForegroundColor DarkGray
             Write-Host "[+] Url: $Url" -ForegroundColor DarkGray
             Write-Host "[+] Used UserAgent: '$UserAgent'" -ForegroundColor DarkGray
             Write-Host "[+] Session folder path: $script:SessionFolder" -ForegroundColor DarkGray
@@ -1727,7 +1744,7 @@ function Start-PSWebCrawler {
             Write-Host "[+] Invoking cli: '$($MyInvocation.Line)'" -ForegroundColor DarkGray
             Write-Host ""
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "Settings:"
-            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Option: $($PSCmdlet.ParameterSetName)"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Option: $($operation)"
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Url: $Url"
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Session folder path: $script:SessionFolder"
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Log: $(Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")"
@@ -1759,7 +1776,7 @@ function Start-PSWebCrawler {
                 Write-Host "- Setting log: $(Join-Path $script:SessionFolder "Settings.log")" -ForegroundColor Cyan
             }
             
-            Write-Log "End; ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
+            Write-Log "End; ParameterSetName: [$($operation)]"
 
             break
 
@@ -1767,7 +1784,7 @@ function Start-PSWebCrawler {
         'GetContactInformation' {
 
             Write-Host "Settings:" -ForegroundColor Gray
-            Write-Host "[+] Option: $($PSCmdlet.ParameterSetName)" -ForegroundColor DarkGray
+            Write-Host "[+] Option: $($operation)" -ForegroundColor DarkGray
             Write-Host "[+] Url: $Url" -ForegroundColor DarkGray
             Write-Host "[+] Used UserAgent: '$UserAgent'" -ForegroundColor DarkGray
             Write-Host "[+] Session folder path: $script:SessionFolder" -ForegroundColor DarkGray
@@ -1775,7 +1792,7 @@ function Start-PSWebCrawler {
             Write-Host "[+] Invoking cli: '$($MyInvocation.Line)'" -ForegroundColor DarkGray
             Write-Host ""
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "Settings:"
-            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Option: $($PSCmdlet.ParameterSetName)"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Option: $($operation)"
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Url: $Url"
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Session folder path: $script:SessionFolder"
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Log: $(Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")"
@@ -1806,7 +1823,7 @@ function Start-PSWebCrawler {
                 Write-Host "- Setting log: $(Join-Path $script:SessionFolder "Settings.log")" -ForegroundColor Cyan
             }
 
-            Write-Log "End; ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
+            Write-Log "End; ParameterSetName: [$($operation)]"
 
             break
 
@@ -1814,7 +1831,7 @@ function Start-PSWebCrawler {
         'GetHeadersAndValues' {
 
             Write-Host "Settings:" -ForegroundColor Gray
-            Write-Host "[+] Option: $($PSCmdlet.ParameterSetName)" -ForegroundColor DarkGray
+            Write-Host "[+] Option: $($operation)" -ForegroundColor DarkGray
             Write-Host "[+] Url: $Url" -ForegroundColor DarkGray
             Write-Host "[+] Used UserAgent: '$UserAgent'" -ForegroundColor DarkGray
             Write-Host "[+] Session folder path: $script:SessionFolder" -ForegroundColor DarkGray
@@ -1822,7 +1839,7 @@ function Start-PSWebCrawler {
             Write-Host "[+] Invoking cli: '$($MyInvocation.Line)'" -ForegroundColor DarkGray
             Write-Host ""
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "Settings:"
-            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Option: $($PSCmdlet.ParameterSetName)"
+            Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Option: $($operation)"
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Url: $Url"
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Session folder path: $script:SessionFolder"
             Add-Content -Path (Join-Path $script:SessionFolder "Settings.log") -Value "[+] Log: $(Join-Path $script:loganddatafolderPath "$($script:ModuleName).log")"
@@ -1855,7 +1872,7 @@ function Start-PSWebCrawler {
                 Write-Host "- Setting log: $(Join-Path $script:SessionFolder "Settings.log")" -ForegroundColor Cyan
             }           
 
-            Write-Log "End; ParameterSetName: [$($PSCmdlet.ParameterSetName)]"
+            Write-Log "End; ParameterSetName: [$($operation)]"
 
             break
 
@@ -1869,7 +1886,7 @@ function Start-PSWebCrawler {
     }
 
     # stop measure execution of script
-    if ($($PSCmdlet.ParameterSetName) -ne "Default") {
+    if ($($operation) -ne "Default") {
         Write-Host ""
         stop-watch $watch_
     }
