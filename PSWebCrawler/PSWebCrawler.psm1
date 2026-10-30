@@ -2353,7 +2353,7 @@ if ($FoundErrors.Count -gt 0) {
 $script:ModuleName = "PSWebCrawler"
 
 # Get the installed version of the module
-$ModuleVersion = [version]"0.1.0"
+$ModuleVersion = [version]"0.2.0"
 
 
 Set-Alias -Name "PSWC" -Value Start-PSWebCrawler
