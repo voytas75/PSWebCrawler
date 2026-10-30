@@ -36,13 +36,50 @@ into InternalLinks; HTML `base` tags are ignored. BaseUrl must be absolute
 HTTP(S), is syntactically validated and normalized by System.Uri, never fetched.
 This is not a URL-normalization refactor or a hostile-HTML security audit.
 
-Local execution returns one object with SourcePath (the actual file path, not an
-invented HTTP page URL), BaseUrl, Type and Hrefs/NonHrefs/Domains/InternalLinks
-arrays. Type selects saved files; arrays retain all extracted categories.
+Local execution returns the single-page output contract below, with SourcePath
+retained as the actual local file path. Type selects saved files; arrays retain
+all extracted categories.
 It also uses existing timestamped session folders, Settings.log and module
 logging. Thus offline local execution is **not write-free**. Without explicit
 outputFolder it retains legacy output-folder discovery/creation. File content
 can change between validation and parsing; later I/O errors remain terminating.
+
+## Single-page output contract
+
+`ShowAllElements`, URL-only entry and local HTML return exactly one
+`PSWebCrawler.LinkAnalysis` on successful analysis, including empty HTML.
+This fixes ordinary assignment returning the logo rather than link data.
+SchemaVersion is `1.0`; this does not change Doctor or preview schemas.
+
+```powershell
+$links = PSWC -HtmlPath 'C:\fixtures\saved page.html' -Type All
+$links.Hrefs
+$links.Counts
+$links.OutputFiles
+$links | ConvertTo-Json -Depth 6
+# Remote equivalent (makes one HTTP request and retains legacy file writes):
+$links = PSWC -ShowAllElements -Type All -Url 'https://example.test/page'
+```
+
+Fields: `SchemaVersion`, `Operation` (`ShowAllElements` or `LocalHtmlLinks`),
+`InputKind` (`Url` or `LocalHtml`), `SourceUrl` (supplied remote URL), `HtmlPath`
+(resolved local path), `SourcePath` (compatibility alias of HtmlPath), `BaseUrl`
+(explicit local resolution base), `Type`, `Hrefs`, `NonHrefs`, `InternalLinks`,
+`Domains`, `Counts`, `OutputFiles`, `SessionFolder`. Inactive provenance is null.
+The four category fields are unique sorted `string[]`, including empty arrays.
+Counts contains matching integer Hrefs/NonHrefs/InternalLinks/Domains counts.
+All computed categories remain available regardless of Type; Type selects files
+using the mapping above. OutputFiles has only existing paths written by the
+selected branch, keyed Hrefs/NonHrefs/InternalLinks/Domains plus SettingsLog
+when present. Empty anchors preserve no category files and zero counts.
+No analysis object is returned for failed HTTP; legacy messages are preserved.
+There is no new structured contract for other legacy extraction/crawl modes.
+
+Banner and status messages use the information/host stream, not success output.
+Ordinary assignment and `ConvertTo-Json` therefore consume data. Explicit stream
+merging (`6>&1` or `*>&1`) also captures presentation and is not a data-only
+contract. Existing onlyDomains switch semantics and relative resolution remain
+unchanged; BaseUrl never authorizes a request.
 
 ## DryRun and Preview are aliases for one behavior
 

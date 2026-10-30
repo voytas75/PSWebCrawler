@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Current scope and acceptance
 
+- Fixed single-page link extraction assignment: the banner uses host information,
+  and ShowAllElements, URL-only and local HTML return one LinkAnalysis object
+  with categories, counts, provenance and existing saved paths. Type selects
+  files while the result retains all categories; other legacy modes are unchanged.
+
 - Added `Start-PSWebCrawler -Doctor`: separate offline diagnostic parameter set,
   required-file presence inventory; paths only, no runtime byte comparison.
   Checks package paths only; changed-present file content is deliberately outside its contract.

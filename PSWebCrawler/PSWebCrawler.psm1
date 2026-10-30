@@ -27,7 +27,7 @@ function Get-PSWCBanner {
     $banner = Get-Content -Path $FilePath -Raw
 
     # Display the banner in the console.
-    Write-Output $banner
+    Write-Host $banner
 }
 
 function Get-PSWCAllElements {
@@ -81,6 +81,10 @@ function Get-PSWCAllElements {
         $hrefElements = @()
         $nonhrefElements = @()
         $internalLinks = @()
+        $analysisCompleted = $false
+        $sourceUrl = $url
+        $outputFiles = [ordered]@{}
+        $UrlsFullName = $noUrlsFullName = $InternalLinksFullName = $DomainsFullName = $null
 
     }
     process {
@@ -100,6 +104,7 @@ function Get-PSWCAllElements {
 
         # Local input uses the same anchor/category/output path without an HTTP response.
         if ($HtmlPath -or $response[1].IsSuccessStatusCode) {
+            $analysisCompleted = $true
             if (-not $HtmlPath) {
                 Write-Log "Response [$($response[1].StatusCode)] succeded from [$url] "
                 $htmlContent = $response[1].Content.ReadAsStringAsync().Result
@@ -228,20 +233,42 @@ function Get-PSWCAllElements {
         }
     }
     end {
-        if ($HtmlPath) {
-            [pscustomobject][ordered]@{
-                SourcePath = $HtmlPath
-                BaseUrl = $BaseUrl
-                Type = $Type
-                Hrefs = @($hrefElements | Select-Object -Unique | Sort-Object)
-                NonHrefs = @($nonhrefElements | Select-Object -Unique | Sort-Object)
-                Domains = @($domains | Select-Object -Unique | Sort-Object)
-                InternalLinks = @($internalLinks | Select-Object -Unique | Sort-Object)
+        if (-not $analysisCompleted) { return }
+        # Report only selected category paths produced by this invocation.
+        foreach ($entry in @(
+            @('Hrefs', $UrlsFullName), @('NonHrefs', $noUrlsFullName),
+            @('InternalLinks', $InternalLinksFullName), @('Domains', $DomainsFullName),
+            @('SettingsLog', (Join-Path $script:SessionFolder 'Settings.log'))
+        )) {
+            if ($entry[1] -and (Test-Path -LiteralPath $entry[1] -PathType Leaf)) {
+                $outputFiles[$entry[0]] = $entry[1]
             }
         }
-        #if ($anchorElements[1].count -gt 0) {
-
-        #}
+        $result = [pscustomobject][ordered]@{
+            PSTypeName = 'PSWebCrawler.LinkAnalysis'
+            SchemaVersion = '1.0'
+            Operation = $(if ($HtmlPath) { 'LocalHtmlLinks' } else { 'ShowAllElements' })
+            InputKind = $(if ($HtmlPath) { 'LocalHtml' } else { 'Url' })
+            SourceUrl = $(if ($HtmlPath) { $null } else { $sourceUrl })
+            HtmlPath = $(if ($HtmlPath) { $HtmlPath } else { $null })
+            SourcePath = $(if ($HtmlPath) { $HtmlPath } else { $null })
+            BaseUrl = $(if ($HtmlPath -and $BaseUrl) { $BaseUrl } else { $null })
+            Type = $Type
+            Hrefs = [string[]]@($hrefElements | Select-Object -Unique | Sort-Object)
+            NonHrefs = [string[]]@($nonhrefElements | Select-Object -Unique | Sort-Object)
+            InternalLinks = [string[]]@($internalLinks | Select-Object -Unique | Sort-Object)
+            Domains = [string[]]@($domains | Select-Object -Unique | Sort-Object)
+            Counts = $null
+            OutputFiles = [pscustomobject]$outputFiles
+            SessionFolder = $script:SessionFolder
+        }
+        $result.Counts = [pscustomobject][ordered]@{
+            Hrefs = $result.Hrefs.Count
+            NonHrefs = $result.NonHrefs.Count
+            InternalLinks = $result.InternalLinks.Count
+            Domains = $result.Domains.Count
+        }
+        $result
     }
 }
 
@@ -1401,12 +1428,18 @@ function Start-PSWebCrawler {
 
     .PARAMETER HtmlPath
     Extracts links from one readable literal local HTML file without HTTP or crawling.
-    Type selects legacy category files; returns SourcePath and category arrays.
+    Type selects legacy category files; returns one PSWebCrawler.LinkAnalysis.
     Preserves session/log/file writes. Mutually exclusive with Url and other operations.
 
     .PARAMETER BaseUrl
     Optional local-only absolute HTTP(S) base for relative references; never fetched.
     HTML base tags are ignored. Without this parameter relative links are retained.
+
+    .PARAMETER ShowAllElements
+    Returns one PSWebCrawler.LinkAnalysis with all four category arrays, Counts,
+    input provenance and existing OutputFiles paths. Type selects saved files only.
+    Banner and status text use the information stream, not ordinary assignment.
+    Empty anchors return empty arrays; failed HTTP returns no analysis object.
 
     .PARAMETER DryRun
     Alias Preview. Returns one PSWebCrawler.Plan without requests, HTML parsing,

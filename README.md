@@ -66,7 +66,10 @@ Get-Module PSWebCrawler | Select-Object Name, Version, Path
 ## Local HTML and preview (unpublished repository candidate)
 
 ```powershell
-PSWC -HtmlPath 'C:\fixtures\saved page.html' -outputFolder 'C:\PSWC-results'
+$links = PSWC -HtmlPath 'C:\fixtures\saved page.html' -outputFolder 'C:\PSWC-results'
+$links.Hrefs
+$links.Counts
+$links.OutputFiles
 PSWC -Url 'https://example.test/page' -DryRun | ConvertTo-Json -Depth 6
 # -Preview is an alias of -DryRun, not a read-only network request.
 ```
@@ -77,6 +80,10 @@ Preview returns one execution plan without requests, HTML parsing or output
 initialization; it does not predict results. See the canonical
 [input and preview guide](docs/INPUT-PREVIEW.md) for supported options and limits.
 Import dependencies and process TLS initialization remain unchanged.
+Single-page URL extraction (`$links = PSWC -ShowAllElements -Type All -Url
+'https://example.test/page'`) and URL-only entry return the same data contract.
+The banner remains console information, not the assigned result. See the
+[output contract](docs/INPUT-PREVIEW.md#single-page-output-contract).
 
 ## Run
 
