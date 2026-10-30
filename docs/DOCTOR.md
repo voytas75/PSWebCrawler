@@ -88,6 +88,14 @@ is bounded presentation validation (supported nesting depth 18), not a general
 untrusted-JSON parser, authenticity check or terminal-security guarantee. Advice
 and diagnostic strings remain data, never evaluated.
 
+## Maintainer-only HAP changes
+
+A dependency-selected HAP warning is not an instruction to replace a DLL.
+For separately approved library maintenance, see
+[HtmlAgilityPack maintenance](HAP-MAINTENANCE.md), covering actual assembly
+ownership, exact-version/source selection, rollback and fresh native gates.
+Ordinary Doctor use remains diagnostic only; no download or repair is authorized.
+
 ## Integrity baseline
 `PSWebCrawler/PackageIntegrity.json` commits deterministic relative module-file
 paths and SHA256 hashes, including manifest, module/private scripts, DLLs, data,

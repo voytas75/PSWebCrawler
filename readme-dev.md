@@ -257,6 +257,11 @@ See the [runner contract](docs/WINDOWS-PREPRODUCTION.md) for exact requirements.
 
 ## Package integrity and release maintenance
 
+For separately approved parser-library work, use the maintainer-only
+[HtmlAgilityPack maintenance guide](docs/HAP-MAINTENANCE.md): it distinguishes
+bundled assets from the dependency-owned loaded assembly and defines provenance,
+rollback and fresh-process gates. It is not an automatic Doctor repair recipe.
+
 The shipped inventory measures exact bytes against its relative-file SHA256
 baseline, **not authenticity, signature validation or provenance**. Repository
 README/developer docs/tests/tools are outside that package inventory; this split
