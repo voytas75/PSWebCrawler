@@ -10,14 +10,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - Added `Start-PSWebCrawler -Doctor`: separate offline diagnostic parameter set,
   structured checks and shipped SHA256 integrity baseline; no repair or fetch.
-  See [Doctor](../../docs/DOCTOR.md). Legacy display-version mismatch is reported,
+  See [Doctor](https://github.com/voytas75/PSWebCrawler/blob/master/docs/DOCTOR.md). Legacy display-version mismatch is reported,
   not silently corrected. Public exports and legacy crawl semantics unchanged.
 
 - Public export is `Start-PSWebCrawler` only, with aliases `PSWC` and `PSWebCrawler`. `Invoke-PSWebCrawler` is retained as private implementation, not a supported public API; internal contract tests remain.
 
 - Contracts/analysis only for the private new-API implementation: Site schema, URI/extraction analysis and bounded orchestration are qualified with counted private policy/transport fixtures, not enabled production fetching. Site fails closed with `CapabilityUnavailable`; Domains with `UnsupportedMode`.
 - Manual Windows PowerShell 5.1 Desktop acceptance passed all 78 existing outcomes: S2 32, S3 14, S4 16, baseline 7, dependency/import 5 and import-runtime 4; zero failed, pending or skipped. Real imports ran without enforced network isolation; this is not production transport or TLS qualification.
-- Legacy network-capable commands remain unchanged by this documentation scope decision. C2/B2 fetch integration, HTTPS/TLS and S7 Domains move to the [future roadmap](../../docs/ROADMAP.md), not gates for this contracts/analysis release.
+- Legacy network-capable commands remain unchanged by this documentation scope decision. C2/B2 fetch integration, HTTPS/TLS and S7 Domains move to the [future roadmap](https://github.com/voytas75/PSWebCrawler/blob/master/docs/ROADMAP.md), not gates for this contracts/analysis release.
 - Package metadata is prepared for 0.2.0; publication is manual and owned by the user. This is not a publication announcement.
 
 ## [0.1.0] - 2024.01.30

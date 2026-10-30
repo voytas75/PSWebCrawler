@@ -1,6 +1,23 @@
 # Offline diagnostics: read facts, never install, repair, fetch or set process exit status.
 function New-PSWCDoctorCheck($Name,$Status,$Expected,$Actual,$Message,$Hint) {
-    [pscustomobject][ordered]@{Name=$Name;Status=$Status;Expected=$Expected;Actual=$Actual;Message=$Message;Hint=$Hint}
+    # Static offline catalog: commands and links are advice, never executed here.
+    $docs='https://learn.microsoft.com/powershell/module/microsoft.powershell.core/get-module'
+    $verify='Get-Module PSWebCrawler | Format-List Version,Path,ExportedFunctions,ExportedAliases'
+    $impact='Package selection determines which implementation is being inspected.'
+    $action='Compare the loaded facts with the intended trusted package in a fresh process; retain the package if they agree.'
+    switch($Name){
+        ModuleVersion {$action='Compare manifest and loaded version; select the intended trusted manifest in a fresh process if they differ.'}
+        ModulePath {$action='Compare the loaded path with the intended trusted package; select that manifest explicitly in a fresh process.'}
+        PublicInterface {$impact='Unexpected exports or alias targets indicate a package/interface inconsistency.'; $action='Compare the documented interface with the same trusted package version; report unexplained differences to its maintainer.'}
+        LegacyDisplayVersion {$impact='The legacy display string is cosmetic, not the loaded package version.'; $action='Ask the maintainer to review the cosmetic display mismatch; use the loaded ModuleVersion, not the legacy display string.'}
+        PowerShell {$impact='Other hosts are not qualified by this Windows PowerShell 5.1 Desktop acceptance.'; $action='Inspect the host edition/version; use an existing Windows PowerShell 5.1 Desktop host for qualification.'; $verify='$PSVersionTable'; $docs='https://learn.microsoft.com/powershell/scripting/windows-powershell/starting-windows-powershell'}
+        DotNetQualification {$impact='New internal contracts require .NET 4.8 qualification; this is distinct from the legacy manifest minimum.'; $action='Review the installed Release value against the documented threshold; legacy compatibility is not blocked by this qualification warning alone.'; $verify="Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' -Name Release"; $docs='https://learn.microsoft.com/dotnet/framework/migration-guide/how-to-determine-which-versions-are-installed'}
+        PSParseHTML {$impact='Dependency selection affects the assembly actually used; missing prerequisites can prevent import before Doctor runs.'; $action='Inspect available and loaded versions in a fresh process; manually review dependency ownership against tested PSParseHTML 3.0.6 before any separately authorized change.'; $verify='Get-Module -ListAvailable PSParseHTML; Get-Module PSParseHTML'; $docs='https://www.powershellgallery.com/packages/PSParseHTML/3.0.6'}
+        HapIdentity {$impact='A dependency can load a different HAP assembly before the bundled DLL.'; $action='Review dependency ownership and actual parser behavior: passing smoke is not evidence of incompatibility. Do not automatically replace or downgrade HAP; the latest version is not necessarily qualified.'; $verify='[HtmlAgilityPack.HtmlDocument].Assembly | Format-List FullName,Location'; $docs='https://www.nuget.org/packages/HtmlAgilityPack'}
+        HtmlSmoke {$impact='This fixed in-memory parser check does not qualify fetching, DNS, HTTPS or transport.'; $action='If smoke fails, review loaded HAP identity and dependency/import errors; if it passes, retain that limited behavioral evidence without claiming transport qualification.'; $verify='Start-PSWebCrawler -Doctor | Select-Object -ExpandProperty Checks | Where-Object Name -eq HtmlSmoke'; $docs='https://github.com/zzzprojects/html-agility-pack'}
+        PackageIntegrity {$impact='Byte mismatches indicate drift against the shipped inventory, not a determination of authenticity.'; $action='Compare with or manually reinstall the same trusted package version after review; never regenerate the baseline to hide a mismatch.'; $verify='Start-PSWebCrawler -Doctor | Select-Object -ExpandProperty Checks | Where-Object Name -eq PackageIntegrity'; $docs='https://learn.microsoft.com/powershell/module/microsoft.powershell.utility/get-filehash'}
+    }
+    [pscustomobject][ordered]@{Name=$Name;Status=$Status;Expected=$Expected;Actual=$Actual;Message=$Message;Hint=$Hint;Impact=$impact;RecommendedAction=$action;VerificationCommand=$verify;DocumentationUrls=@($docs)}
 }
 function Get-PSWCDoctorStatus($Checks) {
     if(@($Checks | Where-Object Status -eq 'FAIL').Count){return 'FAIL'}
@@ -68,5 +85,5 @@ function Get-PSWCDoctor {
         $checks+=New-PSWCDoctorCheck 'HtmlSmoke' $(if($smoke -ceq 'Doctor & ready|/offline?a=1&b=2'){'PASS'}else{'FAIL'}) 'Doctor & ready|/offline?a=1&b=2' $smoke 'Actual fixed in-memory title/href/entity parsing; no URL request.' 'Review loaded HAP identity if parsing differs.'
     } catch {$checks+=New-PSWCDoctorCheck 'HtmlSmoke' 'FAIL' 'Doctor & ready|/offline?a=1&b=2' 'Parse unavailable' 'The in-memory HAP smoke failed.' 'Inspect dependency/import errors; no network fallback is attempted.'}
     $checks+=Test-PSWCPackageIntegrity $root
-    [pscustomobject][ordered]@{SchemaVersion='1.0';Status=(Get-PSWCDoctorStatus $checks);Healthy= -not(@($checks | Where-Object Status -eq 'FAIL').Count);Checks=@($checks)}
+    [pscustomobject][ordered]@{SchemaVersion='1.0';Status=(Get-PSWCDoctorStatus $checks);Healthy= -not(@($checks | Where-Object Status -eq 'FAIL').Count);Qualified=$false;Checks=@($checks)}
 }

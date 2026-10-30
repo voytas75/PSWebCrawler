@@ -7,7 +7,7 @@
                   },
                   {
                       "Path":  "docs/ReleaseNotes.md",
-                      "Sha256":  "DBBE7A572B52F1B372859B5FE5EE90CE53E51AAB1483BFC87A28D1F17524DF92"
+                      "Sha256":  "68FDC82D8059E21529A1A4B5CE145227F43138D72E72716EFA889FFBDAB34FC3"
                   },
                   {
                       "Path":  "images/PSWC.png",
@@ -27,7 +27,7 @@
                   },
                   {
                       "Path":  "Private/Get-PSWCDoctor.ps1",
-                      "Sha256":  "0778DD7001B4B28001B1E2F1338F57EB4B2ADB5E7784DB9DA16DD6073ED5696E"
+                      "Sha256":  "A7B0F383D00D4C99E5C29E2214364C1E3A38C0FE99716DE94F123647791730E6"
                   },
                   {
                       "Path":  "Private/Get-PSWCImageUrls.ps1",

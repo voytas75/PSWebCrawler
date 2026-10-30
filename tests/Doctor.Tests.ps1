@@ -1,6 +1,38 @@
 $root=Split-Path $PSScriptRoot -Parent
 Import-Module (Join-Path $root 'PSWebCrawler\PSWebCrawler.psd1') -Force -ErrorAction Stop
 Describe 'Offline Doctor' {
+    It 'D09 adds offline advice and preserves JSON arrays without claiming qualification' {
+        $r=Start-PSWebCrawler -Doctor
+        $r.Qualified | Should Be $false
+        $j=$r | ConvertTo-Json -Depth 6 | ConvertFrom-Json
+        foreach($c in $j.Checks){
+            [bool]$c.Impact | Should Be $true
+            [bool]$c.RecommendedAction | Should Be $true
+            [bool]$c.VerificationCommand | Should Be $true
+            @($c.DocumentationUrls).Count | Should BeGreaterThan 0
+            foreach($url in $c.DocumentationUrls){$url | Should Match '^https://(learn.microsoft.com/|www.powershellgallery.com/|www.nuget.org/|github.com/zzzprojects/html-agility-pack)'}
+        }
+    }
+    It 'D10 uses safe specific guidance for every known finding at each severity' {
+        InModuleScope PSWebCrawler {
+            foreach($status in @('PASS','WARN','FAIL')){
+                foreach($name in @('ModuleVersion','ModulePath','PublicInterface','LegacyDisplayVersion','PowerShell','DotNetQualification','PSParseHTML','HapIdentity','HtmlSmoke','PackageIntegrity')){
+                    $c=New-PSWCDoctorCheck $name $status 'expected' 'actual' 'message' 'hint'
+                    $c.Name | Should Be $name
+                    $c.Status | Should Be $status
+                    $c.RecommendedAction | Should Not Match 'Install-Module|Invoke-WebRequest|Update-PackageIntegrity|Set-ExecutionPolicy'
+                    $c.VerificationCommand | Should Not Match 'Install-|Invoke-WebRequest|Set-|Remove-|checkout-index'
+                    switch($name){
+                        PackageIntegrity {$c.RecommendedAction | Should Match 'same.*version'; $c.RecommendedAction | Should Match 'never regenerate'}
+                        HapIdentity {$c.RecommendedAction | Should Match 'passing smoke.*not.*incompatibility'; $c.RecommendedAction | Should Match 'latest.*not.*qualified'}
+                        PSParseHTML {$c.RecommendedAction | Should Match 'fresh process'; ($c.DocumentationUrls -contains 'https://www.powershellgallery.com/packages/PSParseHTML/3.0.6') | Should Be $true}
+                        LegacyDisplayVersion {$c.RecommendedAction | Should Match 'maintainer.*cosmetic'}
+                        DotNetQualification {$c.RecommendedAction | Should Match 'legacy.*not blocked'}
+                    }
+                }
+            }
+        }
+    }
     It 'D01 returns one structured object without URL or legacy initialization' {
         $r=@(Start-PSWebCrawler -Doctor)
         $r.Count | Should Be 1
@@ -71,5 +103,23 @@ Describe 'Offline Doctor' {
         ($r.Checks | Where-Object Name -eq 'LegacyDisplayVersion').Status | Should Be 'WARN'
         ($r.Checks | Where-Object Name -eq 'PSParseHTML').Actual | Should Match '3.0.6'
         ($r.Checks | Where-Object Name -eq 'HapIdentity').Actual.FullName | Should Match 'HtmlAgilityPack'
+    }
+}
+# Pester 3 module mocks survive within Describe; isolate prohibited write hooks.
+Describe 'Offline Doctor prohibited hooks' {
+    It 'D11 Doctor never invokes network installation repair or process launch hooks' {
+        InModuleScope PSWebCrawler {
+            Mock Invoke-WebRequest {throw 'Network forbidden'}
+            Mock Invoke-RestMethod {throw 'Network forbidden'}
+            Mock Install-Module {throw 'Installation forbidden'}
+            Mock Start-Process {throw 'Process launch forbidden'}
+            Mock Set-Content {throw 'Write forbidden'}
+            $null=Start-PSWebCrawler -Doctor
+            Assert-MockCalled Invoke-WebRequest -Times 0 -Exactly
+            Assert-MockCalled Invoke-RestMethod -Times 0 -Exactly
+            Assert-MockCalled Install-Module -Times 0 -Exactly
+            Assert-MockCalled Start-Process -Times 0 -Exactly
+            Assert-MockCalled Set-Content -Times 0 -Exactly
+        }
     }
 }

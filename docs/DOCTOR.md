@@ -14,8 +14,18 @@ DNS/HTTP, dependency installation, security changes, provider calls or repairs.
 It neither exits the process nor sets the caller's process exit code.
 
 `SchemaVersion='1.0'`, `Status=PASS|WARN|FAIL`, `Healthy` (no FAIL checks), and
-`Checks[]` are returned. Every check has `Name`, `Status`, `Expected`, `Actual`,
-`Message`, and `Hint`. FAIL wins over WARN; WARN is not a clean PASS.
+`Checks[]` and `Qualified=false` are returned. Healthy means no FAIL, not release,
+fetch, HTTPS or dependency compatibility qualification. Every check has `Name`,
+`Status`, `Expected`, `Actual`, `Message`, `Hint`, `Impact`, `RecommendedAction`,
+`VerificationCommand`, and `DocumentationUrls[]` (preserved at JSON depth 6).
+Advice is a static offline catalog for all ten checks and PASS/WARN/FAIL;
+commands and official documentation/package links are never executed or fetched.
+Actions require manual review and separate authorization: integrity drift means
+compare with the same trusted package version, never regenerate to hide it;
+dependency-selected HAP plus passing smoke does not establish incompatibility,
+and the latest downloadable HAP is not necessarily qualified. Missing import
+prerequisites cannot be diagnosed from inside an unimportable module. FAIL wins
+over WARN; WARN is not a clean PASS.
 Facts include the manifest versus loaded module version/path, exact public
 function and alias targets, the known legacy display version mismatch, native
 PowerShell 5.1 Desktop, installed .NET release, available/loaded PSParseHTML,
@@ -81,5 +91,5 @@ the module. Review the resulting inventory, then qualify a fresh byte-matched
 candidate. Do not run regeneration as an automatic repair of a failing Doctor.
 
 Focused native Pester cases are in `tests/Doctor.Tests.ps1`; the established
-78-case preproduction gate remains unchanged. Doctor tests add a separate eight
-cases, not a replacement for baseline or future transport qualification.
+78-case preproduction gate remains unchanged. Doctor tests add a separate eleven
+cases (D01-D11), not a replacement for baseline or future transport qualification.
