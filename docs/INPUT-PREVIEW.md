@@ -54,6 +54,57 @@ logging. Thus offline local execution is **not write-free**. Without explicit
 outputFolder it retains legacy output-folder discovery/creation. File content
 can change between validation and parsing; later I/O errors remain terminating.
 
+## Output root for every producing operation
+
+`-outputFolder` selects the root for **both** `PSWebCrawler.log` and timestamped
+session directories (including Settings.log and all selected result files).
+The module initializes that root itself; no module-session variable patch is needed.
+Explicit roots never invoke Documents output discovery/creation. Each explicit
+invocation selects its own root; omitting the option retains the legacy Documents
+fallback, not the previous explicit root. Existing files retain legacy append or
+overwrite behavior; timestamps still have second resolution.
+
+| Operation | outputFolder | Existing result files beneath the root |
+|---|---|---|
+| URL-only / ShowAllElements | Supported | UrlsUnique.txt, noHrefUnique.txt, InternalLinksUnique.txt, DomainsUnique.txt (Type-dependent) |
+| WebCrawl (Depth / Resolve) | Supported | UniqueURLs.txt, UniqueDomain.txt and page/domain-derived crawl files |
+| GetImageUrls | Supported | Images.txt; legacy failed-response Header.json |
+| GetHTMLMetadata | Supported | Header.json |
+| GetContactInformation | Supported | Contact.json |
+| GetHeadersAndValues | Supported | HTMLhead.json |
+| HtmlPath (local links) | Supported | The same Type-selected link files; no HTTP |
+| ShowCacheFolder | Supported | Opens the selected root; retains legacy session/log initialization |
+| DryRun / Preview | Supported for the above operations | Plans the resolved root without creating it or writing files |
+| No-argument menu / outputFolder alone | No output needed | No root, session or logs created |
+| Doctor | Excluded at parameter binding | Offline diagnostic object only; no output files |
+
+Paths are filesystem paths, resolved relative to the caller's current location.
+Spaces, Unicode and literal brackets are supported. Empty/null paths, non-filesystem
+providers and file-valued roots/ancestors terminate in English before initialization
+or HTTP. Later permission/I/O failures can still terminate. Import does not create
+an output root; existing dependency loading and process TLS initialization remain.
+
+```powershell
+PSWC -ShowAllElements -Type All -Url 'https://example.org/' -outputFolder 'C:\PSWC-results'
+PSWC -Url 'https://example.org/' -outputFolder 'C:\PSWC-results'
+PSWC -GetHTMLMetadata -Url 'https://example.org/' -outputFolder '.\metadata results'
+PSWC -ShowCacheFolder -outputFolder 'C:\PSWC-results'
+PSWC -GetContactInformation -Url 'https://example.org/' -outputFolder 'C:\PSWC-results' -DryRun
+```
+
+URL plus outputFolder selects single-page All analysis, not recursive crawling.
+Depth or Resolve explicitly selects the legacy crawl operation. Crawl page artifacts
+(converted text, formatted HTML and response-header files, sometimes described as
+cache data) remain beneath the selected root through recursive child calls. There
+is no separate PSWCCache helper or newly introduced persistent HTTP cache.
+Offline Depth=2 fixtures qualify path routing with counted HTTP responses and real
+writers, not production HTTP, recursive crawl accuracy or network isolation.
+No-anchor analysis creates no category files; when anchors exist, a selected empty
+category creates its existing empty file. Existing unrelated files are preserved.
+Legacy recursive session nesting and second-resolution timestamps are unchanged.
+These are local
+repository-candidate changes, not a claim of published Gallery availability.
+
 ## Single-page output contract
 
 `ShowAllElements`, URL-only entry and local HTML return exactly one

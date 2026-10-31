@@ -8,6 +8,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Current scope and acceptance
 
+- Completed outputFolder support for every existing producing operation and
+  ShowCacheFolder. The selected root now owns module logs and session/result
+  files from initialization onward, without external module-variable setup or
+  default Documents writes. Relative filesystem paths are resolved and invalid
+  roots rejected before effects; changing roots between calls is supported.
+  Doctor excludes outputFolder; previews and the help menu remain write-free.
+  Recursive child page/cache artifacts use the selected root, including literal
+  bracket paths for response-header writes. Native offline real-file fixtures
+  cover Depth=2 and empty categories; legacy crawl accuracy and production HTTP
+  remain outside this path-routing qualification.
+
 - Single-page link extraction now skips malformed HTTP hrefs with a generic
   warning, preserving valid links and the existing result schema and files.
 - HTTP connection/timeout exceptions are no longer automatically retried or

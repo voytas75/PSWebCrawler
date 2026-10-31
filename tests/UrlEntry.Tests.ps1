@@ -7,6 +7,7 @@ Describe 'Bounded URL entry' {
         Mock Write-Log {}
         Mock Get-PSWCoutPath {'C:\PSWC-fixture'}
         Mock New-PSWCoutPath {'C:\PSWC-fixture'}
+        Mock New-Item {}
         Mock Set-PSWCSessionFolder {'C:\PSWC-fixture\session'}
         Mock Add-Content {}
         Mock Out-File {}
@@ -35,7 +36,7 @@ Describe 'Bounded URL entry' {
             Assert-MockCalled Start-PSWCCrawl -Times 0 -Exactly -Scope It
             Assert-MockCalled Set-PSWCSessionFolder -Times 1 -Exactly -Scope It
             Assert-MockCalled Out-File -Times 4 -Exactly -Scope It
-            Assert-MockCalled Out-File -Times 1 -Exactly -Scope It -ParameterFilter {$FilePath -like '*InternalLinksUnique.txt'}
+            Assert-MockCalled Out-File -Times 1 -Exactly -Scope It -ParameterFilter {$LiteralPath -like '*InternalLinksUnique.txt'}
         }
         It 'U03 PSWC alias follows URL-only path' {
             PSWC -Url 'https://udt.gov.pl'
@@ -50,21 +51,38 @@ Describe 'Bounded URL entry' {
             Start-PSWebCrawler -Url 'https://fixture.test' -ShowAllElements -Type All
             Assert-MockCalled Get-PSWCHttpResponse -Times 1 -Exactly -Scope It
         }
+        It 'U17 ShowAllElements accepts explicit outputFolder before one-page execution' {
+            $result = @(PSWC -Url 'https://fixture.test' -ShowAllElements -Type All -outputFolder 'C:\PSWC-selected')
+            $result.Count | Should Be 1
+            $result[0].PSObject.TypeNames[0] | Should Be 'PSWebCrawler.LinkAnalysis'
+            Assert-MockCalled Get-PSWCHttpResponse -Times 1 -Exactly -Scope It
+            Assert-MockCalled Start-PSWCCrawl -Times 0 -Exactly -Scope It
+            Assert-MockCalled Set-PSWCSessionFolder -Times 1 -Exactly -Scope It -ParameterFilter {$FolderPath -eq 'C:\PSWC-selected'}
+        }
+        It 'U18 URL only with outputFolder retains All single-page routing' {
+            $result = @(PSWC -Url 'https://fixture.test' -outputFolder 'C:\PSWC-selected')
+            $result.Count | Should Be 1
+            $result[0].PSObject.TypeNames[0] | Should Be 'PSWebCrawler.LinkAnalysis'
+            Assert-MockCalled Get-PSWCHttpResponse -Times 1 -Exactly -Scope It
+            Assert-MockCalled Start-PSWCCrawl -Times 0 -Exactly -Scope It
+            Assert-MockCalled Set-PSWCSessionFolder -Times 1 -Exactly -Scope It -ParameterFilter {$FolderPath -eq 'C:\PSWC-selected'}
+            Assert-MockCalled Out-File -Times 4 -Exactly -Scope It
+        }
         It 'U06 explicit image extraction remains selected' {
             Start-PSWebCrawler -Url 'https://fixture.test' -GetImageUrls
-            Assert-MockCalled Out-File -Times 1 -Exactly -Scope It -ParameterFilter {$FilePath -like '*Images.txt'}
+            Assert-MockCalled Out-File -Times 1 -Exactly -Scope It -ParameterFilter {$LiteralPath -like '*Images.txt'}
         }
         It 'U07 explicit metadata remains selected' {
             Start-PSWebCrawler -Url 'https://fixture.test' -GetHTMLMetadata
-            Assert-MockCalled Out-File -Times 1 -Exactly -Scope It -ParameterFilter {$FilePath -like '*Header.json'}
+            Assert-MockCalled Out-File -Times 1 -Exactly -Scope It -ParameterFilter {$LiteralPath -like '*Header.json'}
         }
         It 'U08 explicit contact extraction remains selected' {
             Start-PSWebCrawler -Url 'https://fixture.test' -GetContactInformation
-            Assert-MockCalled Out-File -Times 1 -Exactly -Scope It -ParameterFilter {$FilePath -like '*Contact.json'}
+            Assert-MockCalled Out-File -Times 1 -Exactly -Scope It -ParameterFilter {$LiteralPath -like '*Contact.json'}
         }
         It 'U09 explicit headers remain selected' {
             Start-PSWebCrawler -Url 'https://fixture.test' -GetHeadersAndValues
-            Assert-MockCalled Out-File -Times 1 -Exactly -Scope It -ParameterFilter {$FilePath -like '*HTMLhead.json'}
+            Assert-MockCalled Out-File -Times 1 -Exactly -Scope It -ParameterFilter {$LiteralPath -like '*HTMLhead.json'}
         }
         It 'U10 Depth Resolve outputFolder preserve crawl dispatch' {
             Start-PSWebCrawler -Url 'https://fixture.test' -Depth 2 -Resolve -outputFolder 'C:\PSWC-fixture'

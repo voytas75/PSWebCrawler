@@ -85,7 +85,13 @@ initialization; it does not predict results. See the canonical
 [input and preview guide](docs/INPUT-PREVIEW.md) for supported options and limits.
 Import dependencies and process TLS initialization remain unchanged.
 Single-page URL extraction (`$links = PSWC -ShowAllElements -Type All -Url
-'https://example.test/page'`) and URL-only entry return the same data contract.
+'https://example.test/page' -outputFolder 'C:\PSWC-results'`) and URL-only entry
+(`PSWC -Url 'https://example.test/page' -outputFolder 'C:\PSWC-results'`)
+return the same data contract. Explicit outputFolder does not select recursive crawling.
+All existing producing operations and ShowCacheFolder accept outputFolder: the module
+initializes that root for both logs and session/result files, without external setup.
+Doctor excludes it; DryRun plans the selected root without writes. See the guide's
+[operation matrix](docs/INPUT-PREVIEW.md#output-root-for-every-producing-operation).
 The banner remains console information, not the assigned result.
 Menu example [3] shows assignment to `$result` followed by `.Hrefs`, `.Counts`
 and `.OutputFiles`; see the canonical

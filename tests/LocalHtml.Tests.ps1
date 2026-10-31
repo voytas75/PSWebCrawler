@@ -22,12 +22,12 @@ Describe 'Local HTML entry' {
    $r.Hrefs.Count | Should Be 1
    $r.NonHrefs.Count | Should Be 4
    $r.InternalLinks.Count | Should Be 0
-   Assert-MockCalled Out-File -Times 1 -Exactly -Scope It -ParameterFilter {$FilePath -like '*\UrlsUnique.txt'}
-   Assert-MockCalled Out-File -Times 1 -Scope It -ParameterFilter {$FilePath -like '*\noHrefUnique.txt'}
+   Assert-MockCalled Out-File -Times 1 -Exactly -Scope It -ParameterFilter {$LiteralPath -like '*\UrlsUnique.txt'}
+   Assert-MockCalled Out-File -Times 1 -Scope It -ParameterFilter {$LiteralPath -like '*\noHrefUnique.txt'}
    # Pester 3's pipeline mock records no process call for an empty collection.
    # Actual empty category-file creation is verified by the native output probe.
-   Assert-MockCalled Out-File -Times 0 -Exactly -Scope It -ParameterFilter {$FilePath -eq 'D:\scratch\local-output\session\InternalLinksUnique.txt'}
-   Assert-MockCalled Out-File -Times 1 -Exactly -Scope It -ParameterFilter {$FilePath -like '*\DomainsUnique.txt'}
+   Assert-MockCalled Out-File -Times 0 -Exactly -Scope It -ParameterFilter {$LiteralPath -eq 'D:\scratch\local-output\session\InternalLinksUnique.txt'}
+   Assert-MockCalled Out-File -Times 1 -Exactly -Scope It -ParameterFilter {$LiteralPath -like '*\DomainsUnique.txt'}
    Assert-MockCalled Get-PSWCDocumentElements -Times 1 -Exactly -Scope It
    Assert-MockCalled Get-PSWCGetHostAddresses -Times 0 -Exactly -Scope It
    Assert-MockCalled Get-PSWCHttpResponse -Times 0 -Exactly -Scope It
@@ -42,14 +42,14 @@ Describe 'Local HTML entry' {
   }
   It 'L03 Href writes only legacy Href file' {
    Start-PSWebCrawler -HtmlPath $script:localFixture -Type Href | Out-Null
-   Assert-MockCalled Out-File -Times 1 -Exactly -Scope It -ParameterFilter {$FilePath -like '*UrlsUnique.txt'}
+   Assert-MockCalled Out-File -Times 1 -Exactly -Scope It -ParameterFilter {$LiteralPath -like '*UrlsUnique.txt'}
   }
   It 'L04 noHref writes two categories' {
    Start-PSWebCrawler -HtmlPath $script:localFixture -BaseUrl 'https://base.test/dir/page' -Type noHref | Out-Null
-   Assert-MockCalled Out-File -Times 1 -Scope It -ParameterFilter {$FilePath -eq 'D:\scratch\local-output\session\noHrefUnique.txt'}
-   Assert-MockCalled Out-File -Times 1 -Scope It -ParameterFilter {$FilePath -eq 'D:\scratch\local-output\session\InternalLinksUnique.txt'}
-   Assert-MockCalled Out-File -Times 0 -Exactly -Scope It -ParameterFilter {$FilePath -eq 'D:\scratch\local-output\session\UrlsUnique.txt'}
-   Assert-MockCalled Out-File -Times 0 -Exactly -Scope It -ParameterFilter {$FilePath -eq 'D:\scratch\local-output\session\DomainsUnique.txt'}
+   Assert-MockCalled Out-File -Times 1 -Scope It -ParameterFilter {$LiteralPath -eq 'D:\scratch\local-output\session\noHrefUnique.txt'}
+   Assert-MockCalled Out-File -Times 1 -Scope It -ParameterFilter {$LiteralPath -eq 'D:\scratch\local-output\session\InternalLinksUnique.txt'}
+   Assert-MockCalled Out-File -Times 0 -Exactly -Scope It -ParameterFilter {$LiteralPath -eq 'D:\scratch\local-output\session\UrlsUnique.txt'}
+   Assert-MockCalled Out-File -Times 0 -Exactly -Scope It -ParameterFilter {$LiteralPath -eq 'D:\scratch\local-output\session\DomainsUnique.txt'}
   }
   It 'L05 onlyDomains type is extraction not DNS' {
    $r=PSWebCrawler -HtmlPath $script:localFixture -Type onlyDomains
