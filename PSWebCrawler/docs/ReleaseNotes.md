@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### Current scope and acceptance
 
+- Single-page link extraction now skips malformed HTTP hrefs with a generic
+  warning, preserving valid links and the existing result schema and files.
+- HTTP connection/timeout exceptions are no longer automatically retried or
+  treated as User-Agent errors. Header-format fallback occurs before the single
+  request, without the malformed header; HTTP error statuses remain unchanged.
+
 - Fixed single-page link extraction assignment: the banner uses host information,
   and ShowAllElements, URL-only and local HTML return one LinkAnalysis object
   with categories, counts, provenance and existing saved paths. Type selects

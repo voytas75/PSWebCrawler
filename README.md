@@ -17,6 +17,10 @@ implementation has offline-tested contracts, analysis and orchestration, **not
 production fetching**. Gallery installation and repository loading are separate
 paths; do not assume the published package includes the repository's Doctor.
 
+The repository candidate skips malformed single-page HTTP links with a warning.
+Request failures terminate without automatic retry; existing relative-link
+coverage is unchanged. See [input/output behavior](docs/INPUT-PREVIEW.md).
+
 ## What it is not
 
 - Not a supported Linux or PowerShell 7/Core crawler: the target is Windows

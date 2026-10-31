@@ -120,9 +120,17 @@ function Get-PSWCAllElements {
                     $href = $href -replace "mailto:", ""
                     # Filter out non-HTTP links
                     if ($href -match "^https?://") {
+                        $linkUri = $null
+                        if (-not [System.Uri]::TryCreate($href, [System.UriKind]::Absolute, [ref]$linkUri) -or
+                            $linkUri.Scheme -notin @('http', 'https') -or
+                            [string]::IsNullOrWhiteSpace($linkUri.Host) -or
+                            $linkUri.HostNameType -eq [System.UriHostNameType]::Unknown) {
+                            Write-Warning 'Skipped malformed HTTP link.'
+                            continue
+                        }
                         $hrefElements += $href
                         $hrefDomain = Get-PSWCSchemeAndDomain -url $href
-                        $linkedDomain = [System.Uri]::new($href).Host
+                        $linkedDomain = $linkUri.Host
                         if ($linkedDomain -ne $currentDomain) {
                             $domains += $hrefDomain
                         }
@@ -130,7 +138,13 @@ function Get-PSWCAllElements {
                     else {
                         if (($HtmlPath -and $BaseUrl -and $href -notmatch '^[a-zA-Z][a-zA-Z0-9+.-]*:') -or
                             (-not $HtmlPath -and $href -match "^/|^\.\./")) {
-                            $internalLink = [System.Uri]::new([System.Uri]::new($url), $href)
+                            $baseUri = $null
+                            $internalLink = $null
+                            if (-not [System.Uri]::TryCreate($url, [System.UriKind]::Absolute, [ref]$baseUri) -or
+                                -not [System.Uri]::TryCreate($baseUri, $href, [ref]$internalLink)) {
+                                Write-Warning 'Skipped malformed HTTP link.'
+                                continue
+                            }
                             $internalLinks += $internalLink.AbsoluteUri
                         }
                         $nonhrefelements += $href
@@ -1006,22 +1020,18 @@ function Get-PSWCHttpResponse {
     # $timeout is an integer that represents the number of seconds to wait for a response before timing out. It defaults to 10 seconds.
     
 
-    # Create an HttpClient with a custom User-Agent header
+    # Header-format fallback must not retry a failed request or mask client setup errors.
+    $httpClient = New-Object System.Net.Http.HttpClient
     try {
-        $httpClient = New-Object System.Net.Http.HttpClient
         $httpClient.DefaultRequestHeaders.Add("User-Agent", $userAgent)
-        # Set the timeout for the HttpClient
-        $httpClient.Timeout = [System.TimeSpan]::FromSeconds($timeout)
-        # Send an HTTP GET request to the URL
-        $response = $httpClient.GetAsync($url).Result # Stored the response in a variable before returning it
     }
-    catch {
-        # some user-agents (i.e. "Mozilla/4.0 (compatible; MSIE 6.0; Windows CE; IEMobile 7.11) Sprint:PPC6800") generate error 
-        $httpClient.Timeout = [System.TimeSpan]::FromSeconds($timeout)
-        # Send an HTTP GET request to the URL
-        $response = $httpClient.GetAsync($url).Result # Stored the response in a variable before returning it
-
+    catch [System.FormatException] {
+        # Preserve the legacy fallback: send without the malformed User-Agent.
+        [void]$httpClient.DefaultRequestHeaders.Remove("User-Agent")
     }
+    $httpClient.Timeout = [System.TimeSpan]::FromSeconds($timeout)
+    # Request exceptions propagate unchanged; there is no automatic retry.
+    $response = $httpClient.GetAsync($url).Result
     # Return the HttpClient instance and the response
     return $httpClient, $response
 

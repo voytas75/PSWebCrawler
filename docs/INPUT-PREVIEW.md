@@ -36,6 +36,16 @@ into InternalLinks; HTML `base` tags are ignored. BaseUrl must be absolute
 HTTP(S), is syntactically validated and normalized by System.Uri, never fetched.
 This is not a URL-normalization refactor or a hostile-HTML security audit.
 
+Single-page extraction skips malformed HTTP links before adding them to result
+arrays or files. Each skipped link emits `Skipped malformed HTTP link.` on the
+warning stream, without exposing the href or changing LinkAnalysis schema 1.0.
+URI conversion failures are isolated per anchor; file and parser errors still
+terminate. Existing URL-input relative-link coverage and domain/port behavior
+are unchanged. HTTP request exceptions (including connection failures and
+timeouts) terminate without automatic retry. A malformed User-Agent format
+retains the legacy header-only fallback: one request without that header.
+HTTP 404/500 remain status responses and do not produce a successful analysis.
+
 Local execution returns the single-page output contract below, with SourcePath
 retained as the actual local file path. Type selects saved files; arrays retain
 all extracted categories.
