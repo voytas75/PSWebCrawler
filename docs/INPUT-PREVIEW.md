@@ -57,8 +57,11 @@ $links.Hrefs
 $links.Counts
 $links.OutputFiles
 $links | ConvertTo-Json -Depth 6
-# Remote equivalent (makes one HTTP request and retains legacy file writes):
-$links = PSWC -ShowAllElements -Type All -Url 'https://example.test/page'
+# Menu example [3]: remote analysis makes a request and retains file writes.
+$result = PSWC -ShowAllElements -Type All -Url 'https://example.org/'
+$result.Hrefs
+$result.Counts
+$result.OutputFiles
 ```
 
 Fields: `SchemaVersion`, `Operation` (`ShowAllElements` or `LocalHtmlLinks`),

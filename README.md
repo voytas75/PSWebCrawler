@@ -82,8 +82,10 @@ initialization; it does not predict results. See the canonical
 Import dependencies and process TLS initialization remain unchanged.
 Single-page URL extraction (`$links = PSWC -ShowAllElements -Type All -Url
 'https://example.test/page'`) and URL-only entry return the same data contract.
-The banner remains console information, not the assigned result. See the
-[output contract](docs/INPUT-PREVIEW.md#single-page-output-contract).
+The banner remains console information, not the assigned result.
+Menu example [3] shows assignment to `$result` followed by `.Hrefs`, `.Counts`
+and `.OutputFiles`; see the canonical
+[output contract and capture example](docs/INPUT-PREVIEW.md#single-page-output-contract).
 
 ## Run
 

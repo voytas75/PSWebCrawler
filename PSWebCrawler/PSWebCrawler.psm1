@@ -1390,8 +1390,11 @@ function Show-PSWCMenu {
     Write-Host "[2] Crawling two levels from the given URL, only domains with Hypertext Reference (HREF) are taken. Output log and data folder path is given:"
     Write-Host "    PSWC -Url 'http://allafrica.com/tools/headlines/rdf/latest/headlines.rdf' -Depth 2 -onlyDomains -outputFolder 'c:\temp\crawl\loganddata\'" -ForegroundColor Green
     Write-Host ""
-    Write-Host "[3] Retrieves all href elements from the URL:"
-    Write-Host "    PSWC -ShowAllElements -Type All -Url 'https://www.w3schools.com/'" -ForegroundColor Green
+    Write-Host "[3] Captures structured link results from one page (retains output files):"
+    Write-Host "    `$result = PSWC -ShowAllElements -Type All -Url 'https://example.org/'" -ForegroundColor Green
+    Write-Host '    $result.Hrefs' -ForegroundColor Green
+    Write-Host '    $result.Counts' -ForegroundColor Green
+    Write-Host '    $result.OutputFiles' -ForegroundColor Green
     Write-Host ""
     Write-Host "[4] Retrieves the URLs of all images on the webpage:"
     Write-Host "    PSWC -GetImageUrls -url 'http://allafrica.com/tools/'" -ForegroundColor Green

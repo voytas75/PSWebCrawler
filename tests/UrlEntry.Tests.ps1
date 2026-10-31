@@ -105,6 +105,19 @@ Describe 'Bounded URL entry' {
     }
 }
 Describe 'Menu discoverability' {
+    It 'U16 displays literal structured result capture and properties' {
+        InModuleScope PSWebCrawler {
+            $script:captureLines=@()
+            Mock Write-Host {$script:captureLines += [string]$Object}
+            Show-PSWCMenu
+            ($script:captureLines -contains "    `$result = PSWC -ShowAllElements -Type All -Url 'https://example.org/'") | Should Be $true
+            foreach($property in @('Hrefs','Counts','OutputFiles')) {
+                ($script:captureLines -contains ('    $result.'+$property)) | Should Be $true
+            }
+            $numbers=@($script:captureLines | Where-Object {$_ -match '^\[(\d+)\]'} | ForEach-Object {[int]([regex]::Match($_,'^\[(\d+)\]').Groups[1].Value)})
+            ($numbers -join ',') | Should Be '1,2,3,4,5,6,7,8,9'
+        }
+    }
     It 'U15 keeps nine examples and includes English offline Doctor' {
         InModuleScope PSWebCrawler {
             $script:menuLines=@()
