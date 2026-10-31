@@ -12,12 +12,14 @@ extraction and saving URL/contact/metadata results. It uses
 Its public command is **`Start-PSWebCrawler`**, with aliases **`PSWC`** and
 **`PSWebCrawler`**. The repository also provides an offline `-Doctor` report.
 
-Repository metadata is **0.2.0, prepared but not published**. The new internal
-implementation has offline-tested contracts, analysis and orchestration, **not
-production fetching**. Gallery installation and repository loading are separate
-paths; do not assume the published package includes the repository's Doctor.
+**0.2.0 is published on [PowerShell Gallery](https://www.powershellgallery.com/packages/PSWebCrawler/0.2.0)**.
+The new internal implementation has offline-tested contracts, analysis and
+orchestration, **not production fetching**. The behavior and test evidence below
+refer to the repository baseline; the installed Gallery package has not been
+independently qualified or compared byte-for-byte with that baseline.
+Further changes belong to Unreleased; the next release version is undecided.
 
-The repository candidate skips malformed single-page HTTP links with a warning.
+The repository baseline skips malformed single-page HTTP links with a warning.
 Request failures terminate without automatic retry; existing relative-link
 coverage is unchanged. See [input/output behavior](docs/INPUT-PREVIEW.md).
 
@@ -44,16 +46,16 @@ production requirement. See [developer setup](readme-dev.md).
 
 ### Published package
 
-This installs the available published version, **not a promise of 0.2.0**:
+Install the published **0.2.0** explicitly in a fresh Windows PowerShell process:
 
 ```powershell
-Install-Module -Name PSWebCrawler -Scope CurrentUser
-Import-Module -Name PSWebCrawler -ErrorAction Stop
+Install-Module -Name PSWebCrawler -RequiredVersion 0.2.0 -Repository PSGallery -Scope CurrentUser
+Import-Module -Name PSWebCrawler -RequiredVersion 0.2.0 -ErrorAction Stop
 Get-Module PSWebCrawler | Select-Object Name, Version, Path
 ```
 
 Review dependency prompts; do not change repository trust or security settings
-just to complete installation. Publication of 0.2.0 remains manual.
+just to complete installation. Future publication remains manual and owner-controlled.
 
 ### Current repository
 
@@ -67,7 +69,7 @@ Import-Module .\PSWebCrawler\PSWebCrawler.psd1 -ErrorAction Stop
 Get-Module PSWebCrawler | Select-Object Name, Version, Path
 ```
 
-## Local HTML and preview (unpublished repository candidate)
+## Local HTML and preview (repository-qualified behavior)
 
 ```powershell
 $links = PSWC -HtmlPath 'C:\fixtures\saved page.html' -outputFolder 'C:\PSWC-results'
@@ -123,7 +125,7 @@ not install, repair or qualify networking. WARN may coexist with `Healthy=true`.
 Import itself still performs legacy TLS initialization. See [Doctor](docs/DOCTOR.md).
 
 Legacy URL operations can fetch live pages and write files. Use only with
-permission to access the target. In the current repository candidate, URL alone
+permission to access the target. In the current repository baseline, URL alone
 extracts links from one page (equivalent to `-ShowAllElements -Type All`), without
 following linked pages:
 

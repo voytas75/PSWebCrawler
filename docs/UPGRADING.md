@@ -1,7 +1,7 @@
 # Upgrading PSWebCrawler to 0.2.0
 
 ## Release status
-Package metadata is prepared for 0.2.0; not published or ready for Gallery installation yet. The earlier PSGallery inspection found latest published 0.0.5; the repository manifest is now 0.2.0, which this metadata-only preparation has not published. The publisher performs release publication. Commands below targeting 0.2.0 apply only after publication.
+[0.2.0 is published on PowerShell Gallery](https://www.powershellgallery.com/packages/PSWebCrawler/0.2.0). The earlier 0.0.5 Gallery inspection is historical; 0.2.0 is now the published baseline. The version-specific installation commands below apply now. Repository/candidate tests do not establish byte parity or independent qualification of an installed Gallery package. Further changes belong to Unreleased; the next release version is undecided.
 Current owner-approved release scope supersedes the earlier both-modes requirement: contracts/analysis only, without enabled production fetching in the new API. The only public function is `Start-PSWebCrawler`, with aliases `PSWC` and `PSWebCrawler`. `Invoke-PSWebCrawler` is private implementation for offline-testable Site contracts, analysis and orchestration; internal Site invocation fails closed with `CapabilityUnavailable`, and Domains with `UnsupportedMode`. Legacy `Start-PSWebCrawler` / `PSWC` / `PSWebCrawler` remain network-capable; this scope does not disable them. C2/B2 transport integration, HTTPS/TLS and S7 Domains are deferred to the [future roadmap](ROADMAP.md), not blockers for this release. The [manual Windows preproduction](WINDOWS-PREPRODUCTION.md) baseline passed 78/78; it does not qualify deferred features.
 
 ## Future enabled-fetch transport prerequisite (not a current release gate)
@@ -30,10 +30,10 @@ Get-Module -ListAvailable PSWebCrawler | Select-Object Name, Version, Path
 Get-Module PSWebCrawler | Select-Object Name, Version, Path
 ```
 2. Retain previous module version and back up scripts/historical outputs. Do not uninstall the previous version as part of upgrade.
-3. Verify Windows PowerShell 5.1 Desktop and dependency availability. Development acceptance used PSParseHTML 3.0.6; production dependency policy remains unpinned and must be reviewed before release.
+3. Verify Windows PowerShell 5.1 Desktop and dependency availability. Development acceptance used PSParseHTML 3.0.6; production dependency policy remains unpinned; review it before any future dependency change.
 4. Identify consumers of import-time directory creation, console text and legacy file formats. Run compatibility fixtures before switching automation.
 
-## Install/load after publication
+## Install/load published 0.2.0
 Use a fresh Windows PowerShell process; installation does not replace an already loaded module. Confirm package version and release notes first.
 ```powershell
 Find-Module -Name PSWebCrawler -RequiredVersion 0.2.0 -Repository PSGallery
@@ -64,4 +64,4 @@ Use the actual previous version if different. Rollback has not been exercised ag
 No wizard now: no confirmed required data transformation. If compatibility tests identify a necessary action, document it here and consider an opt-in diagnostic wizard: detect -> preview required actions -> explicit confirmation -> reversible apply -> readback. No automatic script rewriting or speculative conversion.
 
 ## Release gates
-Current contracts/analysis acceptance is the verified 78/78 manual Windows baseline, with its documented limits. C2/B2, HTTPS/TLS and S7 acceptance are deferred, not publication blockers for this scope. Published 0.0.5 full behavior/output compatibility, dependency portability and upgrade/rollback are not established by that baseline; do not advertise seamless migration. Package metadata is prepared for 0.2.0; before manual publication, review final package contents and retain accurate prerequisites and limitations. No package has been published by this slice.
+Current contracts/analysis acceptance is the verified 78/78 manual Windows baseline, with its documented limits. C2/B2, HTTPS/TLS and S7 acceptance are deferred, not publication blockers for this scope. Published 0.0.5 full behavior/output compatibility, dependency portability and upgrade/rollback are not established by that baseline; do not advertise seamless migration. 0.2.0 has been published by the user. That publication does not extend the repository/candidate verification boundary to an installed Gallery package. Review final package contents and retain accurate prerequisites and limitations before any future manual publication.

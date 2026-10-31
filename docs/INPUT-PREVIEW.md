@@ -1,8 +1,10 @@
-# Local HTML links and execution previews (repository candidate)
+# Local HTML links and execution previews (repository-qualified behavior)
 
-These flags belong to the prepared, unpublished 0.2.0 repository module. They
-are not a claim about the current Gallery package. Load the exact manifest in
-a fresh Windows PowerShell 5.1 Desktop process.
+[0.2.0 is published on Gallery](https://www.powershellgallery.com/packages/PSWebCrawler/0.2.0).
+This guide describes the repository baseline and its native offline evidence;
+the installed Gallery package has not been independently qualified or compared
+byte-for-byte with it. Load the exact manifest in a fresh Windows PowerShell
+5.1 Desktop process for repository verification.
 
 ## Local input
 
@@ -102,8 +104,8 @@ writers, not production HTTP, recursive crawl accuracy or network isolation.
 No-anchor analysis creates no category files; when anchors exist, a selected empty
 category creates its existing empty file. Existing unrelated files are preserved.
 Legacy recursive session nesting and second-resolution timestamps are unchanged.
-These are local
-repository-candidate changes, not a claim of published Gallery availability.
+These results qualify repository path routing, not independent acceptance of
+an installed Gallery package.
 
 ## Single-page output contract
 
@@ -165,7 +167,7 @@ Type, Depth, Resolve, OnlyDomains and BaseUrl; inactive fields are JSON null.
 Type applies only to ShowAllElements/local links; Depth and Resolve only to
 WebCrawl; OnlyDomains only to WebCrawl/ShowAllElements; BaseUrl only to local
 links with an explicit supplied base. Active effective defaults are preserved.
-SchemaVersion remains 1.0 for this unpublished feature contract; this does not
+SchemaVersion remains 1.0 for this feature contract; this does not
 change the Doctor schema. A URL-only plan has Depth=null: no hidden recursive
 crawl is implied.
 

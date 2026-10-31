@@ -4,7 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [0.2.0] - prepared, not published
+## [Unreleased]
+
+### Changed
+
+- Corrected documentation to record 0.2.0 Gallery publication and retain the
+  repository-versus-installed-package verification boundary. The next release
+  version is undecided; the module manifest remains 0.2.0.
+
+## [0.2.0] - published on PowerShell Gallery
 
 ### Current scope and acceptance
 
@@ -39,7 +47,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 - Contracts/analysis only for the private new-API implementation: Site schema, URI/extraction analysis and bounded orchestration are qualified with counted private policy/transport fixtures, not enabled production fetching. Site fails closed with `CapabilityUnavailable`; Domains with `UnsupportedMode`.
 - Manual Windows PowerShell 5.1 Desktop acceptance passed all 78 existing outcomes: S2 32, S3 14, S4 16, baseline 7, dependency/import 5 and import-runtime 4; zero failed, pending or skipped. Real imports ran without enforced network isolation; this is not production transport or TLS qualification.
 - Legacy network-capable commands remain unchanged by this documentation scope decision. C2/B2 fetch integration, HTTPS/TLS and S7 Domains move to the [future roadmap](https://github.com/voytas75/PSWebCrawler/blob/master/docs/ROADMAP.md), not gates for this contracts/analysis release.
-- Package metadata is prepared for 0.2.0; publication is manual and owned by the user. This is not a publication announcement.
+- [0.2.0 is published on PowerShell Gallery](https://www.powershellgallery.com/packages/PSWebCrawler/0.2.0).
+  The acceptance above describes repository/candidate evidence, not independent
+  installed Gallery qualification or verified package byte parity.
 
 ## [0.1.0] - 2024.01.30
 

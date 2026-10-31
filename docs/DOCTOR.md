@@ -1,4 +1,8 @@
-# Offline Doctor (prepared 0.2.0)
+# Offline Doctor (0.2.0 repository baseline)
+
+[0.2.0 is published on Gallery](https://www.powershellgallery.com/packages/PSWebCrawler/0.2.0).
+The checks and evidence here describe the repository baseline, not independent
+qualification or byte parity of an installed Gallery package.
 
 ```powershell
 Import-Module .\PSWebCrawler\PSWebCrawler.psd1 -ErrorAction Stop

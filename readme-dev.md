@@ -6,11 +6,12 @@ This guide covers development, retained legacy options and verification limits.
 ## Documentation owners
 
 - [Local input and preview](docs/INPUT-PREVIEW.md): bounded HtmlPath/BaseUrl,
-  Type categories, DryRun/Preview plan schema and native focused tests. Repository
-  candidate only; local parsing remains write-capable, preview is plan-only.
+  Type categories, DryRun/Preview plan schema and native focused tests. Evidence
+  is repository-qualified; local parsing remains write-capable, preview is plan-only.
 
 - [Release notes](PSWebCrawler/docs/ReleaseNotes.md): canonical version history;
-  0.2.0 is prepared, not a Gallery publication announcement.
+  0.2.0 is [published on Gallery](https://www.powershellgallery.com/packages/PSWebCrawler/0.2.0);
+  later changes belong to Unreleased, with the next version undecided.
 - [Doctor](docs/DOCTOR.md): diagnostic schema, checks and package required-file presence rules. Its inventory records paths only; Doctor does not compare file bytes. It cannot detect changed-present files or establish authenticity/provenance.
 - [Upgrading](docs/UPGRADING.md): compatibility, prerequisites and rollback limits.
 - [Roadmap](docs/ROADMAP.md): deferred C2/B2 fetch, HTTPS/TLS and S7 Domains work.
@@ -22,7 +23,7 @@ This guide covers development, retained legacy options and verification limits.
 Those documents remain authoritative; this guide is not a second changelog or
 release/transport acceptance record.
 
-## URL-only entry (repository candidate)
+## URL-only entry (repository-qualified behavior)
 
 `PSWC -Url 'https://udt.gov.pl'` selects the retained single-page
 `ShowAllElements` / `Type All` branch. One page response supplies its anchor

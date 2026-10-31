@@ -4,7 +4,7 @@
 
 The only public function is `Start-PSWebCrawler`, with aliases `PSWC` and
 `PSWebCrawler`; `Invoke-PSWebCrawler` remains private, not an operator API.
-The owner-approved current release is contracts/analysis only for that internal implementation,
+The published 0.2.0 release boundary is contracts/analysis only for that internal implementation,
 with no enabled production fetching. Site contracts, URI/extraction analysis and
 bounded orchestration have a 78/78 manual Windows baseline using counted private
 policy/transport fixtures. Site remains `CapabilityUnavailable`; Domains remains
@@ -39,7 +39,9 @@ Existing legacy `-onlyDomains` is not qualification of new `-Mode Domains`.
 
 ## Publication boundary
 
-Current package metadata is prepared for 0.2.0, not published, with manual
-publication owned by the user. This roadmap does not create a
-tag, GitHub Release or Gallery package. Publish only the explicitly selected
-contracts/analysis scope, without advertising deferred modes or transport.
+[0.2.0 is published on PowerShell Gallery](https://www.powershellgallery.com/packages/PSWebCrawler/0.2.0)
+and is closed. Subsequent changes belong to Unreleased; the next release version
+is undecided. Repository/candidate acceptance does not establish installed
+Gallery qualification or byte parity. Future publication remains manual and
+owned by the user; this roadmap does not authorize implementation, publication,
+a tag or a GitHub Release. Do not advertise deferred modes or transport.
